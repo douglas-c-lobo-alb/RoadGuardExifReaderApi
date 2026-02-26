@@ -1,6 +1,6 @@
 @ExifApi_HostAddress = http://localhost:5253
 
-GET {{ExifApi_HostAddress}}/api/roadguard-exifs/
+GET {{ExifApi_HostAddress}}/images-metadata/
 Accept: application/json
 
 ###
