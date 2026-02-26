@@ -19,6 +19,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseStaticFiles();
+
 app.MapGet("/images-metadata", (ExifService exifService) =>
 {
     return Results.Ok(exifService.GetAllImageMetadata());

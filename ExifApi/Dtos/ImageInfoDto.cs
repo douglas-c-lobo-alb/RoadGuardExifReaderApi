@@ -5,6 +5,7 @@ namespace ExifApi.Dtos;
 public class ImageInfoDto
 {
     public string? FileName { get; set; }
+    public string? FilePath { get; set; }
     public string? CameraMake { get; set; }
     public string? CameraModel { get; set; }
     public string? DateTaken { get; set; }
