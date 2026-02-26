@@ -10,7 +10,7 @@ public class ExifService
     {
         var imageInfoList = new List<ImageInfoDto>();
 
-        var imagesPath = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
+        var imagesPath = Path.Combine("wwwroot/images");
 
         var imagesFiles = System.IO.Directory.GetFiles(imagesPath, "*.*")
             .Where(f => f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)
@@ -33,6 +33,7 @@ public class ExifService
                 var dto = new ImageInfoDto
                 {
                     FileName = Path.GetFileName(file),
+                    FilePath = "/images/" + Path.GetFileName(file),
                     CameraMake = ifd0?.GetDescription(ExifDirectoryBase.TagMake),
                     CameraModel = ifd0?.GetDescription(ExifDirectoryBase.TagModel),
                     DateTaken = subIfd?.GetDescription(ExifDirectoryBase.TagDateTime),
