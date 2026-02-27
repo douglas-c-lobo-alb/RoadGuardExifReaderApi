@@ -21,9 +21,11 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
-app.MapGet("/images-metadata", (ExifService exifService) =>
+
+app.MapGet("/images-metadata", (ExifService exifService, string? noSort) =>
 {
-    return Results.Ok(exifService.GetAllImageMetadata());
+    return Results.Ok(exifService.GetAllImageMetadata(noSort));
 });
+
 
 app.Run();

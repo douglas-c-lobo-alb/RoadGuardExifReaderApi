@@ -13,7 +13,7 @@ public class ExifService
         _logger = logger;
         _env = env;
     }
-    public IEnumerable<ImageInfoDto> GetAllImageMetadata()
+    public IEnumerable<ImageInfoDto> GetAllImageMetadata(string? noSort = "no")
     {
         var imageInfoList = new List<ImageInfoDto>();
 
@@ -70,6 +70,8 @@ public class ExifService
                 _logger.LogError(e, "Error reading {File}", file);
             }
         }
+        if (noSort == "yes") return imageInfoList.Where(i => i.Altitude > 52);
+
         return imageInfoList.OrderBy(i => i.DateTaken);
     }
     private bool IsJpeg(string file)
