@@ -1,3 +1,4 @@
+using ExifApi.Endpoints;
 using ExifApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,9 +22,16 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
-app.MapGet("/images-metadata", (ExifService exifService) =>
+app.Use((context, next) =>
 {
-    return Results.Ok(exifService.GetAllImageMetadata());
+    context.Response.GetTypedHeaders().CacheControl = new Microsoft.Net.Http.Headers.CacheControlHeaderValue()
+    {
+        NoCache = true,
+        NoStore = true
+    };
+    return next.Invoke();
 });
+
+app.MapMetadataEndpoints();
 
 app.Run();
