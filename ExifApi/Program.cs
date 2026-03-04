@@ -1,5 +1,7 @@
+using ExifApi.Data;
 using ExifApi.Endpoints;
 using ExifApi.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +10,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ExifService>();
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+{
+    options.UseSqlite(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+    );
+    options.EnableDetailedErrors();
+});
 
 var app = builder.Build();
 
