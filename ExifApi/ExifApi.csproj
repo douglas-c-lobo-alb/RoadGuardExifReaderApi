@@ -29,6 +29,13 @@
 
   <ItemGroup>
     <None Include="wwwroot\images\*" />
+    <None Include="h3.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\H3Standard\H3Standard.csproj" />
   </ItemGroup>
 
 </Project>
