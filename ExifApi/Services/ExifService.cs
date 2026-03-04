@@ -4,6 +4,7 @@ using MetadataExtractor.Formats.Exif;
 
 namespace ExifApi.Services;
 
+// the purpose of this service is to retrieve the images metadata, i.e. lat and long
 public class ExifService
 {
     private readonly ILogger<ExifService> _logger;
