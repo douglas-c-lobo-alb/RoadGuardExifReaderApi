@@ -7,9 +7,9 @@ namespace ExifApi.Services;
 public class H3Service
 {
     private readonly ApplicationDbContext _context;
-    private readonly ILogger<ExifService> _logger;
+    private readonly ILogger<H3Service> _logger;
     private readonly IWebHostEnvironment _env;
-    public H3Service(ApplicationDbContext context, ILogger<ExifService> logger, IWebHostEnvironment env)
+    public H3Service(ApplicationDbContext context, ILogger<H3Service> logger, IWebHostEnvironment env)
     {
         _context = context;
         _logger = logger;
