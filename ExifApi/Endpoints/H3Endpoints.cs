@@ -12,15 +12,50 @@ public static class H3Endpoints
 
         group.MapGet("/cell", GetCell)
             .WithName("GetH3Cell")
-            .WithDescription("Converts lat/lng coordinates to an H3 cell index");
+            .WithDescription("Converts lat/lng to H3 cell index");
+
+        group.MapGet("/parent", GetParent)
+            .WithName("GetH3Parent")
+            .WithDescription("Returns the parent cell at a coarser resolution");
+
+        group.MapGet("/children", GetChildren)
+            .WithName("GetH3Children")
+            .WithDescription("Returns all children cells at a finer resolution");
+
+        group.MapGet("/disk", GetDisk)
+            .WithName("GetH3Disk")
+            .WithDescription("Returns all cells within k rings of the given cell");
+
+        group.MapPost("/generate", GenerateHexagons)
+            .WithName("GenerateHexagons")
+            .WithDescription("Generates H3 cells at res 11 for all images missing one");
     }
 
     private static IResult GetCell(double lat, double lng, int resolution, H3Service h3Service)
     {
         var result = h3Service.LatLngToCell(lat, lng, resolution);
-        if (result is null)
-            return Results.BadRequest("H3 conversion failed - check lat, lng and resolution (0-15)");
+        return result is null
+            ? Results.BadRequest("H3 conversion failed — check lat, lng and resolution (0-15)")
+            : Results.Ok(result);
+    }
 
-        return Results.Ok(result);
+    private static IResult GetParent(string index, int resolution, H3Service h3Service)
+    {
+        var result = h3Service.CellToParent(index, resolution);
+        return result is null
+            ? Results.BadRequest("Could not get parent — check index and resolution")
+            : Results.Ok(result);
+    }
+
+    private static IResult GetChildren(string index, int resolution, H3Service h3Service)
+        => Results.Ok(h3Service.CellToChildren(index, resolution));
+
+    private static IResult GetDisk(string index, int k, H3Service h3Service)
+        => Results.Ok(h3Service.GridDisk(index, k));
+
+    private static async Task<IResult> GenerateHexagons(H3Service h3Service)
+    {
+        await h3Service.GenerateHexagonsAsync();
+        return Results.Ok("Hexagons generated");
     }
 }
