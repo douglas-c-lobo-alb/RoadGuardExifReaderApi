@@ -1,7 +1,25 @@
 ﻿@page "/"
+@inject IHttpClientFactory HttpClientFactory
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Metadata</h1>
 
-Welcome to your new app.
+@if (json is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <pre>@json</pre>
+}
+
+@code {
+    private string? json;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = HttpClientFactory.CreateClient("ExifApi");
+        json = await client.GetStringAsync("metadata/");
+    }
+}
