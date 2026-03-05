@@ -13,16 +13,17 @@ public static class MetadataEndpoints
         group.MapGet("/", GetMetadataAll)
             .WithName("GetAllMetadata")
             .WithDescription("Retrieves all images metadata");
-        group.MapGet("/{id}", GetMetadataById)
+        group.MapGet("/{fileName}", GetMetadataById)
             .WithName("GetMetadataById");
     }
     private static IResult GetMetadataAll(ExifService exifService)
     {
         return Results.Ok(exifService.GetAllImageMetadata());
     }
-    private static IResult GetMetadataById(int id, ExifService exifService)
+    private static IResult GetMetadataById(string fileName, ExifService exifService)
     {
-        // to be implemented
-        return Results.Problem();
+        var result = exifService.GetImageMetadataByFileName(fileName);
+        if (result is null) return Results.NotFound();
+        return Results.Ok(result);
     }
 }
