@@ -1,0 +1,68 @@
+@page "/images/upload"
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Upload Image</PageTitle>
+
+<h1>Upload Image</h1>
+
+<div class="mb-3" style="max-width: 480px;">
+    <InputFile OnChange="OnFileSelected" accept=".jpg,.jpeg" class="form-control mb-3" />
+
+    <button class="btn btn-primary" @onclick="Upload" disabled="@(selectedFile is null || uploading)">
+        @(uploading ? "Uploading..." : "Upload")
+    </button>
+    <a href="/images" class="btn btn-secondary ms-2">Cancel</a>
+</div>
+
+@if (errorMessage is not null)
+{
+    <div class="alert alert-danger mt-3">@errorMessage</div>
+}
+
+@code {
+    private IBrowserFile? selectedFile;
+    private bool uploading;
+    private string? errorMessage;
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        errorMessage = null;
+    }
+
+    private async Task Upload()
+    {
+        if (selectedFile is null) return;
+
+        uploading = true;
+        errorMessage = null;
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var stream = selectedFile.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024);
+            content.Add(new StreamContent(stream), "file", selectedFile.Name);
+
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PostAsync("api/images/", content);
+
+            if (response.IsSuccessStatusCode)
+                NavigationManager.NavigateTo("/images");
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Upload failed ({response.StatusCode}): {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            uploading = false;
+        }
+    }
+}

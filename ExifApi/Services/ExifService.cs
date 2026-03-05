@@ -53,6 +53,8 @@ public class ExifService
         return imageInfoList.OrderBy(i => i.DateTaken);
     }
 
+    public ImageInfoDto? ExtractMetadata(string filePath) => GetImageMetadata(filePath);
+
     public ImageInfoDto? GetImageMetadata(string file)
     {
         try

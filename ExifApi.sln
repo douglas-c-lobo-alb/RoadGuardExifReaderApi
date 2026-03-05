@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExifApi", "ExifApi\ExifApi.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "H3Standard", "H3Standard\H3Standard.csproj", "{0E5F9FB7-82E8-4D77-8689-6FBD66F705AB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backoffice", "Backoffice\Backoffice.csproj", "{6CE262D7-3E4E-4F9A-B267-8189497E02A0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +43,18 @@ Global
 		{0E5F9FB7-82E8-4D77-8689-6FBD66F705AB}.Release|x64.Build.0 = Release|Any CPU
 		{0E5F9FB7-82E8-4D77-8689-6FBD66F705AB}.Release|x86.ActiveCfg = Release|Any CPU
 		{0E5F9FB7-82E8-4D77-8689-6FBD66F705AB}.Release|x86.Build.0 = Release|Any CPU
+		{6CE262D7-3E4E-4F9A-B267-8189497E02A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CE262D7-3E4E-4F9A-B267-8189497E02A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6CE262D7-3E4E-4F9A-B267-8189497E02A0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6CE262D7-3E4E-4F9A-B267-8189497E02A0}.Debug|x64.Build.0 = Debug|Any CPU
+		{6CE262D7-3E4E-4F9A-B267-8189497E02A0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6CE262D7-3E4E-4F9A-B267-8189497E02A0}.Debug|x86.Build.0 = Debug|Any CPU
+		{6CE262D7-3E4E-4F9A-B267-8189497E02A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6CE262D7-3E4E-4F9A-B267-8189497E02A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6CE262D7-3E4E-4F9A-B267-8189497E02A0}.Release|x64.ActiveCfg = Release|Any CPU
+		{6CE262D7-3E4E-4F9A-B267-8189497E02A0}.Release|x64.Build.0 = Release|Any CPU
+		{6CE262D7-3E4E-4F9A-B267-8189497E02A0}.Release|x86.ActiveCfg = Release|Any CPU
+		{6CE262D7-3E4E-4F9A-B267-8189497E02A0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
