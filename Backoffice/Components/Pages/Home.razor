@@ -20,6 +20,6 @@ else
     protected override async Task OnInitializedAsync()
     {
         var client = HttpClientFactory.CreateClient("ExifApi");
-        json = await client.GetStringAsync("metadata/");
+        json = await client.GetStringAsync("api/metadata/");
     }
 }
