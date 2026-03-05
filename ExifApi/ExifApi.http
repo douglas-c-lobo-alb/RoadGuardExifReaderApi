@@ -1,6 +1,25 @@
-@ExifApi_HostAddress = http://localhost:5253
+@ExifApi_HostAddress = http://localhost:8080
 
-GET {{ExifApi_HostAddress}}/images-metadata/
+### Get all images metadata (sorted by date)
+GET {{ExifApi_HostAddress}}/metadata/
+Accept: application/json
+
+###
+
+### Get all images metadata (unsorted, altitude > 52 filter)
+GET {{ExifApi_HostAddress}}/metadata/?noSort=yes
+Accept: application/json
+
+###
+
+### Get metadata for a single image by filename
+GET {{ExifApi_HostAddress}}/metadata/IMG_5637.jpg
+Accept: application/json
+
+###
+
+### Test H3 cell conversion from lat/lng
+GET {{ExifApi_HostAddress}}/testing/h3?lat=48.8566&lng=2.3522&resolution=9
 Accept: application/json
 
 ###

@@ -16,9 +16,9 @@ public static class MetadataEndpoints
         group.MapGet("/{fileName}", GetMetadataById)
             .WithName("GetMetadataById");
     }
-    private static IResult GetMetadataAll(ExifService exifService)
+    private static IResult GetMetadataAll(ExifService exifService, string? noSort = "no")
     {
-        return Results.Ok(exifService.GetAllImageMetadata());
+        return Results.Ok(exifService.GetAllImageMetadata(noSort));
     }
     private static IResult GetMetadataById(string fileName, ExifService exifService)
     {
