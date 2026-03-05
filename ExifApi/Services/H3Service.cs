@@ -8,7 +8,7 @@ namespace ExifApi.Services;
 
 public class H3Service
 {
-    private const int AppResolution = 11;
+    private const int AppResolution = 15;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<H3Service> _logger;
 
