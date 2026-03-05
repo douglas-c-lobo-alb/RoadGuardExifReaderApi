@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Authors>Shom, Arnaud Ménard</Authors>
+    <Company>Shom</Company>
+    <Description>c# binding of the H3 Index by Uber
+
+3.7.2.1 package version is linked to Uber H3 C lib version 3.7.2.1</Description>
+    <Copyright>2018 Shom, Arnaud Ménard</Copyright>
+    <AssemblyVersion>3.7.2.1</AssemblyVersion>
+    <FileVersion>3.7.2.1</FileVersion>
+    <PackageTags>H3</PackageTags>
+    <PackageId>H3</PackageId>
+    <Product>H3</Product>
+    <Version>3.7.2.1</Version>
+    <PackageLicenseUrl />
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="h3lib.dll" />
+    <None Remove="structs\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="H3LibInstanciate.cs" />
+    <Compile Remove="H3Structs\CoordIJK.cs" />
+    <Compile Remove="H3Structs\Boundaries.cs" />
+    <Compile Remove="Boundaries.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="structs\" />
+  </ItemGroup>
+	<Import Project="H3.3.2.0.targets" Condition="Exists('H3.3.2.0.targets')" />
+
+  <PropertyGroup Condition=" '$(OS)' == 'Windows_NT' ">
+    <DefineConstants>_WINDOWS</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <LangVersion>8.0</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <LangVersion>8.0</LangVersion>
+  </PropertyGroup>
+</Project>
