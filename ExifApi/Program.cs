@@ -49,8 +49,10 @@ app.Use((context, next) =>
     return next.Invoke();
 });
 
-app.MapMetadataEndpoints();
+var api = app.MapGroup("/api");
 
-app.MapTestingEndpoints();
+api.MapMetadataEndpoints();
+api.MapH3Endpoints();
+api.MapTestingEndpoints();
 
 app.Run();
