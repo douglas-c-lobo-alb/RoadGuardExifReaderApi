@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ExifService>();
+builder.Services.AddScoped<H3Service>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlite(
@@ -42,5 +43,7 @@ app.Use((context, next) =>
 });
 
 app.MapMetadataEndpoints();
+
+app.MapTestingEndpoints();
 
 app.Run();
