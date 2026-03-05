@@ -7,6 +7,10 @@
     <UserSecretsId>585b4cd4-07ac-4f20-9263-5697988b7902</UserSecretsId>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <UseAppHost>false</UseAppHost>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="MetadataExtractor" Version="2.9.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.24" />
