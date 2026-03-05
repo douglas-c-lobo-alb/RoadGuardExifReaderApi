@@ -1,5 +1,3 @@
-﻿using MetadataExtractor;
-
 namespace ExifApi.Dtos;
 
 public class ImageInfoDto
