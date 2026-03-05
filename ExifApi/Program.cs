@@ -11,6 +11,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ExifService>();
 builder.Services.AddScoped<H3Service>();
+builder.Services.AddScoped<ImageService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlite(
@@ -53,6 +54,7 @@ var api = app.MapGroup("/api");
 
 api.MapMetadataEndpoints();
 api.MapH3Endpoints();
+api.MapImageEndpoints();
 api.MapTestingEndpoints();
 
 app.Run();
