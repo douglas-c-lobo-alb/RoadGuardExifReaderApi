@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Api",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/ExifApi/ExifApi.csproj",
+            "launchConfigurationId": "TargetFramework=;https"
+        },
+        {
+            "name": "Backoffice",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/Backoffice/Backoffice.csproj",
+            "launchConfigurationId": "TargetFramework=;https"
+        }
+    ]
+}
