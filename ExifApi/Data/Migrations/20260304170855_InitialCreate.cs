@@ -27,7 +27,6 @@ namespace ExifApi.Data.Migrations
                     DateTaken = table.Column<string>(type: "TEXT", maxLength: 255, nullable: true),
                     Anomaly = table.Column<string>(type: "TEXT", nullable: false),
                     Metadata = table.Column<string>(type: "TEXT", nullable: false),
-                    H3Cell = table.Column<string>(type: "TEXT", nullable: true),
                     CreatedDate = table.Column<DateTime>(type: "TEXT", nullable: false),
                     LastModifiedDate = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
@@ -43,8 +42,7 @@ namespace ExifApi.Data.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     H3Index = table.Column<string>(type: "TEXT", nullable: false),
-                    Resolution = table.Column<int>(type: "INTEGER", nullable: false),
-                    ImageId = table.Column<int>(type: "INTEGER", nullable: false)
+                    ImageId = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -53,8 +51,7 @@ namespace ExifApi.Data.Migrations
                         name: "FK_Hexagons_Images_ImageId",
                         column: x => x.ImageId,
                         principalTable: "Images",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateIndex(

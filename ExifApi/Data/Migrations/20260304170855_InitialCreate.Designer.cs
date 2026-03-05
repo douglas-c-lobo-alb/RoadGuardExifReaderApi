@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ExifApi.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260304151122_InitialCreate")]
+    [Migration("20260304170855_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -30,10 +30,7 @@ namespace ExifApi.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("ImageId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Resolution")
+                    b.Property<int?>("ImageId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -82,9 +79,6 @@ namespace ExifApi.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("H3Cell")
-                        .HasColumnType("TEXT");
-
                     b.Property<DateTime>("LastModifiedDate")
                         .HasColumnType("TEXT");
 
@@ -109,9 +103,7 @@ namespace ExifApi.Data.Migrations
                 {
                     b.HasOne("ExifApi.Data.Entities.Image", "Image")
                         .WithOne("Hexagon")
-                        .HasForeignKey("ExifApi.Data.Entities.Hexagon", "ImageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ExifApi.Data.Entities.Hexagon", "ImageId");
 
                     b.Navigation("Image");
                 });
