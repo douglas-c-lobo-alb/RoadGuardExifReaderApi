@@ -5,9 +5,9 @@ namespace ExifApi.Endpoints;
 
 public static class MetadataEndpoints
 {
-    public static void MapMetadataEndpoints(this WebApplication app)
+    public static void MapMetadataEndpoints(this RouteGroupBuilder api)
     {
-        RouteGroupBuilder group = app.MapGroup("/metadata")
+        RouteGroupBuilder group = api.MapGroup("/metadata")
             .WithName("Metadata")
             .WithOpenApi();
         group.MapGet("/", GetMetadataAll)

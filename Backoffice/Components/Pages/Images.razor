@@ -1,0 +1,135 @@
+@page "/images"
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Images</PageTitle>
+
+<h1>Images</h1>
+
+<div class="mb-3">
+    <a href="/images/upload" class="btn btn-primary">Upload Image</a>
+    <button class="btn btn-secondary ms-2" @onclick="GenerateHexagons" disabled="@generating">
+        @(generating ? "Generating..." : "Generate Hexagons")
+    </button>
+</div>
+
+@if (errorMessage is not null)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+@if (successMessage is not null)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (images is null)
+{
+    <p>Loading...</p>
+}
+else if (!images.Any())
+{
+    <p>No images registered yet.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>File</th>
+                <th>Date Taken</th>
+                <th>Camera</th>
+                <th>Lat / Lng</th>
+                <th>Altitude</th>
+                <th>H3 Index</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var img in images)
+            {
+                <tr>
+                    <td>@img.Id</td>
+                    <td>@img.FileName</td>
+                    <td>@img.DateTaken</td>
+                    <td>@img.CameraMake @img.CameraModel</td>
+                    <td>@img.Latitude / @img.Longitude</td>
+                    <td>@img.Altitude</td>
+                    <td>@(img.Hexagon?.H3Index ?? "—")</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteImage(img.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ImageRow>? images;
+    private string? errorMessage;
+    private string? successMessage;
+    private bool generating;
+
+    protected override async Task OnInitializedAsync() => await LoadImages();
+
+    private async Task LoadImages()
+    {
+        errorMessage = null;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            images = await client.GetFromJsonAsync<List<ImageRow>>("api/images/") ?? [];
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load images: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteImage(int id)
+    {
+        errorMessage = null;
+        successMessage = null;
+        var client = HttpClientFactory.CreateClient("ExifApi");
+        var response = await client.DeleteAsync($"api/images/{id}");
+        if (response.IsSuccessStatusCode)
+            await LoadImages();
+        else
+            errorMessage = $"Delete failed ({response.StatusCode})";
+    }
+
+    private async Task GenerateHexagons()
+    {
+        generating = true;
+        errorMessage = null;
+        successMessage = null;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PostAsync("api/h3/generate", null);
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = "Hexagons generated successfully";
+                await LoadImages();
+            }
+            else
+                errorMessage = $"Generation failed ({response.StatusCode})";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            generating = false;
+        }
+    }
+
+    private record HexagonRow(string H3Index, int Resolution);
+    private record ImageRow(int Id, string FileName, string FilePath,
+        string? CameraMake, string? CameraModel, string? DateTaken,
+        decimal? Latitude, decimal? Longitude, double? Altitude,
+        string Anomaly, HexagonRow? Hexagon);
+}
