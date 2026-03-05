@@ -32,7 +32,8 @@ public class ExifService
             return Enumerable.Empty<ImageInfoDto>();
         }
 
-        var imagesFiles = System.IO.Directory.EnumerateFiles(imagesPath, "*.*").Where(IsJpeg);
+        var imagesFiles = System.IO.Directory.EnumerateFiles(imagesPath, "*.*").Where(IsJpeg).ToList();
+        _logger.LogInformation("Found {Count} JPEG files in {Path}", imagesFiles.Count, imagesPath);
 
         foreach (var file in imagesFiles)
         {
@@ -40,7 +41,14 @@ public class ExifService
             if (dto is not null) imageInfoList.Add(dto);
         }
 
-        if (noSort?.ToLower() == "yes") return imageInfoList.Where(i => i.Altitude > 52);
+        _logger.LogInformation("Successfully parsed {Parsed}/{Total} images", imageInfoList.Count, imagesFiles.Count);
+
+        if (noSort?.ToLower() == "yes")
+        {
+            var filtered = imageInfoList.Where(i => i.Altitude > 52).ToList();
+            _logger.LogInformation("Altitude filter applied: {Filtered}/{Total} images above 52m", filtered.Count, imageInfoList.Count);
+            return filtered;
+        }
 
         return imageInfoList.OrderBy(i => i.DateTaken);
     }
@@ -51,18 +59,28 @@ public class ExifService
         {
             var directories = ImageMetadataReader.ReadMetadata(file);
             var fileName = Path.GetFileName(file);
+            _logger.LogDebug("Reading EXIF metadata from {FileName}", fileName);
             var ifd0 = directories.OfType<ExifIfd0Directory>().FirstOrDefault();
             var subIfd = directories.OfType<ExifSubIfdDirectory>().FirstOrDefault();
             var cameraMake = ifd0?.GetDescription(ExifDirectoryBase.TagMake);
             var cameraModel = ifd0?.GetDescription(ExifDirectoryBase.TagModel);
             var gps = directories.OfType<GpsDirectory>().FirstOrDefault();
             var geo = gps is not null && gps.TryGetGeoLocation(out var loc) ? loc : (GeoLocation?)null;
+
+            if (gps is null)
+                _logger.LogWarning("No GPS directory found in {FileName}", fileName);
+            else if (!geo.HasValue)
+                _logger.LogWarning("GPS directory present but no valid geo location in {FileName}", fileName);
+
             var altitude = gps?.TryGetRational(GpsDirectory.TagAltitude, out var altRational) == true
                 ? (gps?.GetInt32(GpsDirectory.TagAltitudeRef) == 1 ? -altRational.ToDouble() : altRational.ToDouble())
                 : (double?)null;
             var dateTaken = subIfd?.GetDescription(ExifDirectoryBase.TagDateTimeOriginal)
                 ?? ifd0?.GetDescription(ExifDirectoryBase.TagDateTimeOriginal)
                 ?? ifd0?.GetDescription(ExifDirectoryBase.TagDateTime);
+
+            if (dateTaken is null)
+                _logger.LogWarning("No date taken found in {FileName}", fileName);
 
             return new ImageInfoDto
             {
@@ -85,9 +103,18 @@ public class ExifService
 
     public ImageInfoDto? GetImageMetadataByFileName(string fileName)
     {
-        if (string.IsNullOrEmpty(_env.WebRootPath)) return null;
+        if (string.IsNullOrEmpty(_env.WebRootPath))
+        {
+            _logger.LogError("WebRootPath is not set, cannot resolve {FileName}", fileName);
+            return null;
+        }
         var filePath = Path.Combine(_env.WebRootPath, "images", fileName);
-        if (!File.Exists(filePath)) return null;
+        if (!File.Exists(filePath))
+        {
+            _logger.LogWarning("File not found: {FilePath}", filePath);
+            return null;
+        }
+        _logger.LogInformation("Fetching metadata for {FileName}", fileName);
         return GetImageMetadata(filePath);
     }
 

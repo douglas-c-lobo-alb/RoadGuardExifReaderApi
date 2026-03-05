@@ -17,6 +17,6 @@ public class H3Service
     }
     public void ConvertLatLngToH3Cell(IEnumerable<ImageInfoDto> imageInfoDtos)
     {
-        // to be implemented
+        _logger.LogWarning("ConvertLatLngToH3Cell called but not yet implemented");
     }
 }

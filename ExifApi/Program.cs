@@ -21,6 +21,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 var app = builder.Build();
 
+var startupLogger = app.Logger;
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(connectionString))
+    startupLogger.LogError("DefaultConnection string is missing from configuration");
+else
+    startupLogger.LogInformation("Database connection string resolved: {ConnectionString}", connectionString);
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
