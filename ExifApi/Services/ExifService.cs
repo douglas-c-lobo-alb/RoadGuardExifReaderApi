@@ -70,9 +70,13 @@ public class ExifService
             var altitude = gps?.TryGetRational(GpsDirectory.TagAltitude, out var altRational) == true
                 ? (gps?.GetInt32(GpsDirectory.TagAltitudeRef) == 1 ? -altRational.ToDouble() : altRational.ToDouble())
                 : (double?)null;
-            var dateTaken = subIfd?.GetDescription(ExifDirectoryBase.TagDateTimeOriginal)
-                ?? ifd0?.GetDescription(ExifDirectoryBase.TagDateTimeOriginal)
-                ?? ifd0?.GetDescription(ExifDirectoryBase.TagDateTime);
+
+            DateTime dtVal;
+            DateTime? dateTaken =
+                subIfd?.TryGetDateTime(ExifDirectoryBase.TagDateTimeOriginal, out dtVal) == true ? dtVal
+                : ifd0?.TryGetDateTime(ExifDirectoryBase.TagDateTimeOriginal, out dtVal) == true ? dtVal
+                : ifd0?.TryGetDateTime(ExifDirectoryBase.TagDateTime, out dtVal) == true ? dtVal
+                : null;
 
             if (dateTaken is null)
                 _logger.LogWarning("No date taken found in {FileName}", fileName);

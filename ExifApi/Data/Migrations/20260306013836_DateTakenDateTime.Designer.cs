@@ -3,6 +3,7 @@ using System;
 using ExifApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ExifApi.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260306013836_DateTakenDateTime")]
+    partial class DateTakenDateTime
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.13");
@@ -46,6 +49,10 @@ namespace ExifApi.Data.Migrations
 
                     b.Property<double?>("Altitude")
                         .HasColumnType("REAL");
+
+                    b.Property<string>("Anomaly")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("CameraMake")
                         .HasMaxLength(255)
@@ -82,6 +89,10 @@ namespace ExifApi.Data.Migrations
                         .HasPrecision(10, 6)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.ToTable("Images");
@@ -94,32 +105,6 @@ namespace ExifApi.Data.Migrations
                         .HasForeignKey("ExifApi.Data.Entities.Hexagon", "ImageId");
 
                     b.Navigation("Image");
-                });
-
-            modelBuilder.Entity("ExifApi.Data.Entities.Image", b =>
-                {
-                    b.OwnsOne("ExifApi.Data.Entities.AnomalyData", "Anomaly", b1 =>
-                        {
-                            b1.Property<int>("ImageId")
-                                .HasColumnType("INTEGER");
-
-                            b1.Property<string>("Notes")
-                                .HasColumnType("TEXT");
-
-                            b1.HasKey("ImageId");
-
-                            b1.ToTable("Images");
-
-                            b1
-                                .ToJson("Anomaly")
-                                .HasColumnType("TEXT");
-
-                            b1.WithOwner()
-                                .HasForeignKey("ImageId");
-                        });
-
-                    b.Navigation("Anomaly")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("ExifApi.Data.Entities.Image", b =>

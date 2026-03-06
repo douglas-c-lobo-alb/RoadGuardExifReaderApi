@@ -21,10 +21,8 @@ public class Image
     public string? CameraMake { get; set; }
     [MaxLength(255)]
     public string? CameraModel { get; set; }
-    [MaxLength(255)]
-    public string? DateTaken { get; set; }
-    public string Anomaly { get; set; } = string.Empty;
-    public string Metadata { get; set; } = "{}";
+    public DateTime? DateTaken { get; set; }
+    public AnomalyData Anomaly { get; set; } = new();
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     public DateTime LastModifiedDate { get; set; } = DateTime.UtcNow;
     // Navigation property
