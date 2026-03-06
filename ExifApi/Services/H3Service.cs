@@ -87,16 +87,10 @@ public class H3Service
         _logger.LogInformation("GenerateHexagons: saved hexagons for {Count} images", images.Count);
     }
 
-    private static HexagonDto ToDto(ulong h3Raw)
+    private static HexagonDto ToDto(ulong h3Raw) => new()
     {
-        var center = H3Net.CellToLatLng(h3Raw);
-        return new HexagonDto
-        {
-            H3Index = H3Net.H3ToString(h3Raw),
-            Resolution = H3Net.GetResolution(h3Raw),
-            Lat = center.LatWGS84,
-            Lon = center.LngWGS84
-        };
-    }
+        H3Index = H3Net.H3ToString(h3Raw),
+        Resolution = H3Net.GetResolution(h3Raw)
+    };
 }
 
