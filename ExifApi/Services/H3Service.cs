@@ -18,10 +18,10 @@ public class H3Service
         _logger = logger;
     }
 
-    public HexagonDto? LatLngToCell(double lat, double lng, int resolution)
+    public HexagonDto? LatLngToCell(double lat, double lon, int resolution)
     {
-        _logger.LogInformation("H3 conversion: lat={Lat}, lng={Lng}, res={Resolution}", lat, lng, resolution);
-        var h3Raw = H3Net.LatLngToCell(lat, lng, resolution);
+        _logger.LogInformation("H3 conversion: lat={Lat}, lon={Lon}, res={Resolution}", lat, lon, resolution);
+        var h3Raw = H3Net.LatLngToCell(lat, lon, resolution);
         if (h3Raw == 0)
         {
             _logger.LogWarning("H3 conversion returned 0 — invalid input?");
@@ -94,7 +94,7 @@ public class H3Service
             H3Index = H3Net.H3ToString(h3Raw),
             Resolution = H3Net.GetResolution(h3Raw),
             Lat = center.LatWGS84,
-            Lng = center.LngWGS84
+            Lon = center.LngWGS84
         };
     }
 }

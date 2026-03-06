@@ -12,7 +12,7 @@ public static class H3Endpoints
 
         group.MapGet("/cell", GetCell)
             .WithName("GetH3Cell")
-            .WithDescription("Converts lat/lng to H3 cell index");
+            .WithDescription("Converts lat/lon to H3 cell index");
 
         group.MapGet("/parent", GetParent)
             .WithName("GetH3Parent")
@@ -31,11 +31,11 @@ public static class H3Endpoints
             .WithDescription("Generates H3 cells at res 11 for all images missing one");
     }
 
-    private static IResult GetCell(double lat, double lng, int resolution, H3Service h3Service)
+    private static IResult GetCell(double lat, double lon, int resolution, H3Service h3Service)
     {
-        var result = h3Service.LatLngToCell(lat, lng, resolution);
+        var result = h3Service.LatLngToCell(lat, lon, resolution);
         return result is null
-            ? Results.BadRequest("H3 conversion failed — check lat, lng and resolution (0-15)")
+            ? Results.BadRequest("H3 conversion failed — check lat, lon and resolution (0-15)")
             : Results.Ok(result);
     }
 

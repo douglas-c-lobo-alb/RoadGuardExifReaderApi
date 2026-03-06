@@ -38,16 +38,16 @@ namespace H3Standard
             }
             return h3Index;
         }
-        public static ulong LatLngToCell(double lat, double lng, int resolution)
+        public static ulong LatLngToCell(double lat, double lon, int resolution)
         {
-            var latLng = new LatLng { lat = DegToRad(lat), lng = DegToRad(lng) };
+            var latLng = new LatLng { lat = DegToRad(lat), lng = DegToRad(lon) };
             return H3Net.LatLngToCell(latLng, resolution);
         }
 
         [Obsolete("Use LatLngToCell instead")]
-        public static ulong GeoToH3(double lat, double lng, int resolution)
+        public static ulong GeoToH3(double lat, double lon, int resolution)
         {
-            return LatLngToCell(lat, lng, resolution);
+            return LatLngToCell(lat, lon, resolution);
         }
 
         public static LatLng CellToLatLng(ulong h3Index)
