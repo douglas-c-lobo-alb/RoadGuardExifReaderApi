@@ -6,4 +6,5 @@ public class HexagonDto
     public double Lon { get; set; }
     public int Resolution { get; set; }
     public string H3Index { get; set; } = string.Empty;
+    public int? ImageId { get; set; }
 }

@@ -14,7 +14,7 @@ public class ExifService
         _logger = logger;
         _env = env;
     }
-    public IEnumerable<ImageInfoDto> GetAllImageMetadata(string? noSort = "no")
+    public IEnumerable<ImageInfoDto> GetAllImageMetadata()
     {
         var imageInfoList = new List<ImageInfoDto>();
 
@@ -42,13 +42,6 @@ public class ExifService
         }
 
         _logger.LogInformation("Successfully parsed {Parsed}/{Total} images", imageInfoList.Count, imagesFiles.Count);
-
-        if (noSort?.ToLower() == "yes")
-        {
-            var filtered = imageInfoList.Where(i => i.Altitude > 52).ToList();
-            _logger.LogInformation("Altitude filter applied: {Filtered}/{Total} images above 52m", filtered.Count, imageInfoList.Count);
-            return filtered;
-        }
 
         return imageInfoList.OrderBy(i => i.DateTaken);
     }

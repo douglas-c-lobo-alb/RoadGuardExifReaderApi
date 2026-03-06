@@ -8,14 +8,15 @@ namespace ExifApi.Services;
 
 public class H3Service
 {
-    private const int AppResolution = 15;
+    private readonly int _appResolution;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<H3Service> _logger;
 
-    public H3Service(ApplicationDbContext context, ILogger<H3Service> logger)
+    public H3Service(ApplicationDbContext context, ILogger<H3Service> logger, IConfiguration configuration)
     {
         _context = context;
         _logger = logger;
+        _appResolution = configuration.GetValue<int>("H3:DefaultResolution", 15);
     }
 
     public HexagonDto? LatLngToCell(double lat, double lon, int resolution)
@@ -69,7 +70,7 @@ public class H3Service
 
         foreach (var image in images)
         {
-            var h3Raw = H3Net.LatLngToCell((double)image.Latitude!, (double)image.Longitude!, AppResolution);
+            var h3Raw = H3Net.LatLngToCell((double)image.Latitude!, (double)image.Longitude!, _appResolution);
             if (h3Raw == 0)
             {
                 _logger.LogWarning("H3 conversion failed for image {Id}", image.Id);

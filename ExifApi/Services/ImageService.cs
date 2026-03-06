@@ -1,6 +1,7 @@
 using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Dtos;
+using H3Standard;
 using Microsoft.EntityFrameworkCore;
 
 namespace ExifApi.Services;
@@ -104,10 +105,20 @@ public class ImageService
         Longitude = image.Longitude,
         Altitude = image.Altitude,
         Anomaly = image.Anomaly,
-        Hexagon = image.Hexagon is null ? null : new HexagonDto
-        {
-            H3Index = image.Hexagon.H3Index,
-            Resolution = image.Hexagon.Resolution,
-        }
+        Hexagon = image.Hexagon is null ? null : ToHexagonDto(image.Hexagon)
     };
+
+    private static HexagonDto ToHexagonDto(Data.Entities.Hexagon hexagon)
+    {
+        var h3Raw = H3Net.StringToH3(hexagon.H3Index);
+        var center = H3Net.CellToLatLng(h3Raw);
+        return new HexagonDto
+        {
+            H3Index = hexagon.H3Index,
+            Resolution = hexagon.Resolution,
+            ImageId = hexagon.ImageId,
+            Lat = center.LatWGS84,
+            Lon = center.LngWGS84
+        };
+    }
 }
