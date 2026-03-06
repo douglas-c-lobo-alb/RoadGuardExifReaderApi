@@ -28,7 +28,7 @@ public static class H3Endpoints
 
         group.MapPost("/generate", GenerateHexagons)
             .WithName("GenerateHexagons")
-            .WithDescription("Generates H3 cells at res 11 for all images missing one");
+            .WithDescription("Generates H3 cells at res 15 for all images missing one");
     }
 
     private static IResult GetCell(double lat, double lon, int resolution, H3Service h3Service)
