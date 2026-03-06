@@ -14,7 +14,7 @@ public class ExifService
         _logger = logger;
         _env = env;
     }
-    public IEnumerable<ImageInfoDto> GetAllImageMetadata(string? noSort = "no")
+    public IEnumerable<ImageInfoDto> GetAllImageMetadata()
     {
         var imageInfoList = new List<ImageInfoDto>();
 
@@ -43,13 +43,6 @@ public class ExifService
 
         _logger.LogInformation("Successfully parsed {Parsed}/{Total} images", imageInfoList.Count, imagesFiles.Count);
 
-        if (noSort?.ToLower() == "yes")
-        {
-            var filtered = imageInfoList.Where(i => i.Altitude > 52).ToList();
-            _logger.LogInformation("Altitude filter applied: {Filtered}/{Total} images above 52m", filtered.Count, imageInfoList.Count);
-            return filtered;
-        }
-
         return imageInfoList.OrderBy(i => i.DateTaken);
     }
 
@@ -77,9 +70,13 @@ public class ExifService
             var altitude = gps?.TryGetRational(GpsDirectory.TagAltitude, out var altRational) == true
                 ? (gps?.GetInt32(GpsDirectory.TagAltitudeRef) == 1 ? -altRational.ToDouble() : altRational.ToDouble())
                 : (double?)null;
-            var dateTaken = subIfd?.GetDescription(ExifDirectoryBase.TagDateTimeOriginal)
-                ?? ifd0?.GetDescription(ExifDirectoryBase.TagDateTimeOriginal)
-                ?? ifd0?.GetDescription(ExifDirectoryBase.TagDateTime);
+
+            DateTime dtVal;
+            DateTime? dateTaken =
+                subIfd?.TryGetDateTime(ExifDirectoryBase.TagDateTimeOriginal, out dtVal) == true ? dtVal
+                : ifd0?.TryGetDateTime(ExifDirectoryBase.TagDateTimeOriginal, out dtVal) == true ? dtVal
+                : ifd0?.TryGetDateTime(ExifDirectoryBase.TagDateTime, out dtVal) == true ? dtVal
+                : null;
 
             if (dateTaken is null)
                 _logger.LogWarning("No date taken found in {FileName}", fileName);

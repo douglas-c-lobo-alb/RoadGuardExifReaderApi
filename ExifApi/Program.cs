@@ -52,9 +52,9 @@ app.Use((context, next) =>
 
 var api = app.MapGroup("/api");
 
+api.MapStatusEndpoints();
 api.MapMetadataEndpoints();
 api.MapH3Endpoints();
 api.MapImageEndpoints();
-api.MapTestingEndpoints();
 
 app.Run();

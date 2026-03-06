@@ -108,6 +108,7 @@ public class ImageService
         {
             H3Index = image.Hexagon.H3Index,
             Resolution = image.Hexagon.Resolution,
+            ImageId = image.Hexagon.ImageId
         }
     };
 }
