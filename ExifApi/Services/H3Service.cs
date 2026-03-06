@@ -33,8 +33,7 @@ public class H3Service
 
     public HexagonDto? CellToParent(string h3IndexStr, int targetResolution)
     {
-        var h3Raw = H3Net.StringToH3(h3IndexStr);
-        if (h3Raw == 0) return null;
+        if (!TryParseH3(h3IndexStr, out var h3Raw)) return null;
         var parent = H3Net.CellToParent(h3Raw, targetResolution);
         if (parent == 0) return null;
         return ToDto(parent);
@@ -42,8 +41,7 @@ public class H3Service
 
     public List<HexagonDto> CellToChildren(string h3IndexStr, int targetResolution)
     {
-        var h3Raw = H3Net.StringToH3(h3IndexStr);
-        if (h3Raw == 0) return [];
+        if (!TryParseH3(h3IndexStr, out var h3Raw)) return [];
         return H3Net.CellToChildren(h3Raw, targetResolution)
             .Where(c => c != 0)
             .Select(ToDto)
@@ -52,8 +50,7 @@ public class H3Service
 
     public List<HexagonDto> GridDisk(string h3IndexStr, int k)
     {
-        var h3Raw = H3Net.StringToH3(h3IndexStr);
-        if (h3Raw == 0) return [];
+        if (!TryParseH3(h3IndexStr, out var h3Raw)) return [];
         return H3Net.GridDisk(h3Raw, k)
             .Where(c => c != 0)
             .Select(ToDto)
@@ -140,6 +137,20 @@ public class H3Service
                     }).ToList()
             })
             .ToList();
+    }
+
+    private static bool TryParseH3(string index, out ulong h3Raw)
+    {
+        try
+        {
+            h3Raw = H3Net.StringToH3(index);
+            return h3Raw != 0;
+        }
+        catch (FormatException)
+        {
+            h3Raw = 0;
+            return false;
+        }
     }
 
     private static HexagonDto ToDto(ulong h3Raw) => new()
