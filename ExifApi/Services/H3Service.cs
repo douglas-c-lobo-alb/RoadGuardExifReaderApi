@@ -106,8 +106,9 @@ public class H3Service
             {
                 H3Index = h.H3Index,
                 Resolution = resolution,
-                ImageIds = h.ImageId.HasValue ? [h.ImageId.Value] : [],
-                Anomalies = h.Image?.Anomaly is { } a ? [a] : []
+                Images = h.Image is { } img
+                    ? [new ViewImageDto { Id = img.Id, FilePath = img.FilePath, DateTaken = img.DateTaken, AnomalyNotes = img.Anomaly.Notes }]
+                    : []
             }).ToList();
         }
 
@@ -120,8 +121,7 @@ public class H3Service
                 return new
                 {
                     ParentIndex = H3Net.H3ToString(parent),
-                    h.ImageId,
-                    Anomaly = h.Image?.Anomaly
+                    Image = h.Image
                 };
             })
             .GroupBy(x => x.ParentIndex)
@@ -129,8 +129,15 @@ public class H3Service
             {
                 H3Index = g.Key,
                 Resolution = resolution,
-                ImageIds = g.Where(x => x.ImageId.HasValue).Select(x => x.ImageId!.Value).ToList(),
-                Anomalies = g.Where(x => x.Anomaly != null).Select(x => x.Anomaly!).ToList()
+                Images = g
+                    .Where(x => x.Image != null)
+                    .Select(x => new ViewImageDto
+                    {
+                        Id = x.Image!.Id,
+                        FilePath = x.Image.FilePath,
+                        DateTaken = x.Image.DateTaken,
+                        AnomalyNotes = x.Image.Anomaly.Notes
+                    }).ToList()
             })
             .ToList();
     }
