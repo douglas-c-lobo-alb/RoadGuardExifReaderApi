@@ -1,3 +1,5 @@
+using ExifApi.Data.Entities;
+
 namespace ExifApi.Dtos;
 
 public class ImageDto
@@ -7,10 +9,10 @@ public class ImageDto
     public string FilePath { get; set; } = string.Empty;
     public string? CameraMake { get; set; }
     public string? CameraModel { get; set; }
-    public string? DateTaken { get; set; }
+    public DateTime? DateTaken { get; set; }
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     public double? Altitude { get; set; }
-    public string Anomaly { get; set; } = string.Empty;
+    public AnomalyData Anomaly { get; set; } = new();
     public HexagonDto? Hexagon { get; set; }
 }

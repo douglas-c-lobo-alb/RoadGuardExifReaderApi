@@ -8,20 +8,21 @@ namespace ExifApi.Services;
 
 public class H3Service
 {
-    private const int AppResolution = 15;
+    private readonly int _appResolution;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<H3Service> _logger;
 
-    public H3Service(ApplicationDbContext context, ILogger<H3Service> logger)
+    public H3Service(ApplicationDbContext context, ILogger<H3Service> logger, IConfiguration configuration)
     {
         _context = context;
         _logger = logger;
+        _appResolution = configuration.GetValue<int>("H3:DefaultResolution", 15);
     }
 
-    public HexagonDto? LatLngToCell(double lat, double lng, int resolution)
+    public HexagonDto? LatLngToCell(double lat, double lon, int resolution)
     {
-        _logger.LogInformation("H3 conversion: lat={Lat}, lng={Lng}, res={Resolution}", lat, lng, resolution);
-        var h3Raw = H3Net.LatLngToCell(lat, lng, resolution);
+        _logger.LogInformation("H3 conversion: lat={Lat}, lon={Lon}, res={Resolution}", lat, lon, resolution);
+        var h3Raw = H3Net.LatLngToCell(lat, lon, resolution);
         if (h3Raw == 0)
         {
             _logger.LogWarning("H3 conversion returned 0 — invalid input?");
@@ -69,7 +70,7 @@ public class H3Service
 
         foreach (var image in images)
         {
-            var h3Raw = H3Net.LatLngToCell((double)image.Latitude!, (double)image.Longitude!, AppResolution);
+            var h3Raw = H3Net.LatLngToCell((double)image.Latitude!, (double)image.Longitude!, _appResolution);
             if (h3Raw == 0)
             {
                 _logger.LogWarning("H3 conversion failed for image {Id}", image.Id);
@@ -86,16 +87,10 @@ public class H3Service
         _logger.LogInformation("GenerateHexagons: saved hexagons for {Count} images", images.Count);
     }
 
-    private static HexagonDto ToDto(ulong h3Raw)
+    private static HexagonDto ToDto(ulong h3Raw) => new()
     {
-        var center = H3Net.CellToLatLng(h3Raw);
-        return new HexagonDto
-        {
-            H3Index = H3Net.H3ToString(h3Raw),
-            Resolution = H3Net.GetResolution(h3Raw),
-            Lat = center.LatWGS84,
-            Lng = center.LngWGS84
-        };
-    }
+        H3Index = H3Net.H3ToString(h3Raw),
+        Resolution = H3Net.GetResolution(h3Raw)
+    };
 }
 

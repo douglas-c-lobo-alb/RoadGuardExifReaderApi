@@ -9,4 +9,10 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Image> Images { get; set; }
     public DbSet<Hexagon> Hexagons { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Image>()
+            .OwnsOne(i => i.Anomaly, b => b.ToJson("Anomaly"));
+    }
 }
