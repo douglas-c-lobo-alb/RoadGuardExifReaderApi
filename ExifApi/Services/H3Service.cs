@@ -87,6 +87,54 @@ public class H3Service
         _logger.LogInformation("GenerateHexagons: saved hexagons for {Count} images", images.Count);
     }
 
+    public async Task<List<ViewHexagonDto>> GetHexagonsByViewportAsync(
+        double latMin, double latMax, double lonMin, double lonMax, int resolution = 15)
+    {
+        // Load all hexagons within the viewport bounds, including their images
+        var hexagons = await _context.Hexagons
+            .Include(h => h.Image)
+            .Where(h => h.Image != null
+                && h.Image.Latitude >= (decimal)latMin
+                && h.Image.Latitude <= (decimal)latMax
+                && h.Image.Longitude >= (decimal)lonMin
+                && h.Image.Longitude <= (decimal)lonMax)
+            .ToListAsync();
+
+        if (resolution == 15)
+        {
+            return hexagons.Select(h => new ViewHexagonDto
+            {
+                H3Index = h.H3Index,
+                Resolution = resolution,
+                ImageIds = h.ImageId.HasValue ? [h.ImageId.Value] : [],
+                Anomalies = h.Image?.Anomaly is { } a ? [a] : []
+            }).ToList();
+        }
+
+        // Roll up to the requested resolution, then group and deduplicate
+        return hexagons
+            .Select(h =>
+            {
+                var raw = H3Net.StringToH3(h.H3Index);
+                var parent = H3Net.CellToParent(raw, resolution);
+                return new
+                {
+                    ParentIndex = H3Net.H3ToString(parent),
+                    h.ImageId,
+                    Anomaly = h.Image?.Anomaly
+                };
+            })
+            .GroupBy(x => x.ParentIndex)
+            .Select(g => new ViewHexagonDto
+            {
+                H3Index = g.Key,
+                Resolution = resolution,
+                ImageIds = g.Where(x => x.ImageId.HasValue).Select(x => x.ImageId!.Value).ToList(),
+                Anomalies = g.Where(x => x.Anomaly != null).Select(x => x.Anomaly!).ToList()
+            })
+            .ToList();
+    }
+
     private static HexagonDto ToDto(ulong h3Raw) => new()
     {
         H3Index = H3Net.H3ToString(h3Raw),
