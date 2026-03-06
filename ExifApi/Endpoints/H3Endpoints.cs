@@ -64,18 +64,27 @@ public static class H3Endpoints
     }
 
     private static async Task<IResult> GetViewport(
-        double latMin, double latMax, double lonMin, double lonMax,
+        string latMin, string latMax, string lonMin, string lonMax,
         H3Service h3Service,
         int resolution = 15)
     {
-        if (latMin >= latMax)
+        // ASP.NET Core joins duplicate query params with commas — take the first value only
+        static bool TryParseFirst(string raw, out double value) =>
+            double.TryParse(raw.Split(',')[0], System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out value);
+
+        if (!TryParseFirst(latMin, out var latMinD) || !TryParseFirst(latMax, out var latMaxD) ||
+            !TryParseFirst(lonMin, out var lonMinD) || !TryParseFirst(lonMax, out var lonMaxD))
+            return Results.BadRequest("Invalid coordinate value — expected decimal numbers (e.g. 37.09)");
+
+        if (latMinD >= latMaxD)
             return Results.BadRequest("latMin must be less than latMax");
-        if (lonMin >= lonMax)
+        if (lonMinD >= lonMaxD)
             return Results.BadRequest("lonMin must be less than lonMax");
         if (resolution < 0 || resolution > 15)
             return Results.BadRequest("resolution must be between 0 and 15");
 
-        var result = await h3Service.GetHexagonsByViewportAsync(latMin, latMax, lonMin, lonMax, resolution);
+        var result = await h3Service.GetHexagonsByViewportAsync(latMinD, latMaxD, lonMinD, lonMaxD, resolution);
         return Results.Ok(result);
     }
 }
