@@ -124,6 +124,15 @@ public class H3ServiceTests : IDisposable
     }
 
     [Fact]
+    public void CellToChildren_SameResolution_ReturnsSingleCell()
+    {
+        var children = _service.CellToChildren(KnownH3Index, 15);
+
+        Assert.Single(children);
+        Assert.Equal(KnownH3Index, children[0].H3Index);
+    }
+
+    [Fact]
     public void CellToChildren_InvalidIndex_ReturnsEmptyList()
     {
         var result = _service.CellToChildren("not-a-valid-h3-index", 15);
@@ -154,11 +163,58 @@ public class H3ServiceTests : IDisposable
     }
 
     [Fact]
+    public void GridDisk_K2_Returns19Cells()
+    {
+        // k=2 disk: 1 + 6 + 12 = 19
+        var result = _service.GridDisk(KnownH3Index, 2);
+
+        Assert.Equal(19, result.Count);
+    }
+
+    [Fact]
     public void GridDisk_InvalidIndex_ReturnsEmptyList()
     {
         var result = _service.GridDisk("not-a-valid-h3-index", 1);
 
         Assert.Empty(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // GenerateHexagonsAsync
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GenerateHexagonsAsync_ImageWithoutHexagon_CreatesHexagon()
+    {
+        SeedImage(id: 1, lat: (decimal)KnownLat, lon: (decimal)KnownLon);
+
+        await _service.GenerateHexagonsAsync();
+
+        var hexagon = await _context.Hexagons.FirstOrDefaultAsync(h => h.ImageId == 1);
+        Assert.NotNull(hexagon);
+        Assert.False(string.IsNullOrEmpty(hexagon.H3Index));
+    }
+
+    [Fact]
+    public async Task GenerateHexagonsAsync_ImageAlreadyHasHexagon_Skips()
+    {
+        SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index);
+
+        await _service.GenerateHexagonsAsync();
+
+        var count = await _context.Hexagons.CountAsync(h => h.ImageId == 1);
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public async Task GenerateHexagonsAsync_ImageWithNullCoordinates_SkipsHexagonCreation()
+    {
+        SeedImage(id: 1, lat: null, lon: null);
+
+        await _service.GenerateHexagonsAsync();
+
+        var hexagon = await _context.Hexagons.FirstOrDefaultAsync(h => h.ImageId == 1);
+        Assert.Null(hexagon);
     }
 
     // -------------------------------------------------------------------------
@@ -243,12 +299,38 @@ public class H3ServiceTests : IDisposable
         Assert.Equal(new DateTime(2026, 2, 25), image.DateTaken);
     }
 
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_AnomalyNotes_ArePopulatedInImageDto()
+    {
+        SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
+            anomalyNotes: "crack on panel 3");
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
+
+        var image = Assert.Single(result[0].Images);
+        Assert.Equal("crack on panel 3", image.AnomalyNotes);
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
+    private void SeedImage(int id, decimal? lat, decimal? lon)
+    {
+        _context.Images.Add(new Image
+        {
+            Id = id,
+            FileName = $"test_{id}.jpg",
+            FilePath = $"/images/test_{id}.jpg",
+            Latitude = lat,
+            Longitude = lon,
+            Anomaly = new AnomalyData()
+        });
+        _context.SaveChanges();
+    }
+
     private void SeedImageWithHexagon(int id, decimal lat, decimal lon, string h3Index,
-        string? filePath = null, DateTime? dateTaken = null)
+        string? filePath = null, DateTime? dateTaken = null, string? anomalyNotes = null)
     {
         var image = new Image
         {
@@ -258,7 +340,7 @@ public class H3ServiceTests : IDisposable
             Latitude = lat,
             Longitude = lon,
             DateTaken = dateTaken,
-            Anomaly = new AnomalyData()
+            Anomaly = new AnomalyData { Notes = anomalyNotes }
         };
         _context.Images.Add(image);
         _context.SaveChanges();
