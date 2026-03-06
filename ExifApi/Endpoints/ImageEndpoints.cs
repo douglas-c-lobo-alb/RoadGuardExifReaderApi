@@ -39,7 +39,7 @@ public static class ImageEndpoints
     {
         var result = await imageService.RegisterImageAsync(file);
         return result is null
-            ? Results.BadRequest("Could not extract metadata from the uploaded file")
+            ? Results.BadRequest("Failed to register image")
             : Results.Created($"/api/images/{result.Id}", result);
     }
 
