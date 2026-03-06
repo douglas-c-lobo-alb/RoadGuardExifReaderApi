@@ -128,8 +128,9 @@ else
     }
 
     private record HexagonRow(string H3Index, int Resolution);
+    private record AnomalyRow(string? Notes);
     private record ImageRow(int Id, string FileName, string FilePath,
-        string? CameraMake, string? CameraModel, string? DateTaken,
+        string? CameraMake, string? CameraModel, DateTime? DateTaken,
         decimal? Latitude, decimal? Longitude, double? Altitude,
-        string Anomaly, HexagonRow? Hexagon);
+        AnomalyRow? Anomaly, HexagonRow? Hexagon);
 }

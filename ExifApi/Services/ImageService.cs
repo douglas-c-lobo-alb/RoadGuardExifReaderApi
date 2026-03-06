@@ -26,6 +26,17 @@ public class ImageService
         Directory.CreateDirectory(imagesPath);
 
         var fileName = Path.GetFileName(file.FileName);
+
+        // Skip if already registered
+        var existing = await _context.Images
+            .Include(i => i.Hexagon)
+            .FirstOrDefaultAsync(i => i.FileName == fileName);
+        if (existing is not null)
+        {
+            _logger.LogInformation("Image {FileName} already registered, skipping", fileName);
+            return ToDto(existing);
+        }
+
         var filePath = Path.Combine(imagesPath, fileName);
 
         await using (var stream = File.Create(filePath))
@@ -35,22 +46,18 @@ public class ImageService
 
         var metadata = _exifService.ExtractMetadata(filePath);
         if (metadata is null)
-        {
-            _logger.LogWarning("Could not extract metadata from {FileName}, removing file", fileName);
-            File.Delete(filePath);
-            return null;
-        }
+            _logger.LogWarning("Could not extract EXIF metadata from {FileName}, registering with null fields", fileName);
 
         var image = new Image
         {
             FileName = fileName,
             FilePath = "/images/" + fileName,
-            CameraMake = metadata.CameraMake,
-            CameraModel = metadata.CameraModel,
-            DateTaken = metadata.DateTaken,
-            Latitude = metadata.Latitude,
-            Longitude = metadata.Longitude,
-            Altitude = metadata.Altitude
+            CameraMake = metadata?.CameraMake,
+            CameraModel = metadata?.CameraModel,
+            DateTaken = metadata?.DateTaken,
+            Latitude = metadata?.Latitude,
+            Longitude = metadata?.Longitude,
+            Altitude = metadata?.Altitude
         };
 
         _context.Images.Add(image);
@@ -108,6 +115,7 @@ public class ImageService
         {
             H3Index = image.Hexagon.H3Index,
             Resolution = image.Hexagon.Resolution,
+            ImageId = image.Hexagon.ImageId
         }
     };
 }

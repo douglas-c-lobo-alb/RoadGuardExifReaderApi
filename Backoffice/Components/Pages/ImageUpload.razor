@@ -3,66 +3,107 @@
 @inject NavigationManager NavigationManager
 @rendermode InteractiveServer
 
-<PageTitle>Upload Image</PageTitle>
+<PageTitle>Upload Images</PageTitle>
 
-<h1>Upload Image</h1>
+<h1>Upload Images</h1>
 
-<div class="mb-3" style="max-width: 480px;">
-    <InputFile OnChange="OnFileSelected" accept=".jpg,.jpeg" class="form-control mb-3" />
+<div class="mb-3" style="max-width: 600px;">
+    <InputFile OnChange="OnFilesSelected" accept=".jpg,.jpeg" class="form-control mb-3" multiple />
 
-    <button class="btn btn-primary" @onclick="Upload" disabled="@(selectedFile is null || uploading)">
-        @(uploading ? "Uploading..." : "Upload")
+    <button class="btn btn-primary" @onclick="Upload" disabled="@(selectedFiles is null || selectedFiles.Count == 0 || uploading)">
+        @(uploading ? $"Uploading {uploadedCount} / {selectedFiles!.Count}…" : "Upload")
     </button>
     <a href="/images" class="btn btn-secondary ms-2">Cancel</a>
 </div>
 
-@if (errorMessage is not null)
+@if (results.Count > 0)
 {
-    <div class="alert alert-danger mt-3">@errorMessage</div>
+    <h5>Results</h5>
+    <table class="table table-sm" style="max-width: 600px;">
+        <thead>
+            <tr><th>File</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var r in results)
+            {
+                <tr>
+                    <td>@r.Name</td>
+                    <td>
+                        @if (r.Ok)
+                        {
+                            <span class="text-success">&#10003; Uploaded</span>
+                        }
+                        else
+                        {
+                            <span class="text-danger">&#10007; @r.Error</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (!uploading)
+    {
+        <a href="/images" class="btn btn-primary mt-2">Go to Images</a>
+    }
 }
 
 @code {
-    private IBrowserFile? selectedFile;
-    private bool uploading;
-    private string? errorMessage;
+    private const int MaxFiles = 1000;
+    private const long MaxFileSizeBytes = 10 * 1024 * 1024;
 
-    private void OnFileSelected(InputFileChangeEventArgs e)
+    private IReadOnlyList<IBrowserFile>? selectedFiles;
+    private bool uploading;
+    private int uploadedCount;
+    private List<(string Name, bool Ok, string? Error)> results = [];
+
+    private void OnFilesSelected(InputFileChangeEventArgs e)
     {
-        selectedFile = e.File;
-        errorMessage = null;
+        selectedFiles = e.GetMultipleFiles(MaxFiles);
+        results = [];
+        uploadedCount = 0;
     }
 
     private async Task Upload()
     {
-        if (selectedFile is null) return;
+        if (selectedFiles is null || selectedFiles.Count == 0) return;
 
         uploading = true;
-        errorMessage = null;
+        results = [];
+        uploadedCount = 0;
 
-        try
+        var client = HttpClientFactory.CreateClient("ExifApi");
+
+        foreach (var file in selectedFiles)
         {
-            using var content = new MultipartFormDataContent();
-            var stream = selectedFile.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024);
-            content.Add(new StreamContent(stream), "file", selectedFile.Name);
-
-            var client = HttpClientFactory.CreateClient("ExifApi");
-            var response = await client.PostAsync("api/images/", content);
-
-            if (response.IsSuccessStatusCode)
-                NavigationManager.NavigateTo("/images");
-            else
+            try
             {
-                var body = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Upload failed ({response.StatusCode}): {body}";
+                using var content = new MultipartFormDataContent();
+                var stream = file.OpenReadStream(maxAllowedSize: MaxFileSizeBytes);
+                content.Add(new StreamContent(stream), "file", file.Name);
+
+                var response = await client.PostAsync("api/images/", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    results.Add((file.Name, true, null));
+                }
+                else
+                {
+                    var body = await response.Content.ReadAsStringAsync();
+                    results.Add((file.Name, false, $"{(int)response.StatusCode}: {body}"));
+                }
             }
+            catch (Exception ex)
+            {
+                results.Add((file.Name, false, ex.Message));
+            }
+
+            uploadedCount++;
+            StateHasChanged();
         }
-        catch (Exception ex)
-        {
-            errorMessage = $"Error: {ex.Message}";
-        }
-        finally
-        {
-            uploading = false;
-        }
+
+        uploading = false;
     }
 }

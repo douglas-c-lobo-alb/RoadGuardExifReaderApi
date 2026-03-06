@@ -8,20 +8,21 @@ namespace ExifApi.Services;
 
 public class H3Service
 {
-    private const int AppResolution = 15;
+    private readonly int _appResolution;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<H3Service> _logger;
 
-    public H3Service(ApplicationDbContext context, ILogger<H3Service> logger)
+    public H3Service(ApplicationDbContext context, ILogger<H3Service> logger, IConfiguration configuration)
     {
         _context = context;
         _logger = logger;
+        _appResolution = configuration.GetValue<int>("H3:DefaultResolution", 15);
     }
 
-    public HexagonDto? LatLngToCell(double lat, double lng, int resolution)
+    public HexagonDto? LatLngToCell(double lat, double lon, int resolution)
     {
-        _logger.LogInformation("H3 conversion: lat={Lat}, lng={Lng}, res={Resolution}", lat, lng, resolution);
-        var h3Raw = H3Net.LatLngToCell(lat, lng, resolution);
+        _logger.LogInformation("H3 conversion: lat={Lat}, lon={Lon}, res={Resolution}", lat, lon, resolution);
+        var h3Raw = H3Net.LatLngToCell(lat, lon, resolution);
         if (h3Raw == 0)
         {
             _logger.LogWarning("H3 conversion returned 0 — invalid input?");
@@ -69,7 +70,7 @@ public class H3Service
 
         foreach (var image in images)
         {
-            var h3Raw = H3Net.LatLngToCell((double)image.Latitude!, (double)image.Longitude!, AppResolution);
+            var h3Raw = H3Net.LatLngToCell((double)image.Latitude!, (double)image.Longitude!, _appResolution);
             if (h3Raw == 0)
             {
                 _logger.LogWarning("H3 conversion failed for image {Id}", image.Id);
@@ -86,16 +87,58 @@ public class H3Service
         _logger.LogInformation("GenerateHexagons: saved hexagons for {Count} images", images.Count);
     }
 
-    private static HexagonDto ToDto(ulong h3Raw)
+    public async Task<List<ViewHexagonDto>> GetHexagonsByViewportAsync(
+        double latMin, double latMax, double lonMin, double lonMax, int resolution = 15)
     {
-        var center = H3Net.CellToLatLng(h3Raw);
-        return new HexagonDto
+        // Load all hexagons within the viewport bounds, including their images
+        var hexagons = await _context.Hexagons
+            .Include(h => h.Image)
+            .Where(h => h.Image != null
+                && h.Image.Latitude >= (decimal)latMin
+                && h.Image.Latitude <= (decimal)latMax
+                && h.Image.Longitude >= (decimal)lonMin
+                && h.Image.Longitude <= (decimal)lonMax)
+            .ToListAsync();
+
+        if (resolution == 15)
         {
-            H3Index = H3Net.H3ToString(h3Raw),
-            Resolution = H3Net.GetResolution(h3Raw),
-            Lat = center.LatWGS84,
-            Lng = center.LngWGS84
-        };
+            return hexagons.Select(h => new ViewHexagonDto
+            {
+                H3Index = h.H3Index,
+                Resolution = resolution,
+                ImageIds = h.ImageId.HasValue ? [h.ImageId.Value] : [],
+                Anomalies = h.Image?.Anomaly is { } a ? [a] : []
+            }).ToList();
+        }
+
+        // Roll up to the requested resolution, then group and deduplicate
+        return hexagons
+            .Select(h =>
+            {
+                var raw = H3Net.StringToH3(h.H3Index);
+                var parent = H3Net.CellToParent(raw, resolution);
+                return new
+                {
+                    ParentIndex = H3Net.H3ToString(parent),
+                    h.ImageId,
+                    Anomaly = h.Image?.Anomaly
+                };
+            })
+            .GroupBy(x => x.ParentIndex)
+            .Select(g => new ViewHexagonDto
+            {
+                H3Index = g.Key,
+                Resolution = resolution,
+                ImageIds = g.Where(x => x.ImageId.HasValue).Select(x => x.ImageId!.Value).ToList(),
+                Anomalies = g.Where(x => x.Anomaly != null).Select(x => x.Anomaly!).ToList()
+            })
+            .ToList();
     }
+
+    private static HexagonDto ToDto(ulong h3Raw) => new()
+    {
+        H3Index = H3Net.H3ToString(h3Raw),
+        Resolution = H3Net.GetResolution(h3Raw)
+    };
 }
 
