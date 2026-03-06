@@ -40,6 +40,8 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
+app.MapGet("/", () => Results.Redirect("/index.html", permanent: false));
+
 app.Use((context, next) =>
 {
     context.Response.GetTypedHeaders().CacheControl = new Microsoft.Net.Http.Headers.CacheControlHeaderValue()
