@@ -33,8 +33,7 @@ public class H3Service
 
     public HexagonDto? CellToParent(string h3IndexStr, int targetResolution)
     {
-        var h3Raw = H3Net.StringToH3(h3IndexStr);
-        if (h3Raw == 0) return null;
+        if (!TryParseH3(h3IndexStr, out var h3Raw)) return null;
         var parent = H3Net.CellToParent(h3Raw, targetResolution);
         if (parent == 0) return null;
         return ToDto(parent);
@@ -42,8 +41,7 @@ public class H3Service
 
     public List<HexagonDto> CellToChildren(string h3IndexStr, int targetResolution)
     {
-        var h3Raw = H3Net.StringToH3(h3IndexStr);
-        if (h3Raw == 0) return [];
+        if (!TryParseH3(h3IndexStr, out var h3Raw)) return [];
         return H3Net.CellToChildren(h3Raw, targetResolution)
             .Where(c => c != 0)
             .Select(ToDto)
@@ -52,8 +50,7 @@ public class H3Service
 
     public List<HexagonDto> GridDisk(string h3IndexStr, int k)
     {
-        var h3Raw = H3Net.StringToH3(h3IndexStr);
-        if (h3Raw == 0) return [];
+        if (!TryParseH3(h3IndexStr, out var h3Raw)) return [];
         return H3Net.GridDisk(h3Raw, k)
             .Where(c => c != 0)
             .Select(ToDto)
@@ -106,8 +103,9 @@ public class H3Service
             {
                 H3Index = h.H3Index,
                 Resolution = resolution,
-                ImageIds = h.ImageId.HasValue ? [h.ImageId.Value] : [],
-                Anomalies = h.Image?.Anomaly is { } a ? [a] : []
+                Images = h.Image is { } img
+                    ? [new ViewImageDto { Id = img.Id, FilePath = img.FilePath, DateTaken = img.DateTaken, AnomalyNotes = img.Anomaly.Notes }]
+                    : []
             }).ToList();
         }
 
@@ -120,8 +118,7 @@ public class H3Service
                 return new
                 {
                     ParentIndex = H3Net.H3ToString(parent),
-                    h.ImageId,
-                    Anomaly = h.Image?.Anomaly
+                    Image = h.Image
                 };
             })
             .GroupBy(x => x.ParentIndex)
@@ -129,10 +126,31 @@ public class H3Service
             {
                 H3Index = g.Key,
                 Resolution = resolution,
-                ImageIds = g.Where(x => x.ImageId.HasValue).Select(x => x.ImageId!.Value).ToList(),
-                Anomalies = g.Where(x => x.Anomaly != null).Select(x => x.Anomaly!).ToList()
+                Images = g
+                    .Where(x => x.Image != null)
+                    .Select(x => new ViewImageDto
+                    {
+                        Id = x.Image!.Id,
+                        FilePath = x.Image.FilePath,
+                        DateTaken = x.Image.DateTaken,
+                        AnomalyNotes = x.Image.Anomaly.Notes
+                    }).ToList()
             })
             .ToList();
+    }
+
+    private static bool TryParseH3(string index, out ulong h3Raw)
+    {
+        try
+        {
+            h3Raw = H3Net.StringToH3(index);
+            return h3Raw != 0;
+        }
+        catch (FormatException)
+        {
+            h3Raw = 0;
+            return false;
+        }
     }
 
     private static HexagonDto ToDto(ulong h3Raw) => new()
