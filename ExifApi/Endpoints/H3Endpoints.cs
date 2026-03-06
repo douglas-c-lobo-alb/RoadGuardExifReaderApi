@@ -29,6 +29,10 @@ public static class H3Endpoints
         group.MapPost("/generate", GenerateHexagons)
             .WithName("GenerateHexagons")
             .WithDescription("Generates H3 cells at res 15 for all images missing one");
+
+        group.MapGet("/view", GetViewport)
+            .WithName("GetH3Viewport")
+            .WithDescription("Returns hexagons linked to images within a lat/lon viewport, aggregated at the requested resolution");
     }
 
     private static IResult GetCell(double lat, double lon, int resolution, H3Service h3Service)
@@ -57,5 +61,21 @@ public static class H3Endpoints
     {
         await h3Service.GenerateHexagonsAsync();
         return Results.Ok("Hexagons generated");
+    }
+
+    private static async Task<IResult> GetViewport(
+        double latMin, double latMax, double lonMin, double lonMax,
+        H3Service h3Service,
+        int resolution = 15)
+    {
+        if (latMin >= latMax)
+            return Results.BadRequest("latMin must be less than latMax");
+        if (lonMin >= lonMax)
+            return Results.BadRequest("lonMin must be less than lonMax");
+        if (resolution < 0 || resolution > 15)
+            return Results.BadRequest("resolution must be between 0 and 15");
+
+        var result = await h3Service.GetHexagonsByViewportAsync(latMin, latMax, lonMin, lonMax, resolution);
+        return Results.Ok(result);
     }
 }
