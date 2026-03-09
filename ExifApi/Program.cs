@@ -1,4 +1,5 @@
 using ExifApi.Data;
+using ExifApi.Data.Entities;
 using ExifApi.Endpoints;
 using ExifApi.Services;
 using Microsoft.EntityFrameworkCore;
@@ -53,6 +54,8 @@ app.Use((context, next) =>
 });
 
 var api = app.MapGroup("/api");
+
+Image.SetConfiguration(app.Configuration);
 
 api.MapStatusEndpoints();
 api.MapMetadataEndpoints();
