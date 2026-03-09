@@ -1,5 +1,3 @@
-using ExifApi.Data.Entities;
-
 namespace ExifApi.Dtos;
 
 public class ImageDto
@@ -13,6 +11,8 @@ public class ImageDto
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     public double? Altitude { get; set; }
-    public AnomalyData Anomaly { get; set; } = new();
+    public decimal? Heading { get; set; }
+    public int? Turbulence { get; set; }
+    public string? AnomalyNotes { get; set; }
     public HexagonDto? Hexagon { get; set; }
 }

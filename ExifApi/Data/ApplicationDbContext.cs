@@ -9,10 +9,20 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Image> Images { get; set; }
     public DbSet<Hexagon> Hexagons { get; set; }
+    public DbSet<RoadVisualAnomaly> RoadVisualAnomalies { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Image>()
-            .OwnsOne(i => i.Anomaly, b => b.ToJson("Anomaly"));
+            .HasOne(i => i.Hexagon)
+            .WithMany()
+            .HasForeignKey(i => i.HexagonId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<RoadVisualAnomaly>()
+            .HasOne(r => r.Image)
+            .WithMany(i => i.Anomalies)
+            .HasForeignKey(r => r.ImageId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
