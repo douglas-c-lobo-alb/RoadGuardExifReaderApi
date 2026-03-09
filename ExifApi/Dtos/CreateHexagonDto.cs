@@ -1,7 +1,10 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace ExifApi.Dtos;
 
 public class CreateHexagonDto
 {
+    [Range(1, int.MaxValue)]
     public int ImageId { get; set; }
 
     // Option A: derive index from coordinates
