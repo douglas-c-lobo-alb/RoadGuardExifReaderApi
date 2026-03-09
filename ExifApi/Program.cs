@@ -57,6 +57,7 @@ var api = app.MapGroup("/api");
 api.MapStatusEndpoints();
 api.MapMetadataEndpoints();
 api.MapH3Endpoints();
+api.MapHexagonEndpoints();
 api.MapImageEndpoints();
 
 app.Run();

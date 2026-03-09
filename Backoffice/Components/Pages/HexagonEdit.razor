@@ -1,0 +1,195 @@
+@page "/hexagons/{Id:int}/edit"
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Edit Hexagon</PageTitle>
+
+<h1>Edit Hexagon</h1>
+
+@if (loadError is not null)
+{
+    <div class="alert alert-danger">@loadError</div>
+}
+else if (!loaded)
+{
+    <p>Loading...</p>
+}
+else
+{
+    @if (errorMessage is not null)
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    <div style="max-width: 500px;">
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Image</label>
+            <select class="form-select" @bind="imageId">
+                <option value="0">— select an image —</option>
+                @foreach (var img in images)
+                {
+                    <option value="@img.Id">[@img.Id] @img.FileName</option>
+                }
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Input method</label>
+            <div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" id="modeCoords" name="inputMode"
+                           checked="@(mode == InputMode.Coordinates)"
+                           @onchange="() => mode = InputMode.Coordinates" />
+                    <label class="form-check-label" for="modeCoords">By Coordinates</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" id="modeIndex" name="inputMode"
+                           checked="@(mode == InputMode.H3Index)"
+                           @onchange="() => mode = InputMode.H3Index" />
+                    <label class="form-check-label" for="modeIndex">By H3 Index</label>
+                </div>
+            </div>
+        </div>
+
+        @if (mode == InputMode.Coordinates)
+        {
+            <div class="mb-3">
+                <label class="form-label">Latitude</label>
+                <input class="form-control" type="number" step="any" @bind="latitude" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Longitude</label>
+                <input class="form-control" type="number" step="any" @bind="longitude" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Resolution (0–15)</label>
+                <input class="form-control" type="number" min="0" max="15" @bind="resolution" />
+            </div>
+            <div class="mb-3 d-flex align-items-center gap-2">
+                <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="PreviewH3">Preview H3 Index</button>
+                @if (previewH3 is not null)
+                {
+                    <code>@previewH3</code>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="mb-3">
+                <label class="form-label">H3 Index</label>
+                <input class="form-control font-monospace" type="text" @bind="h3Index" />
+            </div>
+        }
+
+        <button class="btn btn-primary" @onclick="Submit" disabled="@submitting">
+            @(submitting ? "Saving…" : "Save")
+        </button>
+        <a href="/hexagons" class="btn btn-secondary ms-2">Cancel</a>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private enum InputMode { Coordinates, H3Index }
+
+    private List<ImageOption> images = [];
+    private int imageId;
+    private InputMode mode = InputMode.H3Index;
+    private double latitude;
+    private double longitude;
+    private int resolution = 15;
+    private string? previewH3;
+    private string? h3Index;
+    private bool loaded;
+    private bool submitting;
+    private string? loadError;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = HttpClientFactory.CreateClient("ExifApi");
+        try
+        {
+            var hex = await client.GetFromJsonAsync<HexagonRow>($"api/hexagons/{Id}");
+            if (hex is null) { loadError = "Hexagon not found."; return; }
+            imageId = hex.ImageId ?? 0;
+            h3Index = hex.H3Index;
+            resolution = hex.Resolution;
+            latitude = hex.Lat;
+            longitude = hex.Lon;
+        }
+        catch (Exception ex)
+        {
+            loadError = $"Failed to load hexagon: {ex.Message}";
+            return;
+        }
+
+        try
+        {
+            images = await client.GetFromJsonAsync<List<ImageOption>>("api/images/") ?? [];
+        }
+        catch (Exception ex)
+        {
+            loadError = $"Failed to load images: {ex.Message}";
+            return;
+        }
+
+        loaded = true;
+    }
+
+    private async Task PreviewH3()
+    {
+        previewH3 = null;
+        errorMessage = null;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var lat = latitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var lon = longitude.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var result = await client.GetFromJsonAsync<H3Preview>($"api/h3/cell?lat={lat}&lon={lon}&resolution={resolution}");
+            previewH3 = result?.H3Index;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Preview failed: {ex.Message}";
+        }
+    }
+
+    private async Task Submit()
+    {
+        errorMessage = null;
+        if (imageId == 0) { errorMessage = "Please select an image."; return; }
+
+        submitting = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            object payload = mode == InputMode.Coordinates
+                ? new { ImageId = (int?)imageId, Latitude = (double?)latitude, Longitude = (double?)longitude, Resolution = (int?)resolution, H3Index = (string?)null }
+                : new { ImageId = (int?)imageId, Latitude = (double?)null, Longitude = (double?)null, Resolution = (int?)null, H3Index = h3Index };
+
+            var response = await client.PutAsJsonAsync($"api/hexagons/{Id}", payload);
+            if (response.IsSuccessStatusCode)
+                NavigationManager.NavigateTo("/hexagons");
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Failed ({(int)response.StatusCode}): {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            submitting = false;
+        }
+    }
+
+    private record HexagonRow(int Id, string H3Index, int Resolution, double Lat, double Lon, int? ImageId);
+    private record ImageOption(int Id, string FileName);
+    private record H3Preview(string H3Index, int Resolution, double Lat, double Lon);
+}
