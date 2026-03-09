@@ -190,19 +190,21 @@ public class H3ServiceTests : IDisposable
 
         await _service.GenerateHexagonsAsync();
 
-        var hexagon = await _context.Hexagons.FirstOrDefaultAsync(h => h.ImageId == 1);
+        var image = await _context.Images.FindAsync(1);
+        Assert.NotNull(image?.HexagonId);
+        var hexagon = await _context.Hexagons.FindAsync(image!.HexagonId);
         Assert.NotNull(hexagon);
-        Assert.False(string.IsNullOrEmpty(hexagon.H3Index));
+        Assert.False(string.IsNullOrEmpty(hexagon!.H3Index));
     }
 
     [Fact]
     public async Task GenerateHexagonsAsync_ImageAlreadyHasHexagon_Skips()
-    {
+    {        
         SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index);
 
         await _service.GenerateHexagonsAsync();
 
-        var count = await _context.Hexagons.CountAsync(h => h.ImageId == 1);
+        var count = await _context.Hexagons.CountAsync();
         Assert.Equal(1, count);
     }
 
@@ -213,8 +215,9 @@ public class H3ServiceTests : IDisposable
 
         await _service.GenerateHexagonsAsync();
 
-        var hexagon = await _context.Hexagons.FirstOrDefaultAsync(h => h.ImageId == 1);
-        Assert.Null(hexagon);
+        var image = await _context.Images.FindAsync(1);
+        Assert.Null(image?.HexagonId);
+        Assert.Empty(_context.Hexagons);
     }
 
     // -------------------------------------------------------------------------
@@ -290,12 +293,12 @@ public class H3ServiceTests : IDisposable
     public async Task GetHexagonsByViewportAsync_Resolution15_ImageInfoIsPopulated()
     {
         SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
-            filePath: "/images/test.jpg", dateTaken: new DateTime(2026, 2, 25));
+            dateTaken: new DateTime(2026, 2, 25));
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
         var image = Assert.Single(result[0].Images);
-        Assert.Equal("/images/test.jpg", image.FilePath);
+        Assert.Equal("/images/test_1.jpg", image.FilePath);
         Assert.Equal(new DateTime(2026, 2, 25), image.DateTaken);
     }
 
@@ -321,31 +324,29 @@ public class H3ServiceTests : IDisposable
         {
             Id = id,
             FileName = $"test_{id}.jpg",
-            FilePath = $"/images/test_{id}.jpg",
             Latitude = lat,
-            Longitude = lon,
-            Anomaly = new AnomalyData()
+            Longitude = lon
         });
         _context.SaveChanges();
     }
 
     private void SeedImageWithHexagon(int id, decimal lat, decimal lon, string h3Index,
-        string? filePath = null, DateTime? dateTaken = null, string? anomalyNotes = null)
+        DateTime? dateTaken = null, string? anomalyNotes = null)
     {
-        var image = new Image
+        var hexagon = new Hexagon { H3Index = h3Index };
+        _context.Hexagons.Add(hexagon);
+        _context.SaveChanges();
+
+        _context.Images.Add(new Image
         {
             Id = id,
             FileName = $"test_{id}.jpg",
-            FilePath = filePath ?? $"/images/test_{id}.jpg",
             Latitude = lat,
             Longitude = lon,
             DateTaken = dateTaken,
-            Anomaly = new AnomalyData { Notes = anomalyNotes }
-        };
-        _context.Images.Add(image);
-        _context.SaveChanges();
-
-        _context.Hexagons.Add(new Hexagon { H3Index = h3Index, ImageId = image.Id });
+            AnomalyNotes = anomalyNotes,
+            HexagonId = hexagon.Id
+        });
         _context.SaveChanges();
     }
 }

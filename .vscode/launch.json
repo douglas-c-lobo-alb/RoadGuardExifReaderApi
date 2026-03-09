@@ -15,5 +15,14 @@
             "projectPath": "${workspaceFolder}/Backoffice/Backoffice.csproj",
             "launchConfigurationId": "TargetFramework=;https"
         }
+    ],
+    "compounds": [
+        {
+            "name": "Full Stack",
+            "configurations": [
+                "Backoffice",
+                "Api"
+            ]
+        }
     ]
 }

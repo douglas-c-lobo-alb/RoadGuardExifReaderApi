@@ -1,0 +1,102 @@
+@page "/hexagons"
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Hexagons</PageTitle>
+
+<h1>Hexagons</h1>
+
+<div class="mb-3">
+    <a href="/hexagons/create" class="btn btn-primary">New Hexagon</a>
+</div>
+
+@if (errorMessage is not null)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+@if (successMessage is not null)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (hexagons is null)
+{
+    <p>Loading...</p>
+}
+else if (!hexagons.Any())
+{
+    <p>No hexagons stored yet.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>H3 Index</th>
+                <th>Resolution</th>
+                <th>Lat</th>
+                <th>Lon</th>
+                <th>Image Id</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var h in hexagons)
+            {
+                <tr>
+                    <td>@h.Id</td>
+                    <td><code>@h.H3Index</code></td>
+                    <td>@h.Resolution</td>
+                    <td>@h.Lat.ToString("F6")</td>
+                    <td>@h.Lon.ToString("F6")</td>
+                    <td>@(h.ImageId?.ToString() ?? "—")</td>
+                    <td>
+                        <a href="/hexagons/@h.Id/edit" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
+                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteHexagon(h.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<HexagonRow>? hexagons;
+    private string? errorMessage;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync() => await LoadHexagons();
+
+    private async Task LoadHexagons()
+    {
+        errorMessage = null;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            hexagons = await client.GetFromJsonAsync<List<HexagonRow>>("api/hexagons/") ?? [];
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load hexagons: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteHexagon(int id)
+    {
+        errorMessage = null;
+        successMessage = null;
+        var client = HttpClientFactory.CreateClient("ExifApi");
+        var response = await client.DeleteAsync($"api/hexagons/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            successMessage = "Hexagon deleted.";
+            await LoadHexagons();
+        }
+        else
+            errorMessage = $"Delete failed ({response.StatusCode})";
+    }
+
+    private record HexagonRow(int Id, string H3Index, int Resolution, double Lat, double Lon, int? ImageId);
+}
