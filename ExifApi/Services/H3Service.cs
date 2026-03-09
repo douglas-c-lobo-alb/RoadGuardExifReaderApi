@@ -79,10 +79,9 @@ public class H3Service
             {
                 hexagon = new Hexagon { H3Index = h3Index };
                 _context.Hexagons.Add(hexagon);
-                await _context.SaveChangesAsync();
             }
 
-            image.HexagonId = hexagon.Id;
+            image.Hexagon = hexagon;
         }
 
         await _context.SaveChangesAsync();
@@ -262,6 +261,11 @@ public class H3Service
                 return null;
             }
             hexagon.H3Index = H3Net.H3ToString(h3Raw);
+        }
+        else
+        {
+            _logger.LogWarning("UpdateHexagon: must provide H3Index or Latitude/Longitude/Resolution");
+            return null;
         }
 
         await _context.SaveChangesAsync();
