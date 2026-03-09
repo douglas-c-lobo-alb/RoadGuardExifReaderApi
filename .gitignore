@@ -376,3 +376,4 @@ Images/
 # Uploaded images in wwwroot (keep folder via .gitkeep)
 **/wwwroot/images/*
 !**/wwwroot/images/.gitkeep
+scratch/
