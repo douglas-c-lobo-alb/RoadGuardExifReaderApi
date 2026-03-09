@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ExifApi.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,5 +25,13 @@ public class ApplicationDbContext : DbContext
             .WithMany(i => i.Anomalies)
             .HasForeignKey(r => r.ImageId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<RoadVisualAnomaly>()
+            .Property(r => r.Notes)
+            .HasConversion(
+                v => v == null ? null : v.RootElement.GetRawText(),
+                v => v == null ? null : JsonDocument.Parse(v, default))
+            .HasColumnType("TEXT");
+
     }
 }
