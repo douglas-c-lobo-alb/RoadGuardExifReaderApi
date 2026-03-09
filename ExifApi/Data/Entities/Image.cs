@@ -1,17 +1,27 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace ExifApi.Data.Entities;
 
 public class Image
 {
+    private static IConfiguration? _configuration;
+
+    public static void SetConfiguration(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
+
     [Key]
     public int Id { get; set; }
     [Required]
     [MaxLength(255)]
     public string FileName { get; set; } = string.Empty;
-    [MaxLength(500)]
-    public string FilePath { get; set; } = string.Empty;
+    [NotMapped]
+    public string FilePath => $"/{_configuration?.GetSection("Image:Path").Value ?? "images"}/{FileName}";
     [Precision(10, 6)]
     public decimal? Latitude { get; set; }
     [Precision(10, 6)]

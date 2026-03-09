@@ -11,18 +11,20 @@ public class ImageService
     private readonly ExifService _exifService;
     private readonly ILogger<ImageService> _logger;
     private readonly IWebHostEnvironment _env;
+    private readonly string _imagesFolder;
 
-    public ImageService(ApplicationDbContext context, ExifService exifService, ILogger<ImageService> logger, IWebHostEnvironment env)
+    public ImageService(ApplicationDbContext context, ExifService exifService, ILogger<ImageService> logger, IWebHostEnvironment env, IConfiguration configuration)
     {
         _context = context;
         _exifService = exifService;
         _logger = logger;
         _env = env;
+        _imagesFolder = configuration.GetSection("Image:Path").Value ?? "images";
     }
 
     public async Task<ImageDto?> RegisterImageAsync(IFormFile file)
     {
-        var imagesPath = Path.Combine(_env.WebRootPath, "images");
+        var imagesPath = Path.Combine(_env.WebRootPath, _imagesFolder);
         Directory.CreateDirectory(imagesPath);
 
         var fileName = Path.GetFileName(file.FileName);
@@ -51,7 +53,6 @@ public class ImageService
         var image = new Image
         {
             FileName = fileName,
-            FilePath = "/images/" + fileName,
             CameraMake = metadata?.CameraMake,
             CameraModel = metadata?.CameraModel,
             DateTaken = metadata?.DateTaken,
@@ -89,7 +90,7 @@ public class ImageService
         var image = await _context.Images.Include(i => i.Hexagon).FirstOrDefaultAsync(i => i.Id == id);
         if (image is null) return false;
 
-        var filePath = Path.Combine(_env.WebRootPath, "images", image.FileName);
+        var filePath = Path.Combine(_env.WebRootPath, _imagesFolder, image.FileName);
         if (File.Exists(filePath)) File.Delete(filePath);
 
         _context.Images.Remove(image);

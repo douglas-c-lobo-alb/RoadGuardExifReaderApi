@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -35,8 +36,11 @@ public class ImageServiceTests : IDisposable
         var mockEnv = new Mock<IWebHostEnvironment>();
         mockEnv.Setup(e => e.WebRootPath).Returns(_tempRoot);
 
+        var mockConfig = new Mock<IConfiguration>();
+        mockConfig.Setup(c => c.GetSection("Image:Path").Value).Returns("images");
+
         var exifService = new ExifService(NullLogger<ExifService>.Instance, mockEnv.Object);
-        _service = new ImageService(_context, exifService, NullLogger<ImageService>.Instance, mockEnv.Object);
+        _service = new ImageService(_context, exifService, NullLogger<ImageService>.Instance, mockEnv.Object, mockConfig.Object);
     }
 
     public void Dispose()
@@ -81,7 +85,7 @@ public class ImageServiceTests : IDisposable
     [Fact]
     public async Task GetByIdAsync_ExistingId_ReturnsCorrectDto()
     {
-        SeedImage(id: 1, filePath: "/images/test_1.jpg");
+        SeedImage(id: 1);
 
         var result = await _service.GetByIdAsync(1);
 
@@ -144,13 +148,12 @@ public class ImageServiceTests : IDisposable
     // Helpers
     // -------------------------------------------------------------------------
 
-    private void SeedImage(int id, string? fileName = null, string? filePath = null, DateTime? dateTaken = null)
+    private void SeedImage(int id, string? fileName = null, DateTime? dateTaken = null)
     {
         _context.Images.Add(new Image
         {
             Id = id,
             FileName = fileName ?? $"test_{id}.jpg",
-            FilePath = filePath ?? $"/images/test_{id}.jpg",
             DateTaken = dateTaken
         });
         _context.SaveChanges();

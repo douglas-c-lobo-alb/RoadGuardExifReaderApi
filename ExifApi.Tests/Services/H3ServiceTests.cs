@@ -293,12 +293,12 @@ public class H3ServiceTests : IDisposable
     public async Task GetHexagonsByViewportAsync_Resolution15_ImageInfoIsPopulated()
     {
         SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
-            filePath: "/images/test.jpg", dateTaken: new DateTime(2026, 2, 25));
+            dateTaken: new DateTime(2026, 2, 25));
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
         var image = Assert.Single(result[0].Images);
-        Assert.Equal("/images/test.jpg", image.FilePath);
+        Assert.Equal("/images/test_1.jpg", image.FilePath);
         Assert.Equal(new DateTime(2026, 2, 25), image.DateTaken);
     }
 
@@ -324,7 +324,6 @@ public class H3ServiceTests : IDisposable
         {
             Id = id,
             FileName = $"test_{id}.jpg",
-            FilePath = $"/images/test_{id}.jpg",
             Latitude = lat,
             Longitude = lon
         });
@@ -332,7 +331,7 @@ public class H3ServiceTests : IDisposable
     }
 
     private void SeedImageWithHexagon(int id, decimal lat, decimal lon, string h3Index,
-        string? filePath = null, DateTime? dateTaken = null, string? anomalyNotes = null)
+        DateTime? dateTaken = null, string? anomalyNotes = null)
     {
         var hexagon = new Hexagon { H3Index = h3Index };
         _context.Hexagons.Add(hexagon);
@@ -342,7 +341,6 @@ public class H3ServiceTests : IDisposable
         {
             Id = id,
             FileName = $"test_{id}.jpg",
-            FilePath = filePath ?? $"/images/test_{id}.jpg",
             Latitude = lat,
             Longitude = lon,
             DateTaken = dateTaken,
