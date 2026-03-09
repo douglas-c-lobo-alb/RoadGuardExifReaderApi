@@ -3,7 +3,6 @@ using ExifApi.Data.Entities;
 using ExifApi.Dtos;
 using H3Standard;
 using Microsoft.EntityFrameworkCore;
-
 namespace ExifApi.Services;
 
 public class H3Service
@@ -60,7 +59,7 @@ public class H3Service
     public async Task GenerateHexagonsAsync()
     {
         var images = await _context.Images
-            .Where(i => i.Hexagon == null && i.Latitude != null && i.Longitude != null)
+            .Where(i => i.HexagonId == null && i.Latitude != null && i.Longitude != null)
             .ToListAsync();
 
         _logger.LogInformation("GenerateHexagons: {Count} images without hexagon", images.Count);
@@ -73,11 +72,16 @@ public class H3Service
                 _logger.LogWarning("H3 conversion failed for image {Id}", image.Id);
                 continue;
             }
-            _context.Hexagons.Add(new Hexagon
+
+            var h3Index = H3Net.H3ToString(h3Raw);
+            var hexagon = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3Index);
+            if (hexagon is null)
             {
-                H3Index = H3Net.H3ToString(h3Raw),
-                ImageId = image.Id
-            });
+                hexagon = new Hexagon { H3Index = h3Index };
+                _context.Hexagons.Add(hexagon);
+            }
+
+            image.Hexagon = hexagon;
         }
 
         await _context.SaveChangesAsync();
@@ -87,38 +91,43 @@ public class H3Service
     public async Task<List<ViewHexagonDto>> GetHexagonsByViewportAsync(
         double latMin, double latMax, double lonMin, double lonMax, int resolution = 15)
     {
-        // Load all hexagons within the viewport bounds, including their images
-        var hexagons = await _context.Hexagons
-            .Include(h => h.Image)
-            .Where(h => h.Image != null
-                && h.Image.Latitude >= (decimal)latMin
-                && h.Image.Latitude <= (decimal)latMax
-                && h.Image.Longitude >= (decimal)lonMin
-                && h.Image.Longitude <= (decimal)lonMax)
+        var images = await _context.Images
+            .Include(i => i.Hexagon)
+            .Where(i => i.Hexagon != null
+                && i.Latitude >= (decimal)latMin
+                && i.Latitude <= (decimal)latMax
+                && i.Longitude >= (decimal)lonMin
+                && i.Longitude <= (decimal)lonMax)
             .ToListAsync();
 
         if (resolution == 15)
         {
-            return hexagons.Select(h => new ViewHexagonDto
-            {
-                H3Index = h.H3Index,
-                Resolution = resolution,
-                Images = h.Image is { } img
-                    ? [new ViewImageDto { Id = img.Id, FilePath = img.FilePath, DateTaken = img.DateTaken, AnomalyNotes = img.Anomaly.Notes }]
-                    : []
-            }).ToList();
+            return images
+                .GroupBy(i => i.Hexagon!.H3Index)
+                .Select(g => new ViewHexagonDto
+                {
+                    H3Index = g.Key,
+                    Resolution = resolution,
+                    Images = g.Select(i => new ViewImageDto
+                    {
+                        Id = i.Id,
+                        FilePath = i.FilePath,
+                        DateTaken = i.DateTaken,
+                        AnomalyNotes = i.AnomalyNotes
+                    }).ToList()
+                }).ToList();
         }
 
         // Roll up to the requested resolution, then group and deduplicate
-        return hexagons
-            .Select(h =>
+        return images
+            .Select(i =>
             {
-                var raw = H3Net.StringToH3(h.H3Index);
+                var raw = H3Net.StringToH3(i.Hexagon!.H3Index);
                 var parent = H3Net.CellToParent(raw, resolution);
                 return new
                 {
                     ParentIndex = H3Net.H3ToString(parent),
-                    Image = h.Image
+                    Image = i
                 };
             })
             .GroupBy(x => x.ParentIndex)
@@ -127,13 +136,12 @@ public class H3Service
                 H3Index = g.Key,
                 Resolution = resolution,
                 Images = g
-                    .Where(x => x.Image != null)
                     .Select(x => new ViewImageDto
                     {
-                        Id = x.Image!.Id,
+                        Id = x.Image.Id,
                         FilePath = x.Image.FilePath,
                         DateTaken = x.Image.DateTaken,
-                        AnomalyNotes = x.Image.Anomaly.Notes
+                        AnomalyNotes = x.Image.AnomalyNotes
                     }).ToList()
             })
             .ToList();
@@ -151,6 +159,137 @@ public class H3Service
             h3Raw = 0;
             return false;
         }
+    }
+
+    // ── CRUD ─────────────────────────────────────────────────────────────────
+
+    public async Task<List<HexagonDto>> GetAllHexagonsAsync()
+    {
+        var hexagons = await _context.Hexagons.ToListAsync();
+        return hexagons.Select(ToDtoFromEntity).ToList();
+    }
+
+    public async Task<HexagonDto?> GetHexagonByIdAsync(int id)
+    {
+        var hexagon = await _context.Hexagons.FindAsync(id);
+        return hexagon is null ? null : ToDtoFromEntity(hexagon);
+    }
+
+    public async Task<HexagonDto?> CreateHexagonAsync(CreateHexagonDto dto)
+    {
+        var image = await _context.Images
+            .Include(i => i.Hexagon)
+            .FirstOrDefaultAsync(i => i.Id == dto.ImageId);
+
+        if (image is null)
+        {
+            _logger.LogWarning("CreateHexagon: image {Id} not found", dto.ImageId);
+            return null;
+        }
+
+        if (image.Hexagon is not null)
+        {
+            _logger.LogWarning("CreateHexagon: image {Id} already has a hexagon", dto.ImageId);
+            return null;
+        }
+
+        string h3IndexStr;
+
+        if (!string.IsNullOrWhiteSpace(dto.H3Index))
+        {
+            if (!TryParseH3(dto.H3Index, out _))
+            {
+                _logger.LogWarning("CreateHexagon: invalid H3Index '{Index}'", dto.H3Index);
+                return null;
+            }
+            h3IndexStr = dto.H3Index;
+        }
+        else if (dto.Latitude.HasValue && dto.Longitude.HasValue && dto.Resolution.HasValue)
+        {
+            var h3Raw = H3Net.LatLngToCell(dto.Latitude.Value, dto.Longitude.Value, dto.Resolution.Value);
+            if (h3Raw == 0)
+            {
+                _logger.LogWarning("CreateHexagon: H3 conversion failed for lat={Lat}, lon={Lon}", dto.Latitude, dto.Longitude);
+                return null;
+            }
+            h3IndexStr = H3Net.H3ToString(h3Raw);
+        }
+        else
+        {
+            _logger.LogWarning("CreateHexagon: must provide H3Index or Latitude/Longitude/Resolution");
+            return null;
+        }
+
+        // Reuse existing hexagon with same H3Index (spatial deduplication)
+        var hexagon = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3IndexStr);
+        if (hexagon is null)
+        {
+            hexagon = new Hexagon { H3Index = h3IndexStr };
+            _context.Hexagons.Add(hexagon);
+            await _context.SaveChangesAsync();
+        }
+
+        image.HexagonId = hexagon.Id;
+        await _context.SaveChangesAsync();
+        return ToDtoFromEntity(hexagon);
+    }
+
+    public async Task<HexagonDto?> UpdateHexagonAsync(int id, UpdateHexagonDto dto)
+    {
+        var hexagon = await _context.Hexagons.FindAsync(id);
+        if (hexagon is null)
+        {
+            _logger.LogWarning("UpdateHexagon: hexagon {Id} not found", id);
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.H3Index))
+        {
+            if (!TryParseH3(dto.H3Index, out _))
+            {
+                _logger.LogWarning("UpdateHexagon: invalid H3Index '{Index}'", dto.H3Index);
+                return null;
+            }
+            hexagon.H3Index = dto.H3Index;
+        }
+        else if (dto.Latitude.HasValue && dto.Longitude.HasValue && dto.Resolution.HasValue)
+        {
+            var h3Raw = H3Net.LatLngToCell(dto.Latitude.Value, dto.Longitude.Value, dto.Resolution.Value);
+            if (h3Raw == 0)
+            {
+                _logger.LogWarning("UpdateHexagon: H3 conversion failed for lat={Lat}, lon={Lon}", dto.Latitude, dto.Longitude);
+                return null;
+            }
+            hexagon.H3Index = H3Net.H3ToString(h3Raw);
+        }
+        else
+        {
+            _logger.LogWarning("UpdateHexagon: must provide H3Index or Latitude/Longitude/Resolution");
+            return null;
+        }
+
+        await _context.SaveChangesAsync();
+        return ToDtoFromEntity(hexagon);
+    }
+
+    public async Task<bool> DeleteHexagonAsync(int id)
+    {
+        var hexagon = await _context.Hexagons.FindAsync(id);
+        if (hexagon is null) return false;
+        _context.Hexagons.Remove(hexagon);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    private static HexagonDto ToDtoFromEntity(Hexagon h)
+    {
+        var h3Raw = H3Net.StringToH3(h.H3Index);
+        return new HexagonDto
+        {
+            Id = h.Id,
+            H3Index = h.H3Index,
+            Resolution = H3Net.GetResolution(h3Raw)
+        };
     }
 
     private static HexagonDto ToDto(ulong h3Raw) => new()

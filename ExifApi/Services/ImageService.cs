@@ -110,12 +110,13 @@ public class ImageService
         Latitude = image.Latitude,
         Longitude = image.Longitude,
         Altitude = image.Altitude,
-        Anomaly = image.Anomaly,
+        Heading = image.Heading,
+        Turbulence = image.Turbulence,
+        AnomalyNotes = image.AnomalyNotes,
         Hexagon = image.Hexagon is null ? null : new HexagonDto
         {
             H3Index = image.Hexagon.H3Index,
-            Resolution = image.Hexagon.Resolution,
-            ImageId = image.Hexagon.ImageId
+            Resolution = image.Hexagon.Resolution
         }
     };
 }
