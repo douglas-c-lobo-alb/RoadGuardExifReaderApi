@@ -12,18 +12,19 @@ public static class ImageEndpoints
 
         group.MapGet("/", GetAll)
             .WithName("GetAllImages")
-            .WithDescription("Returns all registered images with their hexagon");
+            .WithDescription("[Backoffice usage only intented] Returns all registered images with their hexagon");
 
         group.MapGet("/{id:int}", GetById)
             .WithName("GetImageById");
 
         group.MapPost("/", Upload)
             .WithName("UploadImage")
-            .WithDescription("Uploads an image, extracts EXIF metadata and registers it in the database")
+            .WithDescription("[Backoffice usage only intented] Uploads an image, extracts EXIF metadata and registers it in the database")
             .DisableAntiforgery();
 
         group.MapDelete("/{id:int}", Delete)
-            .WithName("DeleteImage");
+            .WithName("DeleteImage")
+            .WithDescription("[Backoffice usage only intented] Deletes an image");
     }
 
     private static async Task<IResult> GetAll(ImageService imageService)

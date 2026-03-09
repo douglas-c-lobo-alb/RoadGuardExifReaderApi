@@ -11,7 +11,7 @@ public static class StatusEndpoints
         {
             status = "ok",
             app = "RoadGuard ExifApi",
-            version = "0.3.0",
+            version = "v0.4.0",
             runtime = $".NET {Environment.Version}",
             utc = DateTime.UtcNow
         }))
