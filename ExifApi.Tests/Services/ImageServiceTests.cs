@@ -151,8 +151,7 @@ public class ImageServiceTests : IDisposable
             Id = id,
             FileName = fileName ?? $"test_{id}.jpg",
             FilePath = filePath ?? $"/images/test_{id}.jpg",
-            DateTaken = dateTaken,
-            Anomaly = new AnomalyData()
+            DateTaken = dateTaken
         });
         _context.SaveChanges();
     }
