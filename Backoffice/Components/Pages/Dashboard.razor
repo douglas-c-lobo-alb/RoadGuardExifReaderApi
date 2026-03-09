@@ -1,0 +1,60 @@
+@page "/"
+@rendermode InteractiveServer
+@inject IHttpClientFactory HttpClientFactory
+
+<PageTitle>Dashboard</PageTitle>
+
+<h1 class="mb-4">Dashboard</h1>
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="row g-3">
+        <div class="col-sm-6 col-md-4">
+            <div class="card text-bg-primary h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">Images</h5>
+                    <p class="card-text fs-1 fw-bold flex-grow-1">@imageCount</p>
+                    <div>
+                        <a href="images" class="btn btn-light btn-sm me-2">View all</a>
+                        <a href="images/upload" class="btn btn-outline-light btn-sm">Upload</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-md-4">
+            <div class="card text-bg-success h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">Hexagons</h5>
+                    <p class="card-text fs-1 fw-bold flex-grow-1">@hexagonCount</p>
+                    <div>
+                        <a href="hexagons" class="btn btn-light btn-sm">View all</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool loading = true;
+    private int imageCount;
+    private int hexagonCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = HttpClientFactory.CreateClient("ExifApi");
+
+        var images = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/images/");
+        imageCount = images?.Count ?? 0;
+
+        var hexagons = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/hexagons/");
+        hexagonCount = hexagons?.Count ?? 0;
+
+        loading = false;
+    }
+}
