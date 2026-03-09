@@ -60,7 +60,7 @@ public class H3Service
     public async Task GenerateHexagonsAsync()
     {
         var images = await _context.Images
-            .Where(i => i.Hexagon == null && i.Latitude != null && i.Longitude != null)
+            .Where(i => i.HexagonId == null && i.Latitude != null && i.Longitude != null)
             .ToListAsync();
 
         _logger.LogInformation("GenerateHexagons: {Count} images without hexagon", images.Count);
@@ -73,11 +73,17 @@ public class H3Service
                 _logger.LogWarning("H3 conversion failed for image {Id}", image.Id);
                 continue;
             }
-            _context.Hexagons.Add(new Hexagon
+
+            var h3Index = H3Net.H3ToString(h3Raw);
+            var hexagon = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3Index);
+            if (hexagon is null)
             {
-                H3Index = H3Net.H3ToString(h3Raw),
-                ImageId = image.Id
-            });
+                hexagon = new Hexagon { H3Index = h3Index };
+                _context.Hexagons.Add(hexagon);
+                await _context.SaveChangesAsync();
+            }
+
+            image.HexagonId = hexagon.Id;
         }
 
         await _context.SaveChangesAsync();
@@ -87,38 +93,43 @@ public class H3Service
     public async Task<List<ViewHexagonDto>> GetHexagonsByViewportAsync(
         double latMin, double latMax, double lonMin, double lonMax, int resolution = 15)
     {
-        // Load all hexagons within the viewport bounds, including their images
-        var hexagons = await _context.Hexagons
-            .Include(h => h.Image)
-            .Where(h => h.Image != null
-                && h.Image.Latitude >= (decimal)latMin
-                && h.Image.Latitude <= (decimal)latMax
-                && h.Image.Longitude >= (decimal)lonMin
-                && h.Image.Longitude <= (decimal)lonMax)
+        var images = await _context.Images
+            .Include(i => i.Hexagon)
+            .Where(i => i.Hexagon != null
+                && i.Latitude >= (decimal)latMin
+                && i.Latitude <= (decimal)latMax
+                && i.Longitude >= (decimal)lonMin
+                && i.Longitude <= (decimal)lonMax)
             .ToListAsync();
 
         if (resolution == 15)
         {
-            return hexagons.Select(h => new ViewHexagonDto
-            {
-                H3Index = h.H3Index,
-                Resolution = resolution,
-                Images = h.Image is { } img
-                    ? [new ViewImageDto { Id = img.Id, FilePath = img.FilePath, DateTaken = img.DateTaken, AnomalyNotes = img.Anomaly.Notes }]
-                    : []
-            }).ToList();
+            return images
+                .GroupBy(i => i.Hexagon!.H3Index)
+                .Select(g => new ViewHexagonDto
+                {
+                    H3Index = g.Key,
+                    Resolution = resolution,
+                    Images = g.Select(i => new ViewImageDto
+                    {
+                        Id = i.Id,
+                        FilePath = i.FilePath,
+                        DateTaken = i.DateTaken,
+                        AnomalyNotes = i.AnomalyNotes
+                    }).ToList()
+                }).ToList();
         }
 
         // Roll up to the requested resolution, then group and deduplicate
-        return hexagons
-            .Select(h =>
+        return images
+            .Select(i =>
             {
-                var raw = H3Net.StringToH3(h.H3Index);
+                var raw = H3Net.StringToH3(i.Hexagon!.H3Index);
                 var parent = H3Net.CellToParent(raw, resolution);
                 return new
                 {
                     ParentIndex = H3Net.H3ToString(parent),
-                    Image = h.Image
+                    Image = i
                 };
             })
             .GroupBy(x => x.ParentIndex)
@@ -127,13 +138,12 @@ public class H3Service
                 H3Index = g.Key,
                 Resolution = resolution,
                 Images = g
-                    .Where(x => x.Image != null)
                     .Select(x => new ViewImageDto
                     {
-                        Id = x.Image!.Id,
+                        Id = x.Image.Id,
                         FilePath = x.Image.FilePath,
                         DateTaken = x.Image.DateTaken,
-                        AnomalyNotes = x.Image.Anomaly.Notes
+                        AnomalyNotes = x.Image.AnomalyNotes
                     }).ToList()
             })
             .ToList();
