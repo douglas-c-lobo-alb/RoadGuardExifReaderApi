@@ -1,5 +1,6 @@
 
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace ExifApi.Data.Entities;
 
@@ -11,7 +12,7 @@ public class RoadVisualAnomaly
     public Image? Image { get; set; }
     public AnomalyType AnomalyType { get; set; } = AnomalyType.None;
     public decimal Confidence { get; set; }
-    public string? Notes { get; set; }
+    public JsonDocument? Notes { get; set; }
     public int BoxX1 { get; set; }
     public int BoxY1 { get; set; }
     public int BoxX2 { get; set; }
