@@ -4,6 +4,7 @@ namespace ExifApi.Dtos;
 
 public class HexagonDto
 {
+    public int Id { get; set; }
     public string H3Index { get; set; } = string.Empty;
     public int Resolution { get; set; }
     public int? ImageId { get; set; }
