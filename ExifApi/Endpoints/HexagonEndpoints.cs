@@ -48,13 +48,15 @@ public static class HexagonEndpoints
 
     private static async Task<IResult> Update(int id, UpdateHexagonDto dto, H3Service h3Service)
     {
-        if (await h3Service.GetHexagonByIdAsync(id) is null)
-            return Results.NotFound();
-
         var result = await h3Service.UpdateHexagonAsync(id, dto);
-        return result is null
-            ? Results.BadRequest("Failed to update hexagon — verify the target image doesn't already have a hexagon and the H3 input is correct")
-            : Results.Ok(result);
+        if (result is null)
+        {
+            var exists = await h3Service.GetHexagonByIdAsync(id);
+            return exists is null
+                ? Results.NotFound()
+                : Results.BadRequest("Failed to update hexagon — verify the H3 input is correct");
+        }
+        return Results.Ok(result);
     }
 
     private static async Task<IResult> Delete(int id, H3Service h3Service)
