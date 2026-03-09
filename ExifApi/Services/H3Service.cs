@@ -221,8 +221,16 @@ public class H3Service
             return null;
         }
 
-        var hexagon = new Hexagon { H3Index = h3IndexStr, ImageId = dto.ImageId };
-        _context.Hexagons.Add(hexagon);
+        // Reuse existing hexagon with same H3Index (spatial deduplication)
+        var hexagon = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3IndexStr);
+        if (hexagon is null)
+        {
+            hexagon = new Hexagon { H3Index = h3IndexStr };
+            _context.Hexagons.Add(hexagon);
+            await _context.SaveChangesAsync();
+        }
+
+        image.HexagonId = hexagon.Id;
         await _context.SaveChangesAsync();
         return ToDtoFromEntity(hexagon);
     }
@@ -234,18 +242,6 @@ public class H3Service
         {
             _logger.LogWarning("UpdateHexagon: hexagon {Id} not found", id);
             return null;
-        }
-
-        if (dto.ImageId.HasValue && dto.ImageId.Value != hexagon.ImageId)
-        {
-            var alreadyTaken = await _context.Hexagons
-                .AnyAsync(h => h.ImageId == dto.ImageId.Value && h.Id != id);
-            if (alreadyTaken)
-            {
-                _logger.LogWarning("UpdateHexagon: image {ImageId} already has a hexagon", dto.ImageId);
-                return null;
-            }
-            hexagon.ImageId = dto.ImageId.Value;
         }
 
         if (!string.IsNullOrWhiteSpace(dto.H3Index))
@@ -288,8 +284,7 @@ public class H3Service
         {
             Id = h.Id,
             H3Index = h.H3Index,
-            Resolution = H3Net.GetResolution(h3Raw),
-            ImageId = h.ImageId
+            Resolution = H3Net.GetResolution(h3Raw)
         };
     }
 
