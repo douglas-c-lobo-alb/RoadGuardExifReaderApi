@@ -61,16 +61,24 @@ else
     protected override async Task OnInitializedAsync()
     {
         var client = HttpClientFactory.CreateClient("ExifApi");
+        try
+        {
+            var images = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/images/");
+            imageCount = images?.Count ?? 0;
 
-        var images = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/images/");
-        imageCount = images?.Count ?? 0;
+            var hexagons = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/hexagons/");
+            hexagonCount = hexagons?.Count ?? 0;
 
-        var hexagons = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/hexagons/");
-        hexagonCount = hexagons?.Count ?? 0;
-
-        var turbulences = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/turbulence/");
-        turbulenceCount = turbulences?.Count ?? 0;
-
-        loading = false;
+            var turbulences = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/turbulence/");
+            turbulenceCount = turbulences?.Count ?? 0;
+        }
+        catch (HttpRequestException)
+        {
+            // API unavailable or returned an error — counts stay 0
+        }
+        finally
+        {
+            loading = false;
+        }
     }
 }
