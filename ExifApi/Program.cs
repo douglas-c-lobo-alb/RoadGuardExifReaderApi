@@ -62,5 +62,6 @@ api.MapMetadataEndpoints();
 api.MapH3Endpoints();
 api.MapHexagonEndpoints();
 api.MapImageEndpoints();
+api.MapRoadTurbulenceEndpoints();
 
 app.Run();
