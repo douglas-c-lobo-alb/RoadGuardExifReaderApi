@@ -89,15 +89,28 @@ public class H3Service
     }
 
     public async Task<List<ViewHexagonDto>> GetHexagonsByViewportAsync(
-        double latMin, double latMax, double lonMin, double lonMax, int resolution = 15)
+        double latMin,
+        double latMax,
+        double lonMin,
+        double lonMax,
+        List<AnomalyType>? anomalies = null,
+        DateOnly? startDate = null,
+        DateOnly? endDate = null,
+        int resolution = 15)
     {
         var images = await _context.Images
             .Include(i => i.Hexagon)
+            .Include(i => i.Anomalies)
+            .Where(i => startDate == null ? true : DateOnly.FromDateTime((DateTime)i.DateTaken!) >= startDate)
+            .Where(i => endDate == null ? true : DateOnly.FromDateTime((DateTime)i.DateTaken!) <= endDate)
             .Where(i => i.Hexagon != null
                 && i.Latitude >= (decimal)latMin
                 && i.Latitude <= (decimal)latMax
                 && i.Longitude >= (decimal)lonMin
                 && i.Longitude <= (decimal)lonMax)
+            .Where(i => anomalies == null
+                || !anomalies.Any()
+                || i.Anomalies.Any(a => anomalies.Contains(a.AnomalyType)))
             .ToListAsync();
 
         if (resolution == 15)
