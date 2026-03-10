@@ -54,6 +54,13 @@ app.Use((context, next) =>
     return next.Invoke();
 });
 
+// Apply any pending EF Core migrations at startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
+
 var api = app.MapGroup("/api");
 
 Image.SetConfiguration(app.Configuration);
@@ -66,3 +73,5 @@ api.MapImageEndpoints();
 api.MapRoadTurbulenceEndpoints();
 
 app.Run();
+
+public partial class Program { }
