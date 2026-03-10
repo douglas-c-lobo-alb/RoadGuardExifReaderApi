@@ -54,7 +54,7 @@ app.Use((context, next) =>
     return next.Invoke();
 });
 
-// Apply any pending EF Core migrations at startup
+// Apply any pending EF Core migrations at startup (https://stackoverflow.com/a/70057243)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
