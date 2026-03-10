@@ -11,6 +11,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Image> Images { get; set; }
     public DbSet<Hexagon> Hexagons { get; set; }
     public DbSet<RoadVisualAnomaly> RoadVisualAnomalies { get; set; }
+    public DbSet<RoadTurbulence> RoadTurbulences { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

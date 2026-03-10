@@ -161,7 +161,7 @@ public class H3Service
         }
     }
 
-    // ── CRUD ─────────────────────────────────────────────────────────────────
+    // CRUD
 
     public async Task<List<HexagonDto>> GetAllHexagonsAsync()
     {
