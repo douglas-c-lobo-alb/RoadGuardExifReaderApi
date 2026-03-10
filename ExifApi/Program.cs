@@ -13,6 +13,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ExifService>();
 builder.Services.AddScoped<H3Service>();
 builder.Services.AddScoped<ImageService>();
+builder.Services.AddScoped<RoadTurbulenceService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlite(
@@ -62,5 +63,6 @@ api.MapMetadataEndpoints();
 api.MapH3Endpoints();
 api.MapHexagonEndpoints();
 api.MapImageEndpoints();
+api.MapRoadTurbulenceEndpoints();
 
 app.Run();
