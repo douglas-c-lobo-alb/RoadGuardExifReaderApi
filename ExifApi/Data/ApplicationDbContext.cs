@@ -33,5 +33,10 @@ public class ApplicationDbContext : DbContext
                 v => v == null ? null : JsonDocument.Parse(v, default))
             .HasColumnType("TEXT");
 
+        modelBuilder.Entity<RoadTurbulence>()
+            .HasOne(h => h.Hexagon)
+            .WithMany()
+            .HasForeignKey(h => h.HexagonId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
