@@ -13,18 +13,18 @@ public static class RoadTurbulenceEndpoints
 
         group.MapGet("/", GetAll)
             .WithName("GetAllTurbulence")
-            .WithDescription("Retrieves all road turbulence records");
+            .WithDescription("[API usage only intent] Retrieves all road turbulence records");
 
         group.MapGet("/{id:int}", GetById)
             .WithName("GetTurbulenceById");
 
         group.MapGet("/h3/{h3Index}", GetByH3Index)
             .WithName("GetTurbulenceByH3Index")
-            .WithDescription("Retrieves road turbulence records for a given H3 index");
+            .WithDescription("[API usage only intent] Retrieves road turbulence records for a given H3 index");
 
         group.MapPost("/", Create)
             .WithName("CreateTurbulence")
-            .WithDescription("Creates one or more road turbulence records atomically");
+            .WithDescription("[API usage only intent] Creates one or more road turbulence records atomically");
 
         group.MapPut("/{id:int}", Update)
             .WithName("UpdateTurbulence");
