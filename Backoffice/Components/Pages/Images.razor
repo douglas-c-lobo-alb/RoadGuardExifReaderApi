@@ -1,6 +1,7 @@
 @page "/images"
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager NavigationManager
+@inject IConfiguration Configuration
 @rendermode InteractiveServer
 
 <PageTitle>Images</PageTitle>
@@ -33,16 +34,18 @@ else if (!images.Any())
 }
 else
 {
-    <table class="table table-striped">
+    <table class="table table-striped align-middle">
         <thead>
             <tr>
+                <th style="width:60px"></th>
                 <th>Id</th>
                 <th>File</th>
                 <th>Date Taken</th>
                 <th>Camera</th>
                 <th>Lat / Lng</th>
                 <th>Altitude</th>
-                <th>H3 Index</th>
+                <th>Hexagon</th>
+                <th>Anomalies</th>
                 <th></th>
             </tr>
         </thead>
@@ -50,14 +53,45 @@ else
             @foreach (var img in images)
             {
                 <tr>
+                    <td style="padding:4px">
+                        @if (!string.IsNullOrEmpty(img.FilePath))
+                        {
+                            <img src="@(apiBase + img.FilePath)"
+                                 alt="@img.FileName"
+                                 style="width:56px;height:40px;object-fit:cover;border-radius:3px;display:block" />
+                        }
+                    </td>
                     <td>@img.Id</td>
-                    <td>@img.FileName</td>
-                    <td>@img.DateTaken</td>
+                    <td><span class="text-truncate d-block" style="max-width:160px" title="@img.FileName">@img.FileName</span></td>
+                    <td>@img.DateTaken?.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>@img.CameraMake @img.CameraModel</td>
                     <td>@img.Latitude / @img.Longitude</td>
                     <td>@img.Altitude</td>
-                    <td>@(img.Hexagon?.H3Index ?? "—")</td>
                     <td>
+                        @if (img.Hexagon is not null)
+                        {
+                            <a href="/hexagons/@img.Hexagon.Id/edit" class="text-decoration-none">
+                                <span class="text-muted small">#@img.Hexagon.Id</span><br />
+                                <code class="small">@img.Hexagon.H3Index</code>
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                    </td>
+                    <td>
+                        @if (img.AnomalyCount > 0)
+                        {
+                            <span class="badge bg-warning text-dark">@img.AnomalyCount</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">0</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <a href="/images/@img.Id/edit" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
                         <button class="btn btn-sm btn-danger" @onclick="() => DeleteImage(img.Id)">Delete</button>
                     </td>
                 </tr>
@@ -71,8 +105,13 @@ else
     private string? errorMessage;
     private string? successMessage;
     private bool generating;
+    private string apiBase = string.Empty;
 
-    protected override async Task OnInitializedAsync() => await LoadImages();
+    protected override async Task OnInitializedAsync()
+    {
+        apiBase = (Configuration["ApiBaseUrl"] ?? string.Empty).TrimEnd('/');
+        await LoadImages();
+    }
 
     private async Task LoadImages()
     {
@@ -127,10 +166,9 @@ else
         }
     }
 
-    private record HexagonRow(string H3Index, int Resolution);
-    private record AnomalyRow(string? Notes);
+    private record HexagonRow(int Id, string H3Index, int Resolution);
     private record ImageRow(int Id, string FileName, string FilePath,
         string? CameraMake, string? CameraModel, DateTime? DateTaken,
         decimal? Latitude, decimal? Longitude, double? Altitude,
-        AnomalyRow? Anomaly, HexagonRow? Hexagon);
+        int AnomalyCount, HexagonRow? Hexagon);
 }

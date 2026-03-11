@@ -178,8 +178,25 @@ public class H3Service
 
     public async Task<List<HexagonDto>> GetAllHexagonsAsync()
     {
-        var hexagons = await _context.Hexagons.ToListAsync();
-        return hexagons.Select(ToDtoFromEntity).ToList();
+        var hexagons = await _context.Hexagons
+            .Select(h => new
+            {
+                Hexagon = h,
+                ImageCount = _context.Images.Count(i => i.HexagonId == h.Id),
+                AnomalyCount = _context.Images
+                    .Where(i => i.HexagonId == h.Id)
+                    .SelectMany(i => i.Anomalies)
+                    .Count()
+            })
+            .ToListAsync();
+
+        return hexagons.Select(x =>
+        {
+            var dto = ToDtoFromEntity(x.Hexagon);
+            dto.ImageCount = x.ImageCount;
+            dto.AnomalyCount = x.AnomalyCount;
+            return dto;
+        }).ToList();
     }
 
     public async Task<HexagonDto?> GetHexagonByIdAsync(int id)
