@@ -1,4 +1,5 @@
 @page "/turbulences"
+@using ExifApi.Data.Entities
 @inject IHttpClientFactory HttpClientFactory
 @rendermode InteractiveServer
 
@@ -42,7 +43,16 @@ else
                 <tr>
                     <td>@t.Id</td>
                     <td>@t.Index</td>
-                    <td>@t.RoadTurbulenceType</td>
+                    <td>
+                        @if (t.RoadTurbulenceType == RoadTurbulenceType.None)
+                        {
+                            <span class="text-muted">None</span>
+                        }
+                        else
+                        {
+                            @t.RoadTurbulenceType.ToString()
+                        }
+                    </td>
                     <td>@(t.HexagonId?.ToString() ?? "—")</td>
                     <td>@t.DateCreated.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>
@@ -90,5 +100,5 @@ else
             errorMessage = $"Delete failed ({response.StatusCode})";
     }
 
-    private record TurbulenceRow(int Id, int Index, string RoadTurbulenceType, int? HexagonId, DateTime DateCreated);
+    private record TurbulenceRow(int Id, int Index, RoadTurbulenceType RoadTurbulenceType, int? HexagonId, DateTime DateCreated);
 }
