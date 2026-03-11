@@ -6,7 +6,7 @@ using ExifApi.Dtos;
 namespace ExifApi.Tests.Endpoints;
 
 /// <summary>
-/// Tests for /api/turbulence/ endpoints.
+/// Tests for /api/turbulences/ endpoints.
 /// All tests use turbulence records without hexagon associations so that
 /// H3Net (Windows-only native DLL) is never invoked during serialisation.
 /// </summary>
@@ -28,13 +28,13 @@ public class RoadTurbulenceEndpointsTests : IDisposable
     }
 
     // -------------------------------------------------------------------------
-    // GET /api/turbulence/
+    // GET /api/turbulences/
     // -------------------------------------------------------------------------
 
     [Fact]
     public async Task GetAll_EmptyDb_Returns200AndEmptyArray()
     {
-        var response = await _client.GetAsync("api/turbulence/");
+        var response = await _client.GetAsync("api/turbulences/");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<List<RoadTurbulenceDto>>();
@@ -51,7 +51,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
             new RoadTurbulence { Index = 5, RoadTurbulenceType = RoadTurbulenceType.Speedbump, DateCreated = DateTime.UtcNow });
         await ctx.SaveChangesAsync();
 
-        var response = await _client.GetAsync("api/turbulence/");
+        var response = await _client.GetAsync("api/turbulences/");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<List<RoadTurbulenceDto>>();
@@ -60,7 +60,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
     }
 
     // -------------------------------------------------------------------------
-    // GET /api/turbulence/{id}
+    // GET /api/turbulences/{id}
     // -------------------------------------------------------------------------
 
     [Fact]
@@ -77,7 +77,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
         await ctx.SaveChangesAsync();
         int id = record.Id;
 
-        var response = await _client.GetAsync($"api/turbulence/{id}");
+        var response = await _client.GetAsync($"api/turbulences/{id}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var dto = await response.Content.ReadFromJsonAsync<RoadTurbulenceDto>();
@@ -90,19 +90,19 @@ public class RoadTurbulenceEndpointsTests : IDisposable
     [Fact]
     public async Task GetById_NotFound_Returns404()
     {
-        var response = await _client.GetAsync("api/turbulence/99999");
+        var response = await _client.GetAsync("api/turbulences/99999");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     // -------------------------------------------------------------------------
-    // GET /api/turbulence/h3/{h3Index}
+    // GET /api/turbulences/h3/{h3Index}
     // -------------------------------------------------------------------------
 
     [Fact]
     public async Task GetByH3Index_NoMatch_Returns200EmptyArray()
     {
-        var response = await _client.GetAsync("api/turbulence/h3/8f39100e1a500e2");
+        var response = await _client.GetAsync("api/turbulences/h3/8f39100e1a500e2");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<List<RoadTurbulenceDto>>();
@@ -111,7 +111,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
     }
 
     // -------------------------------------------------------------------------
-    // POST /api/turbulence/
+    // POST /api/turbulences/
     // -------------------------------------------------------------------------
 
     [Fact]
@@ -123,7 +123,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
             new() { Index = 4, RoadTurbulenceType = RoadTurbulenceType.Pothole }
         };
 
-        var response = await _client.PostAsJsonAsync("api/turbulence/", dtos);
+        var response = await _client.PostAsJsonAsync("api/turbulences/", dtos);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<List<RoadTurbulenceDto>>();
@@ -136,13 +136,13 @@ public class RoadTurbulenceEndpointsTests : IDisposable
     {
         var dtos = new List<CreateRoadTurbulenceDto>();
 
-        var response = await _client.PostAsJsonAsync("api/turbulence/", dtos);
+        var response = await _client.PostAsJsonAsync("api/turbulences/", dtos);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     // -------------------------------------------------------------------------
-    // PUT /api/turbulence/{id}
+    // PUT /api/turbulences/{id}
     // -------------------------------------------------------------------------
 
     [Fact]
@@ -160,7 +160,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
         int id = record.Id;
 
         var update = new CreateRoadTurbulenceDto { Index = 8, RoadTurbulenceType = RoadTurbulenceType.Speedbump };
-        var response = await _client.PutAsJsonAsync($"api/turbulence/{id}", update);
+        var response = await _client.PutAsJsonAsync($"api/turbulences/{id}", update);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var dto = await response.Content.ReadFromJsonAsync<RoadTurbulenceDto>();
@@ -174,13 +174,13 @@ public class RoadTurbulenceEndpointsTests : IDisposable
     {
         var update = new CreateRoadTurbulenceDto { Index = 5, RoadTurbulenceType = RoadTurbulenceType.Pothole };
 
-        var response = await _client.PutAsJsonAsync("api/turbulence/99999", update);
+        var response = await _client.PutAsJsonAsync("api/turbulences/99999", update);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     // -------------------------------------------------------------------------
-    // DELETE /api/turbulence/{id}
+    // DELETE /api/turbulences/{id}
     // -------------------------------------------------------------------------
 
     [Fact]
@@ -197,7 +197,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
         await ctx.SaveChangesAsync();
         int id = record.Id;
 
-        var response = await _client.DeleteAsync($"api/turbulence/{id}");
+        var response = await _client.DeleteAsync($"api/turbulences/{id}");
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
@@ -208,7 +208,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
     [Fact]
     public async Task Delete_NotFound_Returns404()
     {
-        var response = await _client.DeleteAsync("api/turbulence/99999");
+        var response = await _client.DeleteAsync("api/turbulences/99999");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

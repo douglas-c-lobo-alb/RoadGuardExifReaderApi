@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Services;
@@ -199,7 +200,7 @@ public class H3ServiceTests : IDisposable
 
     [Fact]
     public async Task GenerateHexagonsAsync_ImageAlreadyHasHexagon_Skips()
-    {        
+    {
         SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index);
 
         await _service.GenerateHexagonsAsync();
@@ -347,6 +348,43 @@ public class H3ServiceTests : IDisposable
             AnomalyNotes = anomalyNotes,
             HexagonId = hexagon.Id
         });
+        _context.SaveChanges();
+    }
+
+    private void SeedImageWithAnomaly(int id, decimal lat, decimal lon, string h3Index, List<AnomalyType> anomalies)
+    {
+        var random = new Random();
+        var hexagon = new Hexagon { H3Index = h3Index };
+        _context.Hexagons.Add(hexagon);
+        _context.SaveChanges();
+
+        _ = _context.Images.Add(new Image
+        {
+            Id = id,
+            FileName = $"test_{id}.jpg",
+            Latitude = lat,
+            Longitude = lon,
+            DateTaken = DateTime.UtcNow,
+            AnomalyNotes = null,
+            HexagonId = hexagon.Id
+        });
+        _context.SaveChanges();
+
+        foreach (var anomaly in anomalies)
+            _context.RoadVisualAnomalies.Add(new RoadVisualAnomaly
+            {
+                ImageId = id,
+                AnomalyType = anomaly,
+                BoxX1 = 156,
+                BoxY1 = 143,
+                BoxX2 = 210,
+                BoxY2 = 190,
+                Confidence = (decimal)(random.NextDouble() + 0.1),
+                CreatedDate = DateTime.UtcNow,
+                LastModifiedDate = DateTime.UtcNow,
+                ResolvedAt = null,
+                Notes = JsonDocument.Parse(@"{}")
+            });
         _context.SaveChanges();
     }
 }
