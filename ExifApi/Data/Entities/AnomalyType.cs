@@ -1,12 +1,19 @@
 
 namespace ExifApi.Data.Entities;
 
+[Flags]
 public enum AnomalyType
 {
-    None,
-    Pothole,
-    Crack,
-    MissingRoadSign,
-    WaterLeakage,
-    AnimalCorpse,
+    None = 0,
+    Pothole = 1 << 0,
+    Crack = 1 << 1,
+    MissingRoadSign = 1 << 2,
+    WaterLeakage = 1 << 3,
+    AnimalCorpse = 1 << 4,
+    All = Pothole
+        | Crack
+        | MissingRoadSign
+        | WaterLeakage
+        | AnimalCorpse
+
 }
