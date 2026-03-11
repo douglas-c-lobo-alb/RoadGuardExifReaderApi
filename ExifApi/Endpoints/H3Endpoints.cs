@@ -90,10 +90,8 @@ public static class H3Endpoints
             return Results.BadRequest("lonMin must be less than lonMax");
         if (resolution < 0 || resolution > 15)
             return Results.BadRequest("resolution must be between 0 and 15");
-        if (startDate > endDate || endDate < startDate)
-            return Results.BadRequest($"nonsensical date values: (startDate) {startDate} -> (endDate) {endDate}?");
-        if (anomalies is not List<AnomalyType>)
-            return Results.BadRequest("poorly formatted request: query should be formatted like the following \"anomalies=Pothole&anomalies=Speedbump\"");
+        if (startDate > endDate)
+            return Results.BadRequest($"startDate ({startDate}) must be before endDate ({endDate})");
 
         var result = await h3Service.GetHexagonsByViewportAsync(
             latMinD,
