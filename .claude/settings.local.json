@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(git checkout -b fix/notes-json-owned-type)",
-      "Bash(dotnet test:*)"
-    ]
-  }
-}

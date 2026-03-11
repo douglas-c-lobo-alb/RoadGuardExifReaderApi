@@ -377,3 +377,6 @@ Images/
 **/wwwroot/images/*
 !**/wwwroot/images/.gitkeep
 scratch/
+
+# Claude Code
+.claude/
