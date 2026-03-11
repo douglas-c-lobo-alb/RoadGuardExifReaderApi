@@ -14,6 +14,7 @@ builder.Services.AddScoped<ExifService>();
 builder.Services.AddScoped<H3Service>();
 builder.Services.AddScoped<ImageService>();
 builder.Services.AddScoped<RoadTurbulenceService>();
+builder.Services.AddScoped<SeedService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlite(
@@ -74,6 +75,7 @@ api.MapH3Endpoints();
 api.MapHexagonEndpoints();
 api.MapImageEndpoints();
 api.MapRoadTurbulenceEndpoints();
+api.MapSeedEndpoints();
 
 app.Run();
 
