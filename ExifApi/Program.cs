@@ -76,6 +76,7 @@ api.MapHexagonEndpoints();
 api.MapImageEndpoints();
 api.MapRoadTurbulenceEndpoints();
 api.MapSeedEndpoints();
+api.MapIntrospectiveEndpoints();
 
 app.Run();
 
