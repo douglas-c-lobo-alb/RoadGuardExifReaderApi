@@ -7,7 +7,7 @@ public static class RoadTurbulenceEndpoints
 {
     public static void MapRoadTurbulenceEndpoints(this RouteGroupBuilder api)
     {
-        RouteGroupBuilder group = api.MapGroup("/turbulence")
+        RouteGroupBuilder group = api.MapGroup("/turbulences")
             .WithName("Turbulence")
             .WithOpenApi();
 
@@ -51,7 +51,7 @@ public static class RoadTurbulenceEndpoints
             return Results.BadRequest("At least one turbulence record is required");
 
         var created = await svc.CreateAsync(dtos);
-        return Results.Created($"/api/turbulence", created);
+        return Results.Created($"/api/turbulences", created);
     }
 
     private static async Task<IResult> Update(int id, CreateRoadTurbulenceDto dto, RoadTurbulenceService svc)

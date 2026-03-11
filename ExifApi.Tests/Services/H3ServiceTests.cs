@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Services;
@@ -199,7 +200,7 @@ public class H3ServiceTests : IDisposable
 
     [Fact]
     public async Task GenerateHexagonsAsync_ImageAlreadyHasHexagon_Skips()
-    {        
+    {
         SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index);
 
         await _service.GenerateHexagonsAsync();
@@ -315,6 +316,165 @@ public class H3ServiceTests : IDisposable
     }
 
     // -------------------------------------------------------------------------
+    // Date filter
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_StartDate_ExcludesImagesBeforeDate()
+    {
+        SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
+            dateTaken: new DateTime(2025, 1, 15));
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
+            startDate: new DateOnly(2025, 7, 1));
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_StartDate_IncludesImagesAfterDate()
+    {
+        SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
+            dateTaken: new DateTime(2025, 7, 15));
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
+            startDate: new DateOnly(2025, 6, 1));
+
+        Assert.Single(result);
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_EndDate_ExcludesImagesAfterDate()
+    {
+        SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
+            dateTaken: new DateTime(2025, 7, 15));
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
+            endDate: new DateOnly(2025, 3, 1));
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_BothDates_IncludesImageInRange()
+    {
+        SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
+            dateTaken: new DateTime(2025, 5, 10));
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
+            startDate: new DateOnly(2025, 1, 1),
+            endDate: new DateOnly(2025, 12, 31));
+
+        Assert.Single(result);
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_BothDates_ExcludesImageOutsideRange()
+    {
+        SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
+            dateTaken: new DateTime(2024, 12, 31));
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
+            startDate: new DateOnly(2025, 1, 1),
+            endDate: new DateOnly(2025, 12, 31));
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_NoDates_ReturnsAllImages()
+    {
+        const string cell2 = "8f39100e1a500e6";
+        SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
+            dateTaken: new DateTime(2024, 1, 1));
+        SeedImageWithHexagon(id: 2, lat: 37.0997m, lon: -8.6825m, h3Index: cell2,
+            dateTaken: new DateTime(2025, 6, 1));
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
+
+        Assert.Equal(2, result.SelectMany(h => h.Images).Count());
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_StartDate_ExcludesImagesWithNullDateTaken()
+    {
+        SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
+            dateTaken: null);
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
+            startDate: new DateOnly(2025, 1, 1));
+
+        Assert.Empty(result);
+    }
+
+    // -------------------------------------------------------------------------
+    // Anomaly filter
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_AnomalyFilter_IncludesImageWithMatchingAnomaly()
+    {
+        SeedImageWithAnomaly(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
+            anomalies: [AnomalyType.Pothole]);
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
+            anomalies: [AnomalyType.Pothole]);
+
+        Assert.Single(result);
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_AnomalyFilter_ExcludesImageWithNonMatchingAnomaly()
+    {
+        SeedImageWithAnomaly(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
+            anomalies: [AnomalyType.Crack]);
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
+            anomalies: [AnomalyType.Pothole]);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_AnomalyFilter_ExcludesImageWithNoAnomalies()
+    {
+        SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index);
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
+            anomalies: [AnomalyType.Pothole]);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_AnomalyFilter_MultipleTypes_IncludesAnyMatch()
+    {
+        const string cell2 = "8f39100e1a500e6";
+        SeedImageWithAnomaly(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
+            anomalies: [AnomalyType.Pothole]);
+        SeedImageWithAnomaly(id: 2, lat: 37.0997m, lon: -8.6825m, h3Index: cell2,
+            anomalies: [AnomalyType.Crack]);
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
+            anomalies: [AnomalyType.Pothole, AnomalyType.Crack]);
+
+        Assert.Equal(2, result.SelectMany(h => h.Images).Count());
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_NullAnomalyFilter_ReturnsAllImages()
+    {
+        const string cell2 = "8f39100e1a500e6";
+        SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index);
+        SeedImageWithAnomaly(id: 2, lat: 37.0997m, lon: -8.6825m, h3Index: cell2,
+            anomalies: [AnomalyType.Pothole]);
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
+
+        Assert.Equal(2, result.SelectMany(h => h.Images).Count());
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
@@ -347,6 +507,43 @@ public class H3ServiceTests : IDisposable
             AnomalyNotes = anomalyNotes,
             HexagonId = hexagon.Id
         });
+        _context.SaveChanges();
+    }
+
+    private void SeedImageWithAnomaly(int id, decimal lat, decimal lon, string h3Index, List<AnomalyType> anomalies)
+    {
+        var random = new Random();
+        var hexagon = new Hexagon { H3Index = h3Index };
+        _context.Hexagons.Add(hexagon);
+        _context.SaveChanges();
+
+        _ = _context.Images.Add(new Image
+        {
+            Id = id,
+            FileName = $"test_{id}.jpg",
+            Latitude = lat,
+            Longitude = lon,
+            DateTaken = DateTime.UtcNow,
+            AnomalyNotes = null,
+            HexagonId = hexagon.Id
+        });
+        _context.SaveChanges();
+
+        foreach (var anomaly in anomalies)
+            _context.RoadVisualAnomalies.Add(new RoadVisualAnomaly
+            {
+                ImageId = id,
+                AnomalyType = anomaly,
+                BoxX1 = 156,
+                BoxY1 = 143,
+                BoxX2 = 210,
+                BoxY2 = 190,
+                Confidence = (decimal)(random.NextDouble() + 0.1),
+                CreatedDate = DateTime.UtcNow,
+                LastModifiedDate = DateTime.UtcNow,
+                ResolvedAt = null,
+                Notes = JsonDocument.Parse(@"{}")
+            });
         _context.SaveChanges();
     }
 }
