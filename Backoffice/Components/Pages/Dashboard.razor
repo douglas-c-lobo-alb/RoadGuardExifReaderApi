@@ -37,6 +37,18 @@ else
                 </div>
             </div>
         </div>
+
+        <div class="col-sm-6 col-md-4">
+            <div class="card text-bg-warning h-100">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">Road Turbulences</h5>
+                    <p class="card-text fs-1 fw-bold flex-grow-1">@turbulenceCount</p>
+                    <div>
+                        <a href="turbulences" class="btn btn-dark btn-sm">View all</a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 }
 
@@ -44,17 +56,29 @@ else
     private bool loading = true;
     private int imageCount;
     private int hexagonCount;
+    private int turbulenceCount;
 
     protected override async Task OnInitializedAsync()
     {
         var client = HttpClientFactory.CreateClient("ExifApi");
+        try
+        {
+            var images = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/images/");
+            imageCount = images?.Count ?? 0;
 
-        var images = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/images/");
-        imageCount = images?.Count ?? 0;
+            var hexagons = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/hexagons/");
+            hexagonCount = hexagons?.Count ?? 0;
 
-        var hexagons = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/hexagons/");
-        hexagonCount = hexagons?.Count ?? 0;
-
-        loading = false;
+            var turbulences = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/turbulences/");
+            turbulenceCount = turbulences?.Count ?? 0;
+        }
+        catch (HttpRequestException)
+        {
+            // API unavailable or returned an error — counts stay 0
+        }
+        finally
+        {
+            loading = false;
+        }
     }
 }

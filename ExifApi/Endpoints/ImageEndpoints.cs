@@ -1,3 +1,4 @@
+using ExifApi.Dtos;
 using ExifApi.Services;
 
 namespace ExifApi.Endpoints;
@@ -12,18 +13,23 @@ public static class ImageEndpoints
 
         group.MapGet("/", GetAll)
             .WithName("GetAllImages")
-            .WithDescription("Returns all registered images with their hexagon");
+            .WithDescription("[Backoffice usage only intented] Returns all registered images with their hexagon");
 
         group.MapGet("/{id:int}", GetById)
             .WithName("GetImageById");
 
         group.MapPost("/", Upload)
             .WithName("UploadImage")
-            .WithDescription("Uploads an image, extracts EXIF metadata and registers it in the database")
+            .WithDescription("[Backoffice usage only intented] Uploads an image, extracts EXIF metadata and registers it in the database")
             .DisableAntiforgery();
 
+        group.MapPut("/{id:int}", Update)
+            .WithName("UpdateImage")
+            .WithDescription("[Backoffice usage only intended] Updates image metadata");
+
         group.MapDelete("/{id:int}", Delete)
-            .WithName("DeleteImage");
+            .WithName("DeleteImage")
+            .WithDescription("[Backoffice usage only intented] Deletes an image");
     }
 
     private static async Task<IResult> GetAll(ImageService imageService)
@@ -41,6 +47,17 @@ public static class ImageEndpoints
         return result is null
             ? Results.BadRequest("Failed to register image")
             : Results.Created($"/api/images/{result.Id}", result);
+    }
+
+    private static async Task<IResult> Update(int id, UpdateImageDto dto, ImageService imageService)
+    {
+        var result = await imageService.UpdateAsync(id, dto);
+        if (result is null)
+        {
+            var exists = await imageService.GetByIdAsync(id);
+            return exists is null ? Results.NotFound() : Results.BadRequest("Failed to update image");
+        }
+        return Results.Ok(result);
     }
 
     private static async Task<IResult> Delete(int id, ImageService imageService)

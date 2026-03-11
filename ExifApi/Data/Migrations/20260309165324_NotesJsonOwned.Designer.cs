@@ -3,6 +3,7 @@ using System;
 using ExifApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ExifApi.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260309165324_NotesJsonOwned")]
+    partial class NotesJsonOwned
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.13");
@@ -94,31 +97,6 @@ namespace ExifApi.Data.Migrations
                     b.ToTable("Images");
                 });
 
-            modelBuilder.Entity("ExifApi.Data.Entities.RoadTurbulence", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("HexagonId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Index")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("RoadTurbulenceType")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HexagonId");
-
-                    b.ToTable("RoadTurbulences");
-                });
-
             modelBuilder.Entity("ExifApi.Data.Entities.RoadVisualAnomaly", b =>
                 {
                     b.Property<int>("Id")
@@ -171,16 +149,6 @@ namespace ExifApi.Data.Migrations
                         .WithMany()
                         .HasForeignKey("HexagonId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Hexagon");
-                });
-
-            modelBuilder.Entity("ExifApi.Data.Entities.RoadTurbulence", b =>
-                {
-                    b.HasOne("ExifApi.Data.Entities.Hexagon", "Hexagon")
-                        .WithMany()
-                        .HasForeignKey("HexagonId")
-                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Hexagon");
                 });

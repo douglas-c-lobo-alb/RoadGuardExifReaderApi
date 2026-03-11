@@ -72,6 +72,7 @@ public class ImageService
     {
         var images = await _context.Images
             .Include(i => i.Hexagon)
+            .Include(i => i.Anomalies)
             .OrderBy(i => i.DateTaken)
             .ToListAsync();
         return images.Select(ToDto).ToList();
@@ -81,8 +82,31 @@ public class ImageService
     {
         var image = await _context.Images
             .Include(i => i.Hexagon)
+            .Include(i => i.Anomalies)
             .FirstOrDefaultAsync(i => i.Id == id);
         return image is null ? null : ToDto(image);
+    }
+
+    public async Task<ImageDto?> UpdateAsync(int id, UpdateImageDto dto)
+    {
+        var image = await _context.Images
+            .Include(i => i.Hexagon)
+            .Include(i => i.Anomalies)
+            .FirstOrDefaultAsync(i => i.Id == id);
+        if (image is null) return null;
+
+        image.CameraMake = dto.CameraMake;
+        image.CameraModel = dto.CameraModel;
+        image.DateTaken = dto.DateTaken;
+        image.Latitude = dto.Latitude;
+        image.Longitude = dto.Longitude;
+        image.Altitude = dto.Altitude;
+        image.Heading = dto.Heading;
+        image.AnomalyNotes = dto.AnomalyNotes;
+        image.LastModifiedDate = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return ToDto(image);
     }
 
     public async Task<bool> DeleteAsync(int id)
@@ -114,8 +138,10 @@ public class ImageService
         Heading = image.Heading,
         Turbulence = image.Turbulence,
         AnomalyNotes = image.AnomalyNotes,
+        AnomalyCount = image.Anomalies.Count,
         Hexagon = image.Hexagon is null ? null : new HexagonDto
         {
+            Id = image.Hexagon.Id,
             H3Index = image.Hexagon.H3Index,
             Resolution = image.Hexagon.Resolution
         }

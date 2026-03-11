@@ -13,20 +13,22 @@ public static class HexagonEndpoints
 
         group.MapGet("/", GetAll)
             .WithName("GetAllHexagons")
-            .WithDescription("Returns all stored hexagons");
+            .WithDescription("[Backoffice usage only intended] Returns all stored hexagons");
 
         group.MapGet("/{id:int}", GetById)
             .WithName("GetHexagonById");
 
         group.MapPost("/", Create)
             .WithName("CreateHexagon")
-            .WithDescription("Creates a hexagon linked to an image, derived from coordinates or a direct H3 index");
+            .WithDescription("[Backoffice usage only intended] Creates a hexagon linked to an image, derived from coordinates or a direct H3 index");
 
         group.MapPut("/{id:int}", Update)
-            .WithName("UpdateHexagon");
+            .WithName("UpdateHexagon")
+            .WithDescription("[Backoffice usage only intended] Updates a hexagon");
 
         group.MapDelete("/{id:int}", Delete)
-            .WithName("DeleteHexagon");
+            .WithName("DeleteHexagon")
+            .WithDescription("[Backoffice usage only intended] Delets a hexagon");
     }
 
     private static async Task<IResult> GetAll(H3Service h3Service)
@@ -42,7 +44,7 @@ public static class HexagonEndpoints
     {
         var result = await h3Service.CreateHexagonAsync(dto);
         return result is null
-            ? Results.BadRequest("Failed to create hexagon — verify the ImageId is valid, the image doesn't already have a hexagon, and the H3 input is correct")
+            ? Results.BadRequest("Failed to create hexagon -- verify the ImageId is valid, the image doesn't already have a hexagon, and the H3 input is correct")
             : Results.Created($"/api/hexagons/{result.Id}", result);
     }
 
@@ -54,7 +56,7 @@ public static class HexagonEndpoints
             var exists = await h3Service.GetHexagonByIdAsync(id);
             return exists is null
                 ? Results.NotFound()
-                : Results.BadRequest("Failed to update hexagon — verify the H3 input is correct");
+                : Results.BadRequest("Failed to update hexagon -- verify the H3 input is correct");
         }
         return Results.Ok(result);
     }

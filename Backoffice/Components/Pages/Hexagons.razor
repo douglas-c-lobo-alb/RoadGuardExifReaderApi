@@ -30,7 +30,7 @@ else if (!hexagons.Any())
 }
 else
 {
-    <table class="table table-striped">
+    <table class="table table-striped align-middle">
         <thead>
             <tr>
                 <th>Id</th>
@@ -38,7 +38,8 @@ else
                 <th>Resolution</th>
                 <th>Lat</th>
                 <th>Lon</th>
-                <th>Image Id</th>
+                <th>Images</th>
+                <th>Anomalies</th>
                 <th></th>
             </tr>
         </thead>
@@ -51,8 +52,27 @@ else
                     <td>@h.Resolution</td>
                     <td>@h.Lat.ToString("F6")</td>
                     <td>@h.Lon.ToString("F6")</td>
-                    <td>@(h.ImageId?.ToString() ?? "—")</td>
                     <td>
+                        @if (h.ImageCount > 0)
+                        {
+                            <span class="badge bg-secondary">@h.ImageCount</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">0</span>
+                        }
+                    </td>
+                    <td>
+                        @if (h.AnomalyCount > 0)
+                        {
+                            <span class="badge bg-warning text-dark">@h.AnomalyCount</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">0</span>
+                        }
+                    </td>
+                    <td class="text-end">
                         <a href="/hexagons/@h.Id/edit" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
                         <button class="btn btn-sm btn-danger" @onclick="() => DeleteHexagon(h.Id)">Delete</button>
                     </td>
@@ -98,5 +118,5 @@ else
             errorMessage = $"Delete failed ({response.StatusCode})";
     }
 
-    private record HexagonRow(int Id, string H3Index, int Resolution, double Lat, double Lon, int? ImageId);
+    private record HexagonRow(int Id, string H3Index, int Resolution, double Lat, double Lon, int ImageCount, int AnomalyCount);
 }

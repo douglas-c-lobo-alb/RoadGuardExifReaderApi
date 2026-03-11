@@ -1,4 +1,6 @@
+using ExifApi.Data.Entities;
 using ExifApi.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ExifApi.Endpoints;
 
@@ -64,11 +66,17 @@ public static class H3Endpoints
     }
 
     private static async Task<IResult> GetViewport(
-        string latMin, string latMax, string lonMin, string lonMax,
+        string latMin,
+        string latMax,
+        string lonMin,
+        string lonMax,
         H3Service h3Service,
+        [FromQuery] AnomalyType[]? anomalies = null,
+        DateOnly? startDate = null,
+        DateOnly? endDate = null,
         int resolution = 15)
     {
-        // ASP.NET Core joins duplicate query params with commas — take the first value only
+        // ASP.NET Core joins duplicate query params with commas -- take the first value only
         static bool TryParseFirst(string raw, out double value) =>
             double.TryParse(raw.Split(',')[0], System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out value);
@@ -83,8 +91,18 @@ public static class H3Endpoints
             return Results.BadRequest("lonMin must be less than lonMax");
         if (resolution < 0 || resolution > 15)
             return Results.BadRequest("resolution must be between 0 and 15");
+        if (startDate > endDate)
+            return Results.BadRequest($"startDate ({startDate}) must be before endDate ({endDate})");
 
-        var result = await h3Service.GetHexagonsByViewportAsync(latMinD, latMaxD, lonMinD, lonMaxD, resolution);
+        var result = await h3Service.GetHexagonsByViewportAsync(
+            latMinD,
+            latMaxD,
+            lonMinD,
+            lonMaxD,
+            anomalies?.ToList(),
+            startDate,
+            endDate,
+            resolution);
         return Results.Ok(result);
     }
 }

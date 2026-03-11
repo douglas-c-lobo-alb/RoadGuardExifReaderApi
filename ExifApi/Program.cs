@@ -13,6 +13,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ExifService>();
 builder.Services.AddScoped<H3Service>();
 builder.Services.AddScoped<ImageService>();
+builder.Services.AddScoped<RoadTurbulenceService>();
+builder.Services.AddScoped<SeedService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlite(
@@ -53,6 +55,16 @@ app.Use((context, next) =>
     return next.Invoke();
 });
 
+// Apply any pending EF Core migrations at startup (https://stackoverflow.com/a/70057243)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    if (app.Environment.IsEnvironment("Testing"))
+        db.Database.EnsureCreated();
+    else
+        db.Database.Migrate();
+}
+
 var api = app.MapGroup("/api");
 
 Image.SetConfiguration(app.Configuration);
@@ -62,5 +74,9 @@ api.MapMetadataEndpoints();
 api.MapH3Endpoints();
 api.MapHexagonEndpoints();
 api.MapImageEndpoints();
+api.MapRoadTurbulenceEndpoints();
+api.MapSeedEndpoints();
 
 app.Run();
+
+public partial class Program { }
