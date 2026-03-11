@@ -1,15 +1,24 @@
 using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Endpoints;
+using ExifApi.Infrastructure;
 using ExifApi.Services;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SchemaFilter<EnumSchemaFilter>();
+});
 builder.Services.AddScoped<ExifService>();
 builder.Services.AddScoped<H3Service>();
 builder.Services.AddScoped<ImageService>();
