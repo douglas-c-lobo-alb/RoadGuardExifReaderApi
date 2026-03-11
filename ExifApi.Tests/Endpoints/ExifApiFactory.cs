@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using ExifApi.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -14,6 +16,12 @@ namespace ExifApi.Tests.Endpoints;
 /// </summary>
 public class ExifApiFactory : WebApplicationFactory<Program>
 {
+    public static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
     private readonly SqliteConnection _connection;
     public readonly string TempRoot;
 

@@ -37,7 +37,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
         var response = await _client.GetAsync("api/turbulences/");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<List<RoadTurbulenceDto>>();
+        var body = await response.Content.ReadFromJsonAsync<List<RoadTurbulenceDto>>(ExifApiFactory.JsonOptions);
         Assert.NotNull(body);
         Assert.Empty(body);
     }
@@ -54,7 +54,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
         var response = await _client.GetAsync("api/turbulences/");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<List<RoadTurbulenceDto>>();
+        var body = await response.Content.ReadFromJsonAsync<List<RoadTurbulenceDto>>(ExifApiFactory.JsonOptions);
         Assert.NotNull(body);
         Assert.Equal(2, body.Count);
     }
@@ -80,7 +80,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
         var response = await _client.GetAsync($"api/turbulences/{id}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var dto = await response.Content.ReadFromJsonAsync<RoadTurbulenceDto>();
+        var dto = await response.Content.ReadFromJsonAsync<RoadTurbulenceDto>(ExifApiFactory.JsonOptions);
         Assert.NotNull(dto);
         Assert.Equal(id, dto.Id);
         Assert.Equal(7, dto.Index);
@@ -105,7 +105,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
         var response = await _client.GetAsync("api/turbulences/h3/8f39100e1a500e2");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<List<RoadTurbulenceDto>>();
+        var body = await response.Content.ReadFromJsonAsync<List<RoadTurbulenceDto>>(ExifApiFactory.JsonOptions);
         Assert.NotNull(body);
         Assert.Empty(body);
     }
@@ -126,7 +126,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
         var response = await _client.PostAsJsonAsync("api/turbulences/", dtos);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        var body = await response.Content.ReadFromJsonAsync<List<RoadTurbulenceDto>>();
+        var body = await response.Content.ReadFromJsonAsync<List<RoadTurbulenceDto>>(ExifApiFactory.JsonOptions);
         Assert.NotNull(body);
         Assert.Equal(2, body.Count);
     }
@@ -163,7 +163,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
         var response = await _client.PutAsJsonAsync($"api/turbulences/{id}", update);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var dto = await response.Content.ReadFromJsonAsync<RoadTurbulenceDto>();
+        var dto = await response.Content.ReadFromJsonAsync<RoadTurbulenceDto>(ExifApiFactory.JsonOptions);
         Assert.NotNull(dto);
         Assert.Equal(8, dto.Index);
         Assert.Equal(RoadTurbulenceType.Speedbump, dto.RoadTurbulenceType);
