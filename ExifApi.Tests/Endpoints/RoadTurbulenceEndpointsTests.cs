@@ -48,7 +48,7 @@ public class RoadTurbulenceEndpointsTests : IDisposable
         using var ctx = _factory.CreateDbContext();
         ctx.RoadTurbulences.AddRange(
             new RoadTurbulence { Index = 3, RoadTurbulenceType = RoadTurbulenceType.Pothole, DateCreated = DateTime.UtcNow },
-            new RoadTurbulence { Index = 5, RoadTurbulenceType = RoadTurbulenceType.Speedbump, DateCreated = DateTime.UtcNow });
+            new RoadTurbulence { Index = 5, RoadTurbulenceType = RoadTurbulenceType.Pothole | RoadTurbulenceType.Speedbump, DateCreated = DateTime.UtcNow });
         await ctx.SaveChangesAsync();
 
         var response = await _client.GetAsync("api/turbulences/");

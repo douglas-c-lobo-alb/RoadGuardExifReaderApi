@@ -1,5 +1,6 @@
 using ExifApi.Data.Entities;
 using ExifApi.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ExifApi.Endpoints;
 
@@ -70,7 +71,7 @@ public static class H3Endpoints
         string lonMin,
         string lonMax,
         H3Service h3Service,
-        List<AnomalyType>? anomalies = null,
+        [FromQuery] AnomalyType[]? anomalies = null,
         DateOnly? startDate = null,
         DateOnly? endDate = null,
         int resolution = 15)
@@ -98,7 +99,7 @@ public static class H3Endpoints
             latMaxD,
             lonMinD,
             lonMaxD,
-            anomalies,
+            anomalies?.ToList(),
             startDate,
             endDate,
             resolution);
