@@ -1,13 +1,17 @@
-﻿@page "/metadata"
+@page "/metadata"
 @inject IHttpClientFactory HttpClientFactory
 
 <PageTitle>Metadata</PageTitle>
 
 <h1>Metadata</h1>
 
-@if (json is null)
+@if (loading)
 {
     <p>Loading...</p>
+}
+else if (fetchFailed)
+{
+    <div class="alert alert-warning">Unable to fetch data now.</div>
 }
 else
 {
@@ -16,10 +20,23 @@ else
 
 @code {
     private string? json;
+    private bool loading = true;
+    private bool fetchFailed;
 
     protected override async Task OnInitializedAsync()
     {
-        var client = HttpClientFactory.CreateClient("ExifApi");
-        json = await client.GetStringAsync("api/metadata/");
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            json = await client.GetStringAsync("api/metadata/");
+        }
+        catch
+        {
+            fetchFailed = true;
+        }
+        finally
+        {
+            loading = false;
+        }
     }
 }
