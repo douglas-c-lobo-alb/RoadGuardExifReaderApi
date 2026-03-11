@@ -415,10 +415,10 @@ public class H3ServiceTests : IDisposable
     public async Task GetHexagonsByViewportAsync_AnomalyFilter_IncludesImageWithMatchingAnomaly()
     {
         SeedImageWithAnomaly(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
-            anomalies: [Anomalies.Pothole]);
+            anomalies: [AnomalyType.Pothole]);
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
-            anomalies: [Anomalies.Pothole]);
+            anomalies: [AnomalyType.Pothole]);
 
         Assert.Single(result);
     }
@@ -427,10 +427,10 @@ public class H3ServiceTests : IDisposable
     public async Task GetHexagonsByViewportAsync_AnomalyFilter_ExcludesImageWithNonMatchingAnomaly()
     {
         SeedImageWithAnomaly(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
-            anomalies: [Anomalies.Crack]);
+            anomalies: [AnomalyType.Crack]);
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
-            anomalies: [Anomalies.Pothole]);
+            anomalies: [AnomalyType.Pothole]);
 
         Assert.Empty(result);
     }
@@ -441,7 +441,7 @@ public class H3ServiceTests : IDisposable
         SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index);
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
-            anomalies: [Anomalies.Pothole]);
+            anomalies: [AnomalyType.Pothole]);
 
         Assert.Empty(result);
     }
@@ -451,12 +451,12 @@ public class H3ServiceTests : IDisposable
     {
         const string cell2 = "8f39100e1a500e6";
         SeedImageWithAnomaly(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
-            anomalies: [Anomalies.Pothole]);
+            anomalies: [AnomalyType.Pothole]);
         SeedImageWithAnomaly(id: 2, lat: 37.0997m, lon: -8.6825m, h3Index: cell2,
-            anomalies: [Anomalies.Crack]);
+            anomalies: [AnomalyType.Crack]);
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
-            anomalies: [Anomalies.Pothole, Anomalies.Crack]);
+            anomalies: [AnomalyType.Pothole, AnomalyType.Crack]);
 
         Assert.Equal(2, result.SelectMany(h => h.Images).Count());
     }
@@ -467,7 +467,7 @@ public class H3ServiceTests : IDisposable
         const string cell2 = "8f39100e1a500e6";
         SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index);
         SeedImageWithAnomaly(id: 2, lat: 37.0997m, lon: -8.6825m, h3Index: cell2,
-            anomalies: [Anomalies.Pothole]);
+            anomalies: [AnomalyType.Pothole]);
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
@@ -510,7 +510,7 @@ public class H3ServiceTests : IDisposable
         _context.SaveChanges();
     }
 
-    private void SeedImageWithAnomaly(int id, decimal lat, decimal lon, string h3Index, List<Anomalies> anomalies)
+    private void SeedImageWithAnomaly(int id, decimal lat, decimal lon, string h3Index, List<AnomalyType> anomalies)
     {
         var random = new Random();
         var hexagon = new Hexagon { H3Index = h3Index };
