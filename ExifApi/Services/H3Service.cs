@@ -93,7 +93,7 @@ public class H3Service
         double latMax,
         double lonMin,
         double lonMax,
-        List<AnomalyType>? anomalies = null,
+        List<Anomalies>? anomalies = null,
         DateOnly? startDate = null,
         DateOnly? endDate = null,
         int resolution = 15)

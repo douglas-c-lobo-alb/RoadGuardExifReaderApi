@@ -1,7 +1,7 @@
 
 namespace ExifApi.Data.Entities;
 
-public enum AnomalyType
+public enum Anomalies
 {
     None,
     Pothole,

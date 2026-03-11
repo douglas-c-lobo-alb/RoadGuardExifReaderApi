@@ -71,7 +71,7 @@ public static class H3Endpoints
         string lonMin,
         string lonMax,
         H3Service h3Service,
-        [FromQuery] AnomalyType[]? anomalies = null,
+        [FromQuery] Anomalies[]? anomalies = null,
         DateOnly? startDate = null,
         DateOnly? endDate = null,
         int resolution = 15)

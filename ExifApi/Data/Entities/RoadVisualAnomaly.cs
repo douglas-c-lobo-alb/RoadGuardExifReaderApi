@@ -10,7 +10,7 @@ public class RoadVisualAnomaly
     public int Id { get; set; }
     public int ImageId { get; set; }
     public Image? Image { get; set; }
-    public AnomalyType AnomalyType { get; set; } = AnomalyType.None;
+    public Anomalies AnomalyType { get; set; } = Anomalies.None;
     public decimal Confidence { get; set; }
     public JsonDocument? Notes { get; set; }
     public int BoxX1 { get; set; }
