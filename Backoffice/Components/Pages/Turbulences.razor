@@ -1,0 +1,94 @@
+@page "/turbulences"
+@inject IHttpClientFactory HttpClientFactory
+@rendermode InteractiveServer
+
+<PageTitle>Turbulences</PageTitle>
+
+<h1>Road Turbulences</h1>
+
+@if (errorMessage is not null)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+@if (successMessage is not null)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+@if (turbulences is null)
+{
+    <p>Loading...</p>
+}
+else if (!turbulences.Any())
+{
+    <p>No turbulence records stored yet.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Index</th>
+                <th>Type</th>
+                <th>Hexagon Id</th>
+                <th>Date Created</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in turbulences)
+            {
+                <tr>
+                    <td>@t.Id</td>
+                    <td>@t.Index</td>
+                    <td>@t.RoadTurbulenceType</td>
+                    <td>@(t.HexagonId?.ToString() ?? "—")</td>
+                    <td>@t.DateCreated.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(t.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<TurbulenceRow>? turbulences;
+    private string? errorMessage;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        errorMessage = null;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            turbulences = await client.GetFromJsonAsync<List<TurbulenceRow>>("api/turbulences/") ?? [];
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load turbulences: {ex.Message}";
+        }
+    }
+
+    private async Task Delete(int id)
+    {
+        errorMessage = null;
+        successMessage = null;
+        var client = HttpClientFactory.CreateClient("ExifApi");
+        var response = await client.DeleteAsync($"api/turbulences/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            successMessage = "Turbulence record deleted.";
+            await Load();
+        }
+        else
+            errorMessage = $"Delete failed ({response.StatusCode})";
+    }
+
+    private record TurbulenceRow(int Id, int Index, string RoadTurbulenceType, int? HexagonId, DateTime DateCreated);
+}
