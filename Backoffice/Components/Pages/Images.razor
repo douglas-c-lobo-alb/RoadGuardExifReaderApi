@@ -64,8 +64,26 @@ else
                     <td><span class="text-truncate d-block" style="max-width:160px" title="@img.FileName">@img.FileName</span></td>
                     <td>@img.DateTaken?.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>@img.CameraMake @img.CameraModel</td>
-                    <td class="small">
-                        lat: <strong>@img.Latitude</strong> / lon: <strong>@img.Longitude</strong> / alt: <strong>@img.Altitude</strong>
+                    <td class="small text-monospace text-nowrap d-flex flex-column gap-1">
+                        @if (img.Latitude is not null || img.Longitude is not null || img.Altitude is not null)
+                        {
+                            @if (img.Latitude is not null)
+                            {
+                                <span style="cursor: pointer" class="coord-value" title="Click to copy" onclick="navigator.clipboard.writeText(this.querySelector('strong').textContent)">lat: <strong>@img.Latitude.Value.ToString("F6")</strong></span>
+                            }
+                            @if (img.Longitude is not null)
+                            {
+                                <span style="cursor: pointer" class="coord-value" title="Click to copy" onclick="navigator.clipboard.writeText(this.querySelector('strong').textContent)">lon: <strong>@img.Longitude.Value.ToString("F6")</strong></span>
+                            }
+                            @if (img.Altitude is not null)
+                            {
+                                <span style="cursor: pointer" class="coord-value" title="Click to copy" onclick="navigator.clipboard.writeText(this.querySelector('strong').textContent)">alt: <strong>@img.Altitude.Value.ToString("F6")</strong></span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">—</span>
+                        }
                     </td>
                     <td>
                         @if (img.Hexagon is not null)
