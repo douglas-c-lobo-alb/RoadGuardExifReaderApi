@@ -1,5 +1,8 @@
 {
     "chat.tools.terminal.autoApprove": {
         "dotnet ef": true
+    },
+    "remote.env": {
+        "DOTNET_ROOT": "/home/linuxbrew/.linuxbrew/Cellar/dotnet@8/8.0.125/libexec"
     }
 }
