@@ -42,8 +42,7 @@ else
                 <th>File</th>
                 <th>Date Taken</th>
                 <th>Camera</th>
-                <th>Lat / Lng</th>
-                <th>Altitude</th>
+                <th>Coordinates</th>
                 <th>Hexagon</th>
                 <th>Anomalies</th>
                 <th></th>
@@ -65,8 +64,9 @@ else
                     <td><span class="text-truncate d-block" style="max-width:160px" title="@img.FileName">@img.FileName</span></td>
                     <td>@img.DateTaken?.ToString("yyyy-MM-dd HH:mm")</td>
                     <td>@img.CameraMake @img.CameraModel</td>
-                    <td>@img.Latitude / @img.Longitude</td>
-                    <td>@img.Altitude</td>
+                    <td class="small">
+                        lat: <strong>@img.Latitude</strong> / lon: <strong>@img.Longitude</strong> / alt: <strong>@img.Altitude</strong>
+                    </td>
                     <td>
                         @if (img.Hexagon is not null)
                         {
