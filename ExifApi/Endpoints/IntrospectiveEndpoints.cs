@@ -14,9 +14,16 @@ public static class IntrospectiveEndpoints
         group.MapGet("/anomalies", GetAnomalyTypes)
         .WithName("GetAnomalies")
         .WithDescription("Retrieves the list of available anomaly types");
+        group.MapGet("/turbulences", GetTurbulenceTypes)
+        .WithName("GetTurbulences")
+        .WithDescription("Retrieves the list of available turbulence types");
     }
     private static IResult GetAnomalyTypes()
     {
         return Results.Ok(Enum.GetNames(typeof(AnomalyType)).ToList());
+    }
+    private static IResult GetTurbulenceTypes()
+    {
+        return Results.Ok(Enum.GetNames(typeof(RoadTurbulenceType)).ToList());
     }
 }

@@ -78,7 +78,7 @@ var api = app.MapGroup("/api");
 
 Image.SetConfiguration(app.Configuration);
 
-api.MapStatusEndpoints();
+api.MapStatusEndpoints(app.Configuration);
 api.MapMetadataEndpoints();
 api.MapH3Endpoints();
 api.MapHexagonEndpoints();

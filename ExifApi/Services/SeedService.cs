@@ -18,11 +18,12 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
     private static readonly AnomalyType[] AnomalyTypes =
     [
         AnomalyType.Pothole, AnomalyType.Crack, AnomalyType.MissingRoadSign,
-        AnomalyType.WaterLeakage, AnomalyType.AnimalCorpse
+        AnomalyType.WaterLeakage, AnomalyType.AnimalCorpse, AnomalyType.None
     ];
 
     private static readonly RoadTurbulenceType[] TurbulenceTypes =
     [
+        RoadTurbulenceType.None,
         RoadTurbulenceType.Pothole,
         RoadTurbulenceType.Speedbump,
         RoadTurbulenceType.LongitudinalCrack,
@@ -32,6 +33,9 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         RoadTurbulenceType.WaterLeakage,
         RoadTurbulenceType.Pothole | RoadTurbulenceType.Depression,
         RoadTurbulenceType.LongitudinalCrack | RoadTurbulenceType.WaterLeakage,
+        RoadTurbulenceType.TransverseCrack | RoadTurbulenceType.WaterLeakage,
+        RoadTurbulenceType.Depression | RoadTurbulenceType.WaterLeakage | RoadTurbulenceType.TransverseCrack,
+        RoadTurbulenceType.Pothole | RoadTurbulenceType.WaterLeakage,
     ];
 
     public async Task<SeedResult> RunAsync()
