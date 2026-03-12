@@ -126,7 +126,7 @@ public class H3Service
                         Id = i.Id,
                         FilePath = i.FilePath,
                         DateTaken = i.DateTaken,
-                        AnomalyNotes = i.AnomalyNotes
+                        AnomalyNotes = i.Notes
                     }).ToList()
                 }).ToList();
         }
@@ -154,7 +154,7 @@ public class H3Service
                         Id = x.Image.Id,
                         FilePath = x.Image.FilePath,
                         DateTaken = x.Image.DateTaken,
-                        AnomalyNotes = x.Image.AnomalyNotes
+                        AnomalyNotes = x.Image.Notes
                     }).ToList()
             })
             .ToList();
