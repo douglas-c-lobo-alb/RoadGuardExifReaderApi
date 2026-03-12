@@ -6,14 +6,20 @@
             "type": "dotnet",
             "request": "launch",
             "projectPath": "${workspaceFolder}/ExifApi/ExifApi.csproj",
-            "launchConfigurationId": "TargetFramework=;https"
+            "launchConfigurationId": "TargetFramework=;https",
+            "env": {
+                "DOTNET_ROOT": "/home/linuxbrew/.linuxbrew/Cellar/dotnet@8/8.0.125/libexec"
+            }
         },
         {
             "name": "Backoffice",
             "type": "dotnet",
             "request": "launch",
             "projectPath": "${workspaceFolder}/Backoffice/Backoffice.csproj",
-            "launchConfigurationId": "TargetFramework=;https"
+            "launchConfigurationId": "TargetFramework=;https",
+            "env": {
+                "DOTNET_ROOT": "/home/linuxbrew/.linuxbrew/Cellar/dotnet@8/8.0.125/libexec"
+            }
         }
     ],
     "compounds": [
