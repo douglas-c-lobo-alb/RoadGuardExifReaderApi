@@ -23,6 +23,11 @@ The main ideas and direction of this roadmap came from the developer. Claude (AI
 **Tests**
 - Expand coverage across all endpoint groups
 
+### To be Done
+
+**Entities**
+- Add `Deleted` field to entities
+
 ---
 
 ### v1.0 — Authentication & Authorization
