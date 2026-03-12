@@ -2,16 +2,15 @@ namespace ExifApi.Endpoints;
 
 public static class StatusEndpoints
 {
-    public static void MapStatusEndpoints(this RouteGroupBuilder api)
+    public static void MapStatusEndpoints(this RouteGroupBuilder api, IConfiguration configuration)
     {
         RouteGroupBuilder group = api.MapGroup("/status")
             .WithName("Status")
             .WithOpenApi();
         group.MapGet("/", () => Results.Ok(new
         {
-            status = "ok",
             app = "RoadGuard ExifApi",
-            version = "v0.4.0",
+            version = $"v{configuration.GetValue<string>("Release:Version")}",
             runtime = $".NET {Environment.Version}",
             utc = DateTime.UtcNow
         }))
