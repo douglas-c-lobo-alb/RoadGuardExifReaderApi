@@ -27,6 +27,7 @@ The main ideas and direction of this roadmap came from the developer. Claude (AI
 
 **Entities**
 - Add `Deleted` field to entities
+- Add entity Agent (int id, json notes)
 
 ---
 
