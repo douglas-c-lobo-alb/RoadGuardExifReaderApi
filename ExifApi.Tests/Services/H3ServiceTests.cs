@@ -504,7 +504,7 @@ public class H3ServiceTests : IDisposable
             Latitude = lat,
             Longitude = lon,
             DateTaken = dateTaken,
-            AnomalyNotes = anomalyNotes,
+            Notes = anomalyNotes,
             HexagonId = hexagon.Id
         });
         _context.SaveChanges();
@@ -524,7 +524,7 @@ public class H3ServiceTests : IDisposable
             Latitude = lat,
             Longitude = lon,
             DateTaken = DateTime.UtcNow,
-            AnomalyNotes = null,
+            Notes = null,
             HexagonId = hexagon.Id
         });
         _context.SaveChanges();
