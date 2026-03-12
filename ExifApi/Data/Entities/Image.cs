@@ -35,7 +35,7 @@ public class Image
     public string? CameraModel { get; set; }
     public DateTime? DateTaken { get; set; }
     public int? Turbulence { get; set; }
-    public string? AnomalyNotes { get; set; }
+    public string? Notes { get; set; }
     public int? HexagonId { get; set; }
     public Hexagon? Hexagon { get; set; }
     public ICollection<RoadVisualAnomaly> Anomalies { get; set; } = [];
