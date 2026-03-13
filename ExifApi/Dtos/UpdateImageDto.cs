@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace ExifApi.Dtos;
 
 public class UpdateImageDto
@@ -9,5 +11,5 @@ public class UpdateImageDto
     public decimal? Longitude { get; set; }
     public double? Altitude { get; set; }
     public decimal? Heading { get; set; }
-    public string? AnomalyNotes { get; set; }
+    public JsonDocument? AnomalyNotes { get; set; }
 }
