@@ -98,9 +98,11 @@ public class H3Service
         DateOnly? endDate = null,
         int resolution = 15)
     {
+        // TODO: later try to implement this as a syntatic sugarred LINQ query
         var images = await _context.Images
             .Include(i => i.Hexagon)
             .Include(i => i.Anomalies)
+            .Include(i => i.RoadTurbulence)
             .Where(i => startDate == null ? true : DateOnly.FromDateTime((DateTime)i.DateTaken!) >= startDate)
             .Where(i => endDate == null ? true : DateOnly.FromDateTime((DateTime)i.DateTaken!) <= endDate)
             .Where(i => i.Hexagon != null
@@ -112,6 +114,18 @@ public class H3Service
                 || !anomalies.Any()
                 || i.Anomalies.Any(a => anomalies.Contains(a.AnomalyType)))
             .ToListAsync();
+
+        var hexagonIds = images
+            .Where(i => i.HexagonId != null)
+            .Select(i => i.HexagonId!.Value)
+            .Distinct()
+            .ToList();
+
+        var turbulences = await _context.RoadTurbulences
+            .Where(t => t.HexagonId != null && hexagonIds.Contains(t.HexagonId.Value))
+            .GroupBy(t => t.HexagonId)
+            .ToListAsync();
+
 
         if (resolution == 15)
         {
@@ -126,7 +140,8 @@ public class H3Service
                         Id = i.Id,
                         FilePath = i.FilePath,
                         DateTaken = i.DateTaken,
-                        AnomalyNotes = i.Notes
+                        AnomalyNotes = i.Notes,
+                        Turbulence = i.RoadTurbulence?.Index
                     }).ToList()
                 }).ToList();
         }
