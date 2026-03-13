@@ -1,6 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace ExifApi.Data.Entities;
 
 [Flags]
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum RoadTurbulenceType
 {
     None = 0,

@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
@@ -35,7 +36,7 @@ public class Image
     public string? CameraModel { get; set; }
     public DateTime? DateTaken { get; set; }
     public int? Turbulence { get; set; }
-    public string? Notes { get; set; }
+    public JsonDocument? Notes { get; set; }
     public int? HexagonId { get; set; }
     public Hexagon? Hexagon { get; set; }
     public ICollection<RoadVisualAnomaly> Anomalies { get; set; } = [];

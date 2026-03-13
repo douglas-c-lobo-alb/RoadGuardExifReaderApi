@@ -312,7 +312,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
         var image = Assert.Single(result[0].Images);
-        Assert.Equal("crack on panel 3", image.AnomalyNotes);
+        Assert.Equal("crack on panel 3", image.AnomalyNotes?.RootElement.GetString());
     }
 
     // -------------------------------------------------------------------------
@@ -504,7 +504,7 @@ public class H3ServiceTests : IDisposable
             Latitude = lat,
             Longitude = lon,
             DateTaken = dateTaken,
-            Notes = anomalyNotes,
+            Notes = anomalyNotes is null ? null : JsonDocument.Parse(JsonSerializer.Serialize(anomalyNotes)),
             HexagonId = hexagon.Id
         });
         _context.SaveChanges();

@@ -27,6 +27,13 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(r => r.ImageId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<Image>()
+            .Property(i => i.Notes)
+            .HasConversion(
+                v => v == null ? null : v.RootElement.GetRawText(),
+                v => v == null ? null : JsonDocument.Parse(v, default))
+            .HasColumnType("TEXT");
+
         modelBuilder.Entity<RoadVisualAnomaly>()
             .Property(r => r.Notes)
             .HasConversion(

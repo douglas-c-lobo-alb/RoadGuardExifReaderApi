@@ -1,7 +1,9 @@
+using System.Text.Json.Serialization;
 
 namespace ExifApi.Data.Entities;
 
 [Flags]
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AnomalyType
 {
     None = 0,
