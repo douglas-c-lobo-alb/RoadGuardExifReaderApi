@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace ExifApi.Dtos;
 
 public class ImageDto
@@ -13,7 +15,7 @@ public class ImageDto
     public double? Altitude { get; set; }
     public decimal? Heading { get; set; }
     public int? Turbulence { get; set; }
-    public string? AnomalyNotes { get; set; }
+    public JsonDocument? AnomalyNotes { get; set; }
     public int AnomalyCount { get; set; }
     public HexagonDto? Hexagon { get; set; }
 }

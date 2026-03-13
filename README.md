@@ -28,6 +28,8 @@ The main ideas and direction of this roadmap came from the developer. Claude (AI
 **Entities**
 - Add `Deleted` field to entities
 - Add entity Agent (int id, json notes)
+- In hexagons listing make selectable resolution and fold (sum) the images for every parent now 14, 13, 12...
+- Better the app deploy workflow
 
 ---
 

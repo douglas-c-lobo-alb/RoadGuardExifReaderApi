@@ -1,4 +1,5 @@
 @page "/images/{Id:int}/edit"
+@using System.Text.Json
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager NavigationManager
 @inject IConfiguration Configuration
@@ -136,7 +137,7 @@ else
             longitude = img.Longitude;
             altitude = img.Altitude;
             heading = img.Heading;
-            anomalyNotes = img.AnomalyNotes;
+            anomalyNotes = img.AnomalyNotes?.RootElement.ToString();
         }
         catch (Exception ex)
         {
@@ -153,6 +154,12 @@ else
         try
         {
             var client = HttpClientFactory.CreateClient("ExifApi");
+            JsonDocument? notesDoc = null;
+            if (!string.IsNullOrWhiteSpace(anomalyNotes))
+            {
+                try { notesDoc = JsonDocument.Parse(anomalyNotes); }
+                catch (JsonException) { notesDoc = JsonSerializer.SerializeToDocument(anomalyNotes); }
+            }
             var payload = new
             {
                 CameraMake = cameraMake,
@@ -162,7 +169,7 @@ else
                 Longitude = longitude,
                 Altitude = altitude,
                 Heading = heading,
-                AnomalyNotes = anomalyNotes
+                AnomalyNotes = notesDoc
             };
             var response = await client.PutAsJsonAsync($"api/images/{Id}", payload);
             if (response.IsSuccessStatusCode)
@@ -187,5 +194,5 @@ else
     private record ImageRow(int Id, string FileName, string FilePath,
         string? CameraMake, string? CameraModel, DateTime? DateTaken,
         decimal? Latitude, decimal? Longitude, double? Altitude, decimal? Heading,
-        string? AnomalyNotes, HexagonRow? Hexagon);
+        JsonDocument? AnomalyNotes, HexagonRow? Hexagon);
 }
