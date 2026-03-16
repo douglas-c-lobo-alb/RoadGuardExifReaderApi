@@ -3,27 +3,19 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager NavigationManager
 @inject IConfiguration Configuration
+@inject NotificationService NotificationService
 @rendermode InteractiveServer
 
 <PageTitle>Edit Image</PageTitle>
 
 <h1>Edit Image</h1>
 
-@if (loadError is not null)
-{
-    <div class="alert alert-danger">@loadError</div>
-}
-else if (!loaded)
+@if (!loaded)
 {
     <p>Loading...</p>
 }
 else
 {
-    @if (errorMessage is not null)
-    {
-        <div class="alert alert-danger">@errorMessage</div>
-    }
-
     <div class="row mb-4">
         <div class="col-auto">
             @if (!string.IsNullOrEmpty(filePath))
@@ -49,48 +41,49 @@ else
         </div>
     </div>
 
-    <div style="max-width: 500px;">
+    <div style="max-width:500px">
         <div class="mb-3">
             <label class="form-label">Camera Make</label>
-            <input class="form-control" type="text" @bind="cameraMake" />
+            <RadzenTextBox @bind-Value="cameraMake" Style="width:100%" />
         </div>
         <div class="mb-3">
             <label class="form-label">Camera Model</label>
-            <input class="form-control" type="text" @bind="cameraModel" />
+            <RadzenTextBox @bind-Value="cameraModel" Style="width:100%" />
         </div>
         <div class="mb-3">
             <label class="form-label">Date Taken</label>
-            <input class="form-control" type="datetime-local" @bind="dateTaken" />
+            <RadzenDatePicker @bind-Value="dateTaken" ShowTime="true" DateFormat="yyyy-MM-dd HH:mm" Style="width:100%" />
         </div>
         <div class="row g-3 mb-3">
             <div class="col">
                 <label class="form-label">Latitude</label>
-                <input class="form-control" type="number" step="any" @bind="latitude" />
+                <RadzenNumeric TValue="decimal?" @bind-Value="latitude" Format="F6" Style="width:100%" />
             </div>
             <div class="col">
                 <label class="form-label">Longitude</label>
-                <input class="form-control" type="number" step="any" @bind="longitude" />
+                <RadzenNumeric TValue="decimal?" @bind-Value="longitude" Format="F6" Style="width:100%" />
             </div>
         </div>
         <div class="row g-3 mb-3">
             <div class="col">
                 <label class="form-label">Altitude</label>
-                <input class="form-control" type="number" step="any" @bind="altitude" />
+                <RadzenNumeric TValue="double?" @bind-Value="altitude" Format="F2" Style="width:100%" />
             </div>
             <div class="col">
                 <label class="form-label">Heading</label>
-                <input class="form-control" type="number" step="any" @bind="heading" />
+                <RadzenNumeric TValue="decimal?" @bind-Value="heading" Format="F2" Style="width:100%" />
             </div>
         </div>
         <div class="mb-3">
             <label class="form-label">Anomaly Notes</label>
-            <textarea class="form-control" rows="3" @bind="anomalyNotes"></textarea>
+            <RadzenTextArea @bind-Value="anomalyNotes" Rows="3" Style="width:100%" />
         </div>
 
-        <button class="btn btn-primary" @onclick="Submit" disabled="@submitting">
-            @(submitting ? "Saving…" : "Save")
-        </button>
-        <a href="/images" class="btn btn-secondary ms-2">Cancel</a>
+        <RadzenButton Text="@(submitting ? "Saving…" : "Save")" Icon="save"
+                      ButtonStyle="ButtonStyle.Primary" Disabled="@submitting"
+                      Click="Submit" />
+        <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" class="ms-2"
+                      Click="@(() => NavigationManager.NavigateTo("/images"))" />
     </div>
 }
 
@@ -114,8 +107,6 @@ else
 
     private bool loaded;
     private bool submitting;
-    private string? loadError;
-    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -124,7 +115,7 @@ else
         try
         {
             var img = await client.GetFromJsonAsync<ImageRow>($"api/images/{Id}");
-            if (img is null) { loadError = "Image not found."; return; }
+            if (img is null) { NotificationService.Notify(NotificationSeverity.Error, "Not found", "Image not found.", 5000); return; }
 
             fileName = img.FileName;
             filePath = img.FilePath;
@@ -141,7 +132,7 @@ else
         }
         catch (Exception ex)
         {
-            loadError = $"Failed to load image: {ex.Message}";
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
             return;
         }
         loaded = true;
@@ -149,7 +140,6 @@ else
 
     private async Task Submit()
     {
-        errorMessage = null;
         submitting = true;
         try
         {
@@ -173,16 +163,19 @@ else
             };
             var response = await client.PutAsJsonAsync($"api/images/{Id}", payload);
             if (response.IsSuccessStatusCode)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Saved", "Image updated.", 3000);
                 NavigationManager.NavigateTo("/images");
+            }
             else
             {
                 var body = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Failed ({(int)response.StatusCode}): {body}";
+                NotificationService.Notify(NotificationSeverity.Error, "Save failed", $"({(int)response.StatusCode}) {body}", 6000);
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error: {ex.Message}";
+            NotificationService.Notify(NotificationSeverity.Error, "Error", ex.Message, 6000);
         }
         finally
         {
