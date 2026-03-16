@@ -5,11 +5,11 @@
 <RadzenLayout>
     <RadzenHeader>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0">
-            <RadzenSidebarToggle Click="@(() => sidebarExpanded = !sidebarExpanded)" />
+            <RadzenSidebarToggle />
             <RadzenLabel Text="Backoffice" />
         </RadzenStack>
     </RadzenHeader>
-    <RadzenSidebar @bind-Expanded="sidebarExpanded">
+    <RadzenSidebar>
         <NavMenu />
     </RadzenSidebar>
     <RadzenBody>
@@ -18,7 +18,3 @@
         </div>
     </RadzenBody>
 </RadzenLayout>
-
-@code {
-    bool sidebarExpanded = true;
-}
