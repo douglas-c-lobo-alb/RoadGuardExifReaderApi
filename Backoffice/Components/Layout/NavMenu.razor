@@ -1,42 +1,7 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Backoffice</a>
-    </div>
-</div>
-
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-grid-fill-nav-menu" aria-hidden="true"></span> Dashboard
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="images">
-                <span class="bi bi-images-nav-menu" aria-hidden="true"></span> Images
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="hexagons">
-                <span class="bi bi-hexagon-fill-nav-menu" aria-hidden="true"></span> Hexagons
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="images/upload">
-                <span class="bi bi-upload-nav-menu" aria-hidden="true"></span> Upload Images
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="turbulences">
-                <span class="bi bi-speedometer2-nav-menu" aria-hidden="true"></span> Turbulences
-            </NavLink>
-        </div>
-    </nav>
-</div>
-
+<RadzenPanelMenu>
+    <RadzenPanelMenuItem Text="Dashboard" Icon="dashboard" Path="" Match="NavLinkMatch.All" />
+    <RadzenPanelMenuItem Text="Images" Icon="image" Path="images" />
+    <RadzenPanelMenuItem Text="Upload Images" Icon="upload" Path="images/upload" />
+    <RadzenPanelMenuItem Text="Hexagons" Icon="hexagon" Path="hexagons" />
+    <RadzenPanelMenuItem Text="Turbulences" Icon="speed" Path="turbulences" />
+</RadzenPanelMenu>
