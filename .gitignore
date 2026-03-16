@@ -380,3 +380,6 @@ scratch/
 
 # Claude Code
 .claude/
+
+# Local todos
+.todos.md
