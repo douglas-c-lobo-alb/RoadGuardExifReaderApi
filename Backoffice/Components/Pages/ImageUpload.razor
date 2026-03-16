@@ -144,14 +144,31 @@
                 continue;
             }
 
+            // read into memory before any re-render -- StateHasChanged wipes IBrowserFile refs
+            byte[] buffer;
+            try
+            {
+                using var ms = new MemoryStream();
+                await file.OpenReadStream(maxAllowedSize: MaxFileSizeBytes).CopyToAsync(ms);
+                buffer = ms.ToArray();
+            }
+            catch (Exception ex)
+            {
+                result.Status = UploadStatus.Error;
+                result.Error = ex.Message;
+                uploadedCount++;
+                overallProgress = (int)((double)uploadedCount / totalCount * 100);
+                StateHasChanged();
+                continue;
+            }
+
             result.Status = UploadStatus.Uploading;
             StateHasChanged();
 
             try
             {
                 using var content = new MultipartFormDataContent();
-                var stream = file.OpenReadStream(maxAllowedSize: MaxFileSizeBytes);
-                content.Add(new StreamContent(stream), "file", file.Name);
+                content.Add(new ByteArrayContent(buffer), "file", file.Name);
 
                 var response = await client.PostAsync("api/images/", content);
 
