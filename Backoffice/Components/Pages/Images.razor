@@ -1,6 +1,7 @@
 @page "/images"
 @inject DialogService DialogService
 @inject NotificationService NotificationService
+@inject IJSRuntime JS
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager NavigationManager
 @inject IConfiguration Configuration
@@ -48,10 +49,28 @@
             <Template Context="img">
                 @if (img.Latitude is not null || img.Longitude is not null || img.Altitude is not null)
                 {
+                    var lat = img.Latitude?.ToString("F6");
+                    var lon = img.Longitude?.ToString("F6");
+                    var alt = img.Altitude?.ToString("F2");
                     <div class="small text-monospace">
-                        @if (img.Latitude is not null) { <div>lat: <strong>@img.Latitude.Value.ToString("F6")</strong></div> }
-                        @if (img.Longitude is not null) { <div>lon: <strong>@img.Longitude.Value.ToString("F6")</strong></div> }
-                        @if (img.Altitude is not null) { <div>alt: <strong>@img.Altitude.Value.ToString("F2")</strong></div> }
+                        @if (lat is not null)
+                        {
+                            <div style="cursor:pointer" title="Click to copy" @onclick="() => CopyToClipboard(lat)">
+                                lat: <strong>@lat</strong>
+                            </div>
+                        }
+                        @if (lon is not null)
+                        {
+                            <div style="cursor:pointer" title="Click to copy" @onclick="() => CopyToClipboard(lon)">
+                                lon: <strong>@lon</strong>
+                            </div>
+                        }
+                        @if (alt is not null)
+                        {
+                            <div style="cursor:pointer" title="Click to copy" @onclick="() => CopyToClipboard(alt)">
+                                alt: <strong>@alt</strong>
+                            </div>
+                        }
                     </div>
                 }
                 else { <span class="text-muted">—</span> }
@@ -106,6 +125,12 @@
         {
             NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
         }
+    }
+
+    private async Task CopyToClipboard(string value)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", value);
+        NotificationService.Notify(NotificationSeverity.Info, "Copied", value, 2000);
     }
 
     private async Task ShowImage(ImageRow img)
