@@ -98,11 +98,13 @@ public class H3Service
         DateOnly? endDate = null,
         int resolution = 15)
     {
+        // TODO: later try to implement this as a syntatic sugarred LINQ query
         var images = await _context.Images
             .Include(i => i.Hexagon)
             .Include(i => i.Anomalies)
-            .Where(i => startDate == null ? true : DateOnly.FromDateTime((DateTime)i.DateTaken!) >= startDate)
-            .Where(i => endDate == null ? true : DateOnly.FromDateTime((DateTime)i.DateTaken!) <= endDate)
+            .Include(i => i.RoadTurbulence)
+            .Where(i => startDate == null || DateOnly.FromDateTime((DateTime)i.DateTaken!) >= startDate)
+            .Where(i => endDate == null || DateOnly.FromDateTime((DateTime)i.DateTaken!) <= endDate)
             .Where(i => i.Hexagon != null
                 && i.Latitude >= (decimal)latMin
                 && i.Latitude <= (decimal)latMax
@@ -113,23 +115,57 @@ public class H3Service
                 || i.Anomalies.Any(a => anomalies.Contains(a.AnomalyType)))
             .ToListAsync();
 
+        var hexagonIds = images
+            .Where(i => i.HexagonId != null)
+            .Select(i => i.HexagonId!.Value)
+            .Distinct()
+            .ToList();
+
+        var turbulences = await _context.RoadTurbulences
+            .Include(t => t.Hexagon)
+            .Where(t => t.HexagonId != null && hexagonIds.Contains(t.HexagonId.Value))
+            .ToListAsync();
+
+        var turbulencesByHexId = turbulences
+            .GroupBy(t => t.HexagonId!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         if (resolution == 15)
         {
             return images
                 .GroupBy(i => i.Hexagon!.H3Index)
-                .Select(g => new ViewHexagonDto
+                .Select(g =>
                 {
-                    H3Index = g.Key,
-                    Resolution = resolution,
-                    Images = g.Select(i => new ViewImageDto
+                    var hexId = g.First().HexagonId!.Value;
+                    var hexTurbulences = turbulencesByHexId.GetValueOrDefault(hexId, []);
+                    return new ViewHexagonDto
                     {
-                        Id = i.Id,
-                        FilePath = i.FilePath,
-                        DateTaken = i.DateTaken,
-                        AnomalyNotes = i.Notes
-                    }).ToList()
+                        H3Index = g.Key,
+                        Resolution = resolution,
+                        Images = g.Select(i => new ViewImageDto
+                        {
+                            Id = i.Id,
+                            FilePath = i.FilePath,
+                            DateTaken = i.DateTaken,
+                            AnomalyNotes = i.Notes,
+                            Turbulence = i.RoadTurbulence?.Index
+                        }).ToList(),
+                        RoadTurbulences = hexTurbulences.Select(t => new ViewTurbulenceDto
+                        {
+                            Id = t.Id,
+                            Index = t.Index,
+                            RoadTurbulenceType = t.RoadTurbulenceType,
+                            DateCreated = t.DateCreated
+                        }).ToList()
+                    };
                 }).ToList();
         }
+
+        var turbulencesByParent = turbulences
+            .Where(t => t.Hexagon != null)
+            .GroupBy(t => H3Net.H3ToString(
+                H3Net.CellToParent(H3Net.StringToH3(t.Hexagon!.H3Index), resolution)))
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         // Roll up to the requested resolution, then group and deduplicate
         return images
@@ -137,25 +173,32 @@ public class H3Service
             {
                 var raw = H3Net.StringToH3(i.Hexagon!.H3Index);
                 var parent = H3Net.CellToParent(raw, resolution);
-                return new
-                {
-                    ParentIndex = H3Net.H3ToString(parent),
-                    Image = i
-                };
+                return new { ParentIndex = H3Net.H3ToString(parent), Image = i };
             })
             .GroupBy(x => x.ParentIndex)
-            .Select(g => new ViewHexagonDto
+            .Select(g =>
             {
-                H3Index = g.Key,
-                Resolution = resolution,
-                Images = g
-                    .Select(x => new ViewImageDto
+                var hexTurbulences = turbulencesByParent.GetValueOrDefault(g.Key, []);
+                return new ViewHexagonDto
+                {
+                    H3Index = g.Key,
+                    Resolution = resolution,
+                    Images = g.Select(x => new ViewImageDto
                     {
                         Id = x.Image.Id,
                         FilePath = x.Image.FilePath,
                         DateTaken = x.Image.DateTaken,
-                        AnomalyNotes = x.Image.Notes
+                        AnomalyNotes = x.Image.Notes,
+                        Turbulence = x.Image.RoadTurbulence?.Index
+                    }).ToList(),
+                    RoadTurbulences = hexTurbulences.Select(t => new ViewTurbulenceDto
+                    {
+                        Id = t.Id,
+                        Index = t.Index,
+                        RoadTurbulenceType = t.RoadTurbulenceType,
+                        DateCreated = t.DateCreated
                     }).ToList()
+                };
             })
             .ToList();
     }

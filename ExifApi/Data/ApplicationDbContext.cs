@@ -46,5 +46,12 @@ public class ApplicationDbContext : DbContext
             .WithMany()
             .HasForeignKey(h => h.HexagonId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // verify whether all entities have an adequate OnDelete policy
+        modelBuilder.Entity<Image>()
+            .HasOne(i => i.RoadTurbulence)
+            .WithMany()
+            .HasForeignKey(i => i.RoadTurbulenceId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

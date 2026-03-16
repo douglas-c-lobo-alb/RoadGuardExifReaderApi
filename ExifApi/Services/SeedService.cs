@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ExifApi.Data;
 using ExifApi.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,14 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
     [
         AnomalyType.Pothole, AnomalyType.Crack, AnomalyType.MissingRoadSign,
         AnomalyType.WaterLeakage, AnomalyType.AnimalCorpse, AnomalyType.None
+    ];
+
+    private static readonly string[] NoteSeverities = ["low", "medium", "high"];
+    private static readonly string[] NoteDescriptions =
+    [
+        "Surface cracking observed", "Pothole detected near edge",
+        "Water pooling on road surface", "Road markings faded",
+        "Longitudinal crack along centre line", "Bump causes vehicle swerve"
     ];
 
     private static readonly RoadTurbulenceType[] TurbulenceTypes =
@@ -46,15 +55,26 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         var images = BuildImages(rng);
         var hexagonMap = await CreateHexagonsAsync(images);
 
+        // Save turbulences first so their PKs are available for image linking
+        var turbulences = BuildTurbulences(hexagonMap, rng);
+        db.RoadTurbulences.AddRange(turbulences);
+        await db.SaveChangesAsync();
+
+        // Link each image to one of the turbulences for its hexagon
+        var turbulencesByHexId = turbulences
+            .GroupBy(t => t.HexagonId!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        foreach (var image in images.Where(i => i.HexagonId != null))
+        {
+            if (turbulencesByHexId.TryGetValue(image.HexagonId!.Value, out var hexTurbulences))
+                image.RoadTurbulenceId = hexTurbulences[rng.Next(hexTurbulences.Count)].Id;
+        }
+
         db.Images.AddRange(images);
-        await db.SaveChangesAsync(); // assigns all PKs
+        await db.SaveChangesAsync();
 
         var anomalies = BuildAnomalies(images, rng);
         db.RoadVisualAnomalies.AddRange(anomalies);
-
-        var turbulences = BuildTurbulences(hexagonMap, rng);
-        db.RoadTurbulences.AddRange(turbulences);
-
         await db.SaveChangesAsync();
 
         return new SeedResult(images.Count, hexagonMap.Count, anomalies.Count, turbulences.Count);
@@ -86,6 +106,8 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
                 Altitude         = meta.Altitude,
                 CameraMake       = meta.CameraMake,
                 CameraModel      = meta.CameraModel,
+                Heading          = Math.Round((decimal)(rng.NextDouble() * 360), 2),
+                Notes            = BuildImageNotes(rng, i),
                 DateTaken        = meta.DateTaken ?? DateTime.UtcNow.AddDays(-rng.Next(1, 365)),
                 CreatedDate      = DateTime.UtcNow,
                 LastModifiedDate = DateTime.UtcNow
@@ -131,6 +153,15 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
 
         return hexagonMap;
     }
+
+    private static JsonDocument BuildImageNotes(Random rng, int i) =>
+        JsonDocument.Parse($$"""
+        {
+            "severity": "{{NoteSeverities[i % NoteSeverities.Length]}}",
+            "description": "{{NoteDescriptions[i % NoteDescriptions.Length]}}",
+            "confidence": {{Math.Round(0.60 + rng.NextDouble() * 0.39, 2)}}
+        }
+        """);
 
     private static List<RoadVisualAnomaly> BuildAnomalies(List<Image> images, Random rng)
     {

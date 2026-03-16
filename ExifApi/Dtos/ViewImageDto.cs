@@ -8,4 +8,5 @@ public class ViewImageDto
     public string? FilePath { get; set; }
     public DateTime? DateTaken { get; set; }
     public JsonDocument? AnomalyNotes { get; set; }
+    public int? Turbulence { get; set;}
 }
