@@ -80,7 +80,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         return new SeedResult(images.Count, hexagonMap.Count, anomalies.Count, turbulences.Count);
     }
 
-    private async Task ClearDatabaseAsync()
+    public async Task ClearDatabaseAsync()
     {
         // Order respects FK constraints: dependents first
         await db.RoadVisualAnomalies.ExecuteDeleteAsync();
