@@ -36,14 +36,14 @@
                 }
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ImageRow" Property="Id" Title="Id" Width="60px" />
-        <RadzenDataGridColumn TItem="ImageRow" Property="FileName" Title="File" Width="160px" />
+        <RadzenDataGridColumn TItem="ImageRow" Property="Id" Title="Id" Width="80px" />
+        <RadzenDataGridColumn TItem="ImageRow" Property="FileName" Title="File" />
         <RadzenDataGridColumn TItem="ImageRow" Property="DateTaken" Title="Date Taken"
-                              Width="140px" FormatString="{0:yyyy-MM-dd HH:mm}" />
-        <RadzenDataGridColumn TItem="ImageRow" Title="Camera" Sortable="false" Filterable="false">
+                              Width="160px" FormatString="{0:yyyy-MM-dd HH:mm}" />
+        <RadzenDataGridColumn TItem="ImageRow" Title="Camera" Width="180px" Sortable="false" Filterable="false">
             <Template Context="img">@img.CameraMake @img.CameraModel</Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ImageRow" Title="Coords" Sortable="false" Filterable="false">
+        <RadzenDataGridColumn TItem="ImageRow" Title="Coords" Width="180px" Sortable="false" Filterable="false">
             <Template Context="img">
                 @if (img.Latitude is not null || img.Longitude is not null || img.Altitude is not null)
                 {
@@ -56,7 +56,7 @@
                 else { <span class="text-muted">—</span> }
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ImageRow" Title="Hexagon" Sortable="false" Filterable="false">
+        <RadzenDataGridColumn TItem="ImageRow" Title="Hexagon" Width="160px" Sortable="false" Filterable="false">
             <Template Context="img">
                 @if (img.Hexagon is not null)
                 {
@@ -65,7 +65,7 @@
                 else { <span class="text-muted">—</span> }
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="ImageRow" Property="AnomalyCount" Title="Anomalies" Width="90px" Filterable="false">
+        <RadzenDataGridColumn TItem="ImageRow" Property="AnomalyCount" Title="Anomalies" Width="120px" Filterable="false">
             <Template Context="img">
                 @if (img.AnomalyCount > 0) { <RadzenBadge Text="@img.AnomalyCount.ToString()" BadgeStyle="BadgeStyle.Warning" /> }
                 else { <span class="text-muted small">0</span> }

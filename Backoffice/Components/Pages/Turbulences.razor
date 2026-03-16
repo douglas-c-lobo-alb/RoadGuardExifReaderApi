@@ -18,19 +18,19 @@
                 ShowPagingSummary="true" Density="Density.Compact"
                 Style="min-width:600px">
     <Columns>
-        <RadzenDataGridColumn TItem="TurbulenceRow" Property="Id" Title="Id" Width="60px" />
-        <RadzenDataGridColumn TItem="TurbulenceRow" Property="Index" Title="Index" Width="70px" />
+        <RadzenDataGridColumn TItem="TurbulenceRow" Property="Id" Title="Id" Width="80px" />
+        <RadzenDataGridColumn TItem="TurbulenceRow" Property="Index" Title="Index" Width="100px" />
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="RoadTurbulenceType" Title="Type">
             <Template Context="t">
                 @if (t.RoadTurbulenceType == RoadTurbulenceType.None) { <span class="text-muted">None</span> }
                 else { @t.RoadTurbulenceType.ToString() }
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="TurbulenceRow" Property="HexagonId" Title="Hexagon" Width="90px">
+        <RadzenDataGridColumn TItem="TurbulenceRow" Property="HexagonId" Title="Hexagon" Width="120px">
             <Template Context="t">@(t.HexagonId?.ToString() ?? "—")</Template>
         </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="DateCreated" Title="Date Created"
-                              Width="140px" FormatString="{0:yyyy-MM-dd HH:mm}" />
+                              Width="160px" FormatString="{0:yyyy-MM-dd HH:mm}" />
         <RadzenDataGridColumn TItem="TurbulenceRow" Title="" Width="80px" Sortable="false" Filterable="false" TextAlign="TextAlign.End">
             <Template Context="t">
                 <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"

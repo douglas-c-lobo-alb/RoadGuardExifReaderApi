@@ -23,20 +23,20 @@
                 ShowPagingSummary="true" Density="Density.Compact"
                 Style="min-width:700px">
     <Columns>
-        <RadzenDataGridColumn TItem="HexagonRow" Property="Id" Title="Id" Width="60px" />
+        <RadzenDataGridColumn TItem="HexagonRow" Property="Id" Title="Id" Width="80px" />
         <RadzenDataGridColumn TItem="HexagonRow" Property="H3Index" Title="H3 Index">
             <Template Context="h"><code>@h.H3Index</code></Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="HexagonRow" Property="Resolution" Title="Res" Width="60px" />
-        <RadzenDataGridColumn TItem="HexagonRow" Property="Lat" Title="Lat" Width="110px" FormatString="{0:F6}" />
-        <RadzenDataGridColumn TItem="HexagonRow" Property="Lon" Title="Lon" Width="110px" FormatString="{0:F6}" />
-        <RadzenDataGridColumn TItem="HexagonRow" Property="ImageCount" Title="Images" Width="80px" Filterable="false">
+        <RadzenDataGridColumn TItem="HexagonRow" Property="Resolution" Title="Resolution" Width="120px" />
+        <RadzenDataGridColumn TItem="HexagonRow" Property="Lat" Title="Latitude" Width="140px" FormatString="{0:F6}" />
+        <RadzenDataGridColumn TItem="HexagonRow" Property="Lon" Title="Longitude" Width="140px" FormatString="{0:F6}" />
+        <RadzenDataGridColumn TItem="HexagonRow" Property="ImageCount" Title="Images" Width="110px" Filterable="false">
             <Template Context="h">
                 @if (h.ImageCount > 0) { <RadzenBadge Text="@h.ImageCount.ToString()" BadgeStyle="BadgeStyle.Secondary" /> }
                 else { <span class="text-muted small">0</span> }
             </Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="HexagonRow" Property="AnomalyCount" Title="Anomalies" Width="90px" Filterable="false">
+        <RadzenDataGridColumn TItem="HexagonRow" Property="AnomalyCount" Title="Anomalies" Width="120px" Filterable="false">
             <Template Context="h">
                 @if (h.AnomalyCount > 0) { <RadzenBadge Text="@h.AnomalyCount.ToString()" BadgeStyle="BadgeStyle.Warning" /> }
                 else { <span class="text-muted small">0</span> }
