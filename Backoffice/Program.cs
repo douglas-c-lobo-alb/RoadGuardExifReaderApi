@@ -13,7 +13,12 @@ builder.Services.AddHttpClient("ExifApi", client =>
 });
 
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    .AddHubOptions(options =>
+    {
+        // default 32KB breaks InputFile with many files
+        options.MaximumReceiveMessageSize = 10 * 1024 * 1024;
+    });
 
 builder.Services.AddRadzenComponents();
 
