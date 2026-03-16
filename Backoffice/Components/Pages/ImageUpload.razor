@@ -10,8 +10,7 @@
 
 <div style="max-width:640px">
 
-    @if (!uploading)
-    {
+    <div style="@(uploading ? "display:none" : "")">
         <div class="mb-3">
             <InputFile OnChange="OnFilesSelected"
                        accept=".jpg,.jpeg"
@@ -28,7 +27,7 @@
                       Click="Upload" />
         <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" class="ms-2"
                       Click="@(() => NavigationManager.NavigateTo("/images"))" />
-    }
+    </div>
 
     @if (uploading || results.Count > 0)
     {
@@ -48,7 +47,7 @@
                             AllowSorting="true" AllowFiltering="true"
                             FilterMode="FilterMode.SimpleWithMenu"
                             Density="Density.Compact"
-                            Style="min-width:460px">
+                            Style="min-width:460px;height:calc(100vh - 320px)">
                 <Columns>
                     <RadzenDataGridColumn TItem="UploadResult" Property="Name" Title="File" />
                     <RadzenDataGridColumn TItem="UploadResult" Property="Status" Title="Status" Width="120px">
