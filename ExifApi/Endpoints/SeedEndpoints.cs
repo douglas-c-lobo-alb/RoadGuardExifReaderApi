@@ -10,6 +10,10 @@ public static class SeedEndpoints
             .WithName("SeedDatabase")
             .WithDescription("Clears the database and re-seeds it from wwwroot/images EXIF data with mock anomalies and turbulences")
             .WithOpenApi();
+        api.MapPost("/cleardatabase", ClearDatabase)
+            .WithName("ClearDatabase")
+            .WithDescription("Clears the database")
+            .WithOpenApi();
     }
 
     private static async Task<IResult> SeedDatabase(SeedService seedService)
@@ -22,6 +26,18 @@ public static class SeedEndpoints
         catch (Exception ex)
         {
             return Results.Problem(detail: ex.Message, title: "Seed failed", statusCode: 500);
+        }
+    }
+    private static async Task<IResult> ClearDatabase(SeedService seedService)
+    {
+        try
+        {
+            await seedService.ClearDatabaseAsync();
+            return Results.Ok();
+        } 
+        catch (Exception ex)
+        {
+            return Results.Problem(detail: ex.Message, title: "Clear failed", statusCode: 500);
         }
     }
 }
