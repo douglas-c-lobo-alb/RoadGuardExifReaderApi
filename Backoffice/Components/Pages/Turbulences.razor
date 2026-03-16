@@ -9,12 +9,14 @@
 
 <h1>Road Turbulences</h1>
 
+<div style="overflow-x:auto">
 <RadzenDataGrid TItem="TurbulenceRow" Data="@turbulences" IsLoading="@(turbulences is null)"
                 AllowPaging="true" PageSize="20"
                 AllowSorting="true" AllowFiltering="true"
                 FilterMode="FilterMode.SimpleWithMenu"
                 PagerHorizontalAlign="HorizontalAlign.Left"
-                ShowPagingSummary="true" Density="Density.Compact">
+                ShowPagingSummary="true" Density="Density.Compact"
+                Style="min-width:600px">
     <Columns>
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="Id" Title="Id" Width="60px" />
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="Index" Title="Index" Width="70px" />
@@ -37,6 +39,7 @@
         </RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
+</div>
 
 @code {
     private List<TurbulenceRow>? turbulences;

@@ -18,12 +18,14 @@
                   Disabled="@generating" Click="GenerateHexagons" />
 </div>
 
+<div style="overflow-x:auto">
 <RadzenDataGrid TItem="ImageRow" Data="@images" IsLoading="@(images is null)"
                 AllowPaging="true" PageSize="20"
                 AllowSorting="true" AllowFiltering="true"
                 FilterMode="FilterMode.SimpleWithMenu"
                 PagerHorizontalAlign="HorizontalAlign.Left"
-                ShowPagingSummary="true" Density="Density.Compact">
+                ShowPagingSummary="true" Density="Density.Compact"
+                Style="min-width:900px">
     <Columns>
         <RadzenDataGridColumn TItem="ImageRow" Title="" Width="68px" Sortable="false" Filterable="false">
             <Template Context="img">
@@ -79,6 +81,7 @@
         </RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
+</div>
 
 @code {
     private List<ImageRow>? images;

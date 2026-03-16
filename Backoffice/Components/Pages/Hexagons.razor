@@ -14,12 +14,14 @@
                   Click="@(() => NavigationManager.NavigateTo("/hexagons/create"))" />
 </div>
 
+<div style="overflow-x:auto">
 <RadzenDataGrid TItem="HexagonRow" Data="@hexagons" IsLoading="@(hexagons is null)"
                 AllowPaging="true" PageSize="20"
                 AllowSorting="true" AllowFiltering="true"
                 FilterMode="FilterMode.SimpleWithMenu"
                 PagerHorizontalAlign="HorizontalAlign.Left"
-                ShowPagingSummary="true" Density="Density.Compact">
+                ShowPagingSummary="true" Density="Density.Compact"
+                Style="min-width:700px">
     <Columns>
         <RadzenDataGridColumn TItem="HexagonRow" Property="Id" Title="Id" Width="60px" />
         <RadzenDataGridColumn TItem="HexagonRow" Property="H3Index" Title="H3 Index">
@@ -50,6 +52,7 @@
         </RadzenDataGridColumn>
     </Columns>
 </RadzenDataGrid>
+</div>
 
 @code {
     private List<HexagonRow>? hexagons;
