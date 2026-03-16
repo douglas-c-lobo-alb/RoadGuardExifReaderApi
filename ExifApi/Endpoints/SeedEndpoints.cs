@@ -37,7 +37,7 @@ public static class SeedEndpoints
         } 
         catch (Exception ex)
         {
-            return Results.Problem(detail: ex.Message, title: "Seed failed", statusCode: 500);
+            return Results.Problem(detail: ex.Message, title: "Clear failed", statusCode: 500);
         }
     }
 }
