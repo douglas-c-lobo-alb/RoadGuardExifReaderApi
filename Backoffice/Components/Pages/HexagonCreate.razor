@@ -1,81 +1,62 @@
 @page "/hexagons/create"
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager NavigationManager
+@inject NotificationService NotificationService
 @rendermode InteractiveServer
 
 <PageTitle>New Hexagon</PageTitle>
 
 <h1>New Hexagon</h1>
 
-@if (errorMessage is not null)
-{
-    <div class="alert alert-danger">@errorMessage</div>
-}
-
-<div style="max-width: 500px;">
+<div style="max-width:500px">
     <div class="mb-3">
         <label class="form-label fw-semibold">Image</label>
-        <select class="form-select" @bind="imageId">
-            <option value="0">— select an image —</option>
-            @foreach (var img in images)
-            {
-                <option value="@img.Id">[@img.Id] @img.FileName</option>
-            }
-        </select>
+        <RadzenDropDown TValue="int" @bind-Value="imageId" Data="@images"
+                        TextProperty="FileName" ValueProperty="Id"
+                        Placeholder="— select an image —" Style="width:100%" />
     </div>
 
     <div class="mb-3">
         <label class="form-label fw-semibold">Input method</label>
-        <div>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" id="modeCoords" name="inputMode"
-                       checked="@(mode == InputMode.Coordinates)"
-                       @onchange="() => mode = InputMode.Coordinates" />
-                <label class="form-check-label" for="modeCoords">By Coordinates</label>
-            </div>
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" id="modeIndex" name="inputMode"
-                       checked="@(mode == InputMode.H3Index)"
-                       @onchange="() => mode = InputMode.H3Index" />
-                <label class="form-check-label" for="modeIndex">By H3 Index</label>
-            </div>
-        </div>
+        <RadzenRadioButtonList TValue="InputMode" @bind-Value="mode" Orientation="Orientation.Horizontal">
+            <Items>
+                <RadzenRadioButtonListItem Text="By Coordinates" Value="InputMode.Coordinates" />
+                <RadzenRadioButtonListItem Text="By H3 Index" Value="InputMode.H3Index" />
+            </Items>
+        </RadzenRadioButtonList>
     </div>
 
     @if (mode == InputMode.Coordinates)
     {
         <div class="mb-3">
             <label class="form-label">Latitude</label>
-            <input class="form-control" type="number" step="any" @bind="latitude" />
+            <RadzenNumeric TValue="double" @bind-Value="latitude" Format="F6" Style="width:100%" />
         </div>
         <div class="mb-3">
             <label class="form-label">Longitude</label>
-            <input class="form-control" type="number" step="any" @bind="longitude" />
+            <RadzenNumeric TValue="double" @bind-Value="longitude" Format="F6" Style="width:100%" />
         </div>
         <div class="mb-3">
             <label class="form-label">Resolution (0–15)</label>
-            <input class="form-control" type="number" min="0" max="15" @bind="resolution" />
+            <RadzenNumeric TValue="int" @bind-Value="resolution" Min="0" Max="15" Style="width:100%" />
         </div>
         <div class="mb-3 d-flex align-items-center gap-2">
-            <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="PreviewH3">Preview H3 Index</button>
-            @if (previewH3 is not null)
-            {
-                <code>@previewH3</code>
-            }
+            <RadzenButton Text="Preview H3 Index" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="PreviewH3" />
+            @if (previewH3 is not null) { <code>@previewH3</code> }
         </div>
     }
     else
     {
         <div class="mb-3">
             <label class="form-label">H3 Index</label>
-            <input class="form-control font-monospace" type="text" @bind="h3Index" placeholder="e.g. 8f283473ad30d25" />
+            <RadzenTextBox @bind-Value="h3Index" Placeholder="e.g. 8f283473ad30d25" Style="width:100%;font-family:monospace" />
         </div>
     }
 
-    <button class="btn btn-primary" @onclick="Submit" disabled="@submitting">
-        @(submitting ? "Saving…" : "Create")
-    </button>
-    <a href="/hexagons" class="btn btn-secondary ms-2">Cancel</a>
+    <RadzenButton Text="@(submitting ? "Saving…" : "Create")" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                  Disabled="@submitting" Click="Submit" />
+    <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" class="ms-2"
+                  Click="@(() => NavigationManager.NavigateTo("/hexagons"))" />
 </div>
 
 @code {
@@ -90,7 +71,6 @@
     private string? previewH3;
     private string? h3Index;
     private bool submitting;
-    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -101,14 +81,13 @@
         }
         catch (Exception ex)
         {
-            errorMessage = $"Failed to load images: {ex.Message}";
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
         }
     }
 
     private async Task PreviewH3()
     {
         previewH3 = null;
-        errorMessage = null;
         try
         {
             var client = HttpClientFactory.CreateClient("ExifApi");
@@ -119,14 +98,13 @@
         }
         catch (Exception ex)
         {
-            errorMessage = $"Preview failed: {ex.Message}";
+            NotificationService.Notify(NotificationSeverity.Error, "Preview failed", ex.Message, 5000);
         }
     }
 
     private async Task Submit()
     {
-        errorMessage = null;
-        if (imageId == 0) { errorMessage = "Please select an image."; return; }
+        if (imageId == 0) { NotificationService.Notify(NotificationSeverity.Warning, "Validation", "Please select an image.", 4000); return; }
 
         submitting = true;
         try
@@ -138,16 +116,19 @@
 
             var response = await client.PostAsJsonAsync("api/hexagons/", payload);
             if (response.IsSuccessStatusCode)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Created", "Hexagon created.", 3000);
                 NavigationManager.NavigateTo("/hexagons");
+            }
             else
             {
                 var body = await response.Content.ReadAsStringAsync();
-                errorMessage = $"Failed ({(int)response.StatusCode}): {body}";
+                NotificationService.Notify(NotificationSeverity.Error, "Save failed", $"({(int)response.StatusCode}) {body}", 6000);
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error: {ex.Message}";
+            NotificationService.Notify(NotificationSeverity.Error, "Error", ex.Message, 6000);
         }
         finally
         {
