@@ -32,7 +32,8 @@
                 @if (!string.IsNullOrEmpty(img.FilePath))
                 {
                     <img src="@(apiBase + img.FilePath)" alt="@img.FileName"
-                         style="width:56px;height:40px;object-fit:cover;border-radius:3px" />
+                         style="width:56px;height:40px;object-fit:cover;border-radius:3px;cursor:pointer"
+                         @onclick="() => ShowImage(img)" />
                 }
             </Template>
         </RadzenDataGridColumn>
@@ -105,6 +106,14 @@
         {
             NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
         }
+    }
+
+    private async Task ShowImage(ImageRow img)
+    {
+        await DialogService.OpenAsync(img.FileName, _ =>
+            @<img src="@(apiBase + img.FilePath)" alt="@img.FileName"
+                  style="max-width:100%;max-height:80vh;display:block;margin:auto" />,
+            new DialogOptions { Width = "auto", CloseDialogOnOverlayClick = true, ShowClose = true });
     }
 
     private async Task ConfirmDelete(ImageRow img)
