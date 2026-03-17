@@ -3,6 +3,8 @@ using ExifApi.Data.Entities;
 using ExifApi.Dtos;
 using H3Standard;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Net.Http.Headers;
+using Microsoft.VisualBasic;
 namespace ExifApi.Services;
 
 public class H3Service
@@ -201,6 +203,37 @@ public class H3Service
                 };
             })
             .ToList();
+    }
+
+    public async Task<List<ImageInfoDto>> GetHexagonImagesMetadata(string h3Index)
+    {
+        List<string>? hexagons = CellToChildren(h3Index, _appResolution)
+            .Select(h => h.H3Index)
+            .ToList();
+
+        _logger.LogDebug("Hexagons: {Hexagons}", hexagons);
+
+        IQueryable<Image>? images = _context.Images
+            .Include(i => i.Hexagon)
+            .Where(i => i.Hexagon != null
+            && hexagons.Contains(i.Hexagon.H3Index));
+
+        _logger.LogDebug("Images: {Images}", images);
+
+
+        return await images.Select(i =>
+            new ImageInfoDto
+            {
+                FileName = i.FileName,
+                FilePath = i.FilePath,
+                CameraMake = i.CameraMake,
+                CameraModel = i.CameraModel,
+                DateTaken = i.DateTaken,
+                Altitude = i.Altitude,
+                Latitude = i.Latitude,
+                Longitude = i.Longitude
+            }
+        ).ToListAsync();
     }
 
     private static bool TryParseH3(string index, out ulong h3Raw)
