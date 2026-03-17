@@ -134,7 +134,7 @@ public static class H3Endpoints
         )
     {
         var result = await h3Service.GetHexagonImagesMetadata(h3Index);
-        return result is null
+        return result.Count == 0
             ? Results.NotFound($"No data")
             : Results.Ok(result);
     }
