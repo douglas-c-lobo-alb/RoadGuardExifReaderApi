@@ -474,6 +474,20 @@ public class H3ServiceTests : IDisposable
         Assert.Equal(2, result.SelectMany(h => h.Images).Count());
     }
 
+    [Fact]
+    public async Task GetNextImage_ReturnsNextImage()
+    {
+        SeedImage(id: 1, lat: (decimal)KnownLat, lon: (decimal)KnownLon);
+        SeedImage(id: 2, lat: (decimal)KnownLat, lon: (decimal)KnownLon);
+
+        var givenId = 1;
+
+        var imageFromGivenId = await _context.Images.FirstAsync(_ => _.Id == givenId);
+        var nextImage = await _context.Images.FirstAsync(_ => _.Id == givenId + 1);
+
+        Assert.True(imageFromGivenId.Id < nextImage.Id);
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------

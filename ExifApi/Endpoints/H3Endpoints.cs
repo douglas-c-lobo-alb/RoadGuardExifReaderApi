@@ -35,6 +35,14 @@ public static class H3Endpoints
         group.MapGet("/view", GetViewport)
             .WithName("GetH3Viewport")
             .WithDescription("Returns hexagons linked to images within a lat/lon viewport, aggregated at the requested resolution");
+
+        // ------------------------------------------------------------
+        // weird, alien endpoint
+        // ------------------------------------------------------------
+
+        group.MapGet("/next-image", GetNextImage)
+            .WithName("GetNextImage")
+            .WithDescription("Returns next image from a given image id, n: n -> n+1");
     }
 
     private static IResult GetCell(double lat, double lon, int resolution, H3Service h3Service)
@@ -104,5 +112,13 @@ public static class H3Endpoints
             endDate,
             resolution);
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetNextImage(int id, ImageService imageService)
+    {
+        var result = await imageService.GetByIdAsync(id + 1);
+        return result is null
+            ? Results.NotFound($"No image found with id {id + 1}")
+            : Results.Ok(result);
     }
 }
