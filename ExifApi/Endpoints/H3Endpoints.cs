@@ -46,6 +46,10 @@ public static class H3Endpoints
             .WithName("GetNextImage")
             .WithDescription("Returns next image from a given image id, n: n -> n+1");
 
+        group.MapGet("/prev-image", GetPrevImage)
+            .WithName("GetPrevImage")
+            .WithDescription("Returns previous image from a given image id, n: n -> n-1");
+
         group.MapGet("/metadata", GetHexagonImagesMetadata)
             .WithName("GetHexagonImagesMetadata")
             .WithDescription("Returns, if any, all metadata associated to all images within given hexagon");
@@ -125,6 +129,14 @@ public static class H3Endpoints
         var result = await imageService.GetByIdAsync(id + 1);
         return result is null
             ? Results.NotFound($"No image found with id {id + 1}")
+            : Results.Ok(result);
+    }
+    
+    private static async Task<IResult> GetPrevImage(int id, ImageService imageService)
+    {
+        var result = await imageService.GetByIdAsync(id - 1);
+        return result is null
+            ? Results.NotFound($"No image found with id {id - 1}")
             : Results.Ok(result);
     }
 
