@@ -1,44 +1,41 @@
 using Backoffice.Components;
+using Radzen;
 
-namespace Backoffice;
+var builder = WebApplication.CreateBuilder(args);
 
-public class Program
+builder.Services.AddHttpClient("ExifApi", client =>
 {
-    public static void Main(string[] args)
+    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"]!);
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+});
+
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents()
+    .AddHubOptions(options =>
     {
-        var builder = WebApplication.CreateBuilder(args);
+        // default 32KB breaks InputFile with many files
+        options.MaximumReceiveMessageSize = 10 * 1024 * 1024;
+    });
 
-        builder.Services.AddHttpClient("ExifApi", client =>
-        {
-            client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"]!);
-        })
-        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-        });
+builder.Services.AddRadzenComponents();
 
-        // Add services to the container.
-        builder.Services.AddRazorComponents()
-            .AddInteractiveServerComponents();
+var app = builder.Build();
 
-        var app = builder.Build();
-
-        // Configure the HTTP request pipeline.
-        if (!app.Environment.IsDevelopment())
-        {
-            app.UseExceptionHandler("/Error", createScopeForErrors: true);
-            // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-            app.UseHsts();
-        }
-
-        app.UseHttpsRedirection();
-
-        app.UseStaticFiles();
-        app.UseAntiforgery();
-
-        app.MapRazorComponents<App>()
-            .AddInteractiveServerRenderMode();
-
-        app.Run();
-    }
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseHsts();
 }
+
+app.UseHttpsRedirection();
+
+app.UseStaticFiles();
+app.UseAntiforgery();
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
+app.Run();

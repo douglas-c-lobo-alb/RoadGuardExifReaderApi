@@ -8,7 +8,7 @@ public class RoadVisualAnomaly
 {
     [Key]
     public int Id { get; set; }
-    public int ImageId { get; set; }
+    public int? ImageId { get; set; }
     public Image? Image { get; set; }
     public AnomalyType AnomalyType { get; set; } = AnomalyType.None;
     public decimal Confidence { get; set; }

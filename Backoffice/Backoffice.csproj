@@ -13,12 +13,13 @@
     </ProjectReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Radzen.Blazor" Version="10.0.3" />
+  </ItemGroup>
+
   <Target Name="RemoveConflictingAppsettingsFromPublish" AfterTargets="ComputeFilesToPublish">
     <ItemGroup>
-      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-        Condition="('%(ResolvedFileToPublish.RelativePath)' == 'appsettings.json' Or '%(ResolvedFileToPublish.RelativePath)' == 'appsettings.Development.json')
-                   And '%(ResolvedFileToPublish.OriginalItemSpec)' != 'appsettings.json'
-                   And '%(ResolvedFileToPublish.OriginalItemSpec)' != 'appsettings.Development.json'" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="('%(ResolvedFileToPublish.RelativePath)' == 'appsettings.json' Or '%(ResolvedFileToPublish.RelativePath)' == 'appsettings.Development.json')&#xA;                   And '%(ResolvedFileToPublish.OriginalItemSpec)' != 'appsettings.json'&#xA;                   And '%(ResolvedFileToPublish.OriginalItemSpec)' != 'appsettings.Development.json'" />
     </ItemGroup>
   </Target>
 

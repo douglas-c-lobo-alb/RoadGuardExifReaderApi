@@ -136,7 +136,7 @@ public class ImageService
         Longitude = image.Longitude,
         Altitude = image.Altitude,
         Heading = image.Heading,
-        Turbulence = image.Turbulence,
+        Turbulence = image.RoadTurbulence?.Index,
         AnomalyNotes = image.Notes,
         AnomalyCount = image.Anomalies.Count,
         Hexagon = image.Hexagon is null ? null : new HexagonDto

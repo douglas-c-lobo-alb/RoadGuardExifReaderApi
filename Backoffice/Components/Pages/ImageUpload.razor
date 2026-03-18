@@ -1,68 +1,116 @@
 @page "/images/upload"
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager NavigationManager
+@inject NotificationService NotificationService
 @rendermode InteractiveServer
 
 <PageTitle>Upload Images</PageTitle>
 
 <h1>Upload Images</h1>
 
-<div class="mb-3" style="max-width: 600px;">
-    <InputFile OnChange="OnFilesSelected" accept=".jpg,.jpeg" class="form-control mb-3" multiple />
+<div style="max-width:640px">
 
-    <button class="btn btn-primary" @onclick="Upload" disabled="@(selectedFiles is null || selectedFiles.Count == 0 || uploading)">
-        @(uploading ? $"Uploading {uploadedCount} / {selectedFiles!.Count}…" : "Upload")
-    </button>
-    <a href="/images" class="btn btn-secondary ms-2">Cancel</a>
-</div>
-
-@if (results.Count > 0)
-{
-    <h5>Results</h5>
-    <table class="table table-sm" style="max-width: 600px;">
-        <thead>
-            <tr><th>File</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-            @foreach (var r in results)
+    <div style="@(uploading ? "display:none" : "")">
+        <div class="mb-3">
+            <InputFile OnChange="OnFilesSelected"
+                       accept=".jpg,.jpeg"
+                       multiple
+                       style="display:block;width:100%;padding:.5rem;border:1px solid var(--rz-border-color);border-radius:var(--rz-border-radius);background:var(--rz-base-background-color);color:var(--rz-text-color);cursor:pointer" />
+            @if (selectedFiles is not null)
             {
-                <tr>
-                    <td>@r.Name</td>
-                    <td>
-                        @if (r.Ok)
-                        {
-                            <span class="text-success">&#10003; Uploaded</span>
-                        }
-                        else
-                        {
-                            <span class="text-danger">&#10007; @r.Error</span>
-                        }
-                    </td>
-                </tr>
+                <div class="mt-2 text-muted small">@selectedFiles.Count file(s) selected</div>
             }
-        </tbody>
-    </table>
+        </div>
 
-    @if (!uploading)
+        <RadzenButton Text="Upload" Icon="upload" ButtonStyle="ButtonStyle.Primary"
+                      Disabled="@(selectedFiles is null || selectedFiles.Count == 0)"
+                      Click="Upload" />
+        <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" class="ms-2"
+                      Click="@(() => NavigationManager.NavigateTo("/images"))" />
+    </div>
+
+    @if (uploading || results.Count > 0)
     {
-        <a href="/images" class="btn btn-primary mt-2">Go to Images</a>
+        <div class="mt-4 mb-2">
+            <div class="d-flex justify-content-between mb-1 small">
+                <span>@uploadedCount / @totalCount uploaded</span>
+                <span>@overallProgress%</span>
+            </div>
+            <RadzenProgressBar Value="@overallProgress" Max="100" ShowValue="false" Style="width:100%" />
+        </div>
     }
-}
+
+    @if (results.Count > 0)
+    {
+        <div class="mt-3" style="overflow-x:auto">
+            <RadzenDataGrid TItem="UploadResult" Data="@results"
+                            AllowSorting="true" AllowFiltering="true"
+                            FilterMode="FilterMode.SimpleWithMenu"
+                            Density="Density.Compact"
+                            Style="min-width:460px;height:calc(100vh - 320px)">
+                <Columns>
+                    <RadzenDataGridColumn TItem="UploadResult" Property="Name" Title="File" />
+                    <RadzenDataGridColumn TItem="UploadResult" Property="Status" Title="Status" Width="120px">
+                        <Template Context="r">
+                            @switch (r.Status)
+                            {
+                                case UploadStatus.Pending:
+                                    <span class="text-muted small">Pending</span>
+                                    break;
+                                case UploadStatus.Uploading:
+                                    <RadzenBadge Text="Uploading…" BadgeStyle="BadgeStyle.Info" />
+                                    break;
+                                case UploadStatus.Ok:
+                                    <RadzenBadge Text="Done" BadgeStyle="BadgeStyle.Success" />
+                                    break;
+                                case UploadStatus.Error:
+                                    <RadzenBadge Text="Failed" BadgeStyle="BadgeStyle.Danger" />
+                                    break;
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="UploadResult" Property="Error" Title="Error" Sortable="false">
+                        <Template Context="r">
+                            @if (r.Error is not null)
+                            {
+                                <span class="text-danger small">@r.Error</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+
+        @if (!uploading)
+        {
+            <div class="mt-3">
+                <RadzenButton Text="Go to Images" Icon="image" ButtonStyle="ButtonStyle.Primary"
+                              Click="@(() => NavigationManager.NavigateTo("/images"))" />
+                <RadzenButton Text="Upload More" Icon="upload" ButtonStyle="ButtonStyle.Light" class="ms-2"
+                              Click="Reset" />
+            </div>
+        }
+    }
+
+</div>
 
 @code {
     private const int MaxFiles = 1000;
-    private const long MaxFileSizeBytes = 10 * 1024 * 1024;
+    private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
 
     private IReadOnlyList<IBrowserFile>? selectedFiles;
+    private List<UploadResult> results = [];
     private bool uploading;
     private int uploadedCount;
-    private List<(string Name, bool Ok, string? Error)> results = [];
+    private int totalCount;
+    private int overallProgress;
 
     private void OnFilesSelected(InputFileChangeEventArgs e)
     {
         selectedFiles = e.GetMultipleFiles(MaxFiles);
         results = [];
         uploadedCount = 0;
+        overallProgress = 0;
     }
 
     private async Task Upload()
@@ -70,40 +118,98 @@
         if (selectedFiles is null || selectedFiles.Count == 0) return;
 
         uploading = true;
-        results = [];
+        totalCount = selectedFiles.Count;
         uploadedCount = 0;
+        overallProgress = 0;
+
+        results = selectedFiles
+            .Select(f => new UploadResult { Name = f.Name, Status = UploadStatus.Pending })
+            .ToList();
 
         var client = HttpClientFactory.CreateClient("ExifApi");
 
-        foreach (var file in selectedFiles)
+        for (int i = 0; i < selectedFiles.Count; i++)
         {
+            var file = selectedFiles[i];
+            var result = results[i];
+
+            if (file.Size > MaxFileSizeBytes)
+            {
+                result.Status = UploadStatus.Error;
+                result.Error = $"Exceeds 5 MB limit ({file.Size / 1024 / 1024} MB)";
+                uploadedCount++;
+                overallProgress = (int)((double)uploadedCount / totalCount * 100);
+                StateHasChanged();
+                continue;
+            }
+
+            // read into memory before any re-render -- StateHasChanged wipes IBrowserFile refs
+            byte[] buffer;
             try
             {
-                using var content = new MultipartFormDataContent();
-                var stream = file.OpenReadStream(maxAllowedSize: MaxFileSizeBytes);
-                content.Add(new StreamContent(stream), "file", file.Name);
-
-                var response = await client.PostAsync("api/images/", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    results.Add((file.Name, true, null));
-                }
-                else
-                {
-                    var body = await response.Content.ReadAsStringAsync();
-                    results.Add((file.Name, false, $"{(int)response.StatusCode}: {body}"));
-                }
+                using var ms = new MemoryStream();
+                await file.OpenReadStream(maxAllowedSize: MaxFileSizeBytes).CopyToAsync(ms);
+                buffer = ms.ToArray();
             }
             catch (Exception ex)
             {
-                results.Add((file.Name, false, ex.Message));
+                result.Status = UploadStatus.Error;
+                result.Error = ex.Message;
+                uploadedCount++;
+                overallProgress = (int)((double)uploadedCount / totalCount * 100);
+                StateHasChanged();
+                continue;
+            }
+
+            result.Status = UploadStatus.Uploading;
+            StateHasChanged();
+
+            try
+            {
+                using var content = new MultipartFormDataContent();
+                content.Add(new ByteArrayContent(buffer), "file", file.Name);
+
+                var response = await client.PostAsync("api/images/", content);
+
+                result.Status = response.IsSuccessStatusCode ? UploadStatus.Ok : UploadStatus.Error;
+                if (!response.IsSuccessStatusCode)
+                    result.Error = $"{(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}";
+            }
+            catch (Exception ex)
+            {
+                result.Status = UploadStatus.Error;
+                result.Error = ex.Message;
             }
 
             uploadedCount++;
+            overallProgress = (int)((double)uploadedCount / totalCount * 100);
             StateHasChanged();
         }
 
         uploading = false;
+
+        var failed = results.Count(r => r.Status == UploadStatus.Error);
+        if (failed == 0)
+            NotificationService.Notify(NotificationSeverity.Success, "Done", $"{totalCount} image(s) uploaded.", 4000);
+        else
+            NotificationService.Notify(NotificationSeverity.Warning, "Completed with errors", $"{failed} of {totalCount} failed.", 5000);
+    }
+
+    private void Reset()
+    {
+        selectedFiles = null;
+        results = [];
+        uploadedCount = 0;
+        totalCount = 0;
+        overallProgress = 0;
+    }
+
+    private enum UploadStatus { Pending, Uploading, Ok, Error }
+
+    private class UploadResult
+    {
+        public string Name { get; set; } = string.Empty;
+        public UploadStatus Status { get; set; }
+        public string? Error { get; set; }
     }
 }

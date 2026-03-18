@@ -1,79 +1,53 @@
 @page "/turbulences"
 @using ExifApi.Data.Entities
 @inject IHttpClientFactory HttpClientFactory
+@inject DialogService DialogService
+@inject NotificationService NotificationService
 @rendermode InteractiveServer
 
 <PageTitle>Turbulences</PageTitle>
 
 <h1>Road Turbulences</h1>
 
-@if (errorMessage is not null)
-{
-    <div class="alert alert-danger">@errorMessage</div>
-}
-@if (successMessage is not null)
-{
-    <div class="alert alert-success">@successMessage</div>
-}
-
-@if (turbulences is null)
-{
-    <p>Loading...</p>
-}
-else if (!turbulences.Any())
-{
-    <p>No turbulence records stored yet.</p>
-}
-else
-{
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>Index</th>
-                <th>Type</th>
-                <th>Hexagon Id</th>
-                <th>Date Created</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var t in turbulences)
-            {
-                <tr>
-                    <td>@t.Id</td>
-                    <td>@t.Index</td>
-                    <td>
-                        @if (t.RoadTurbulenceType == RoadTurbulenceType.None)
-                        {
-                            <span class="text-muted">None</span>
-                        }
-                        else
-                        {
-                            @t.RoadTurbulenceType.ToString()
-                        }
-                    </td>
-                    <td>@(t.HexagonId?.ToString() ?? "—")</td>
-                    <td>@t.DateCreated.ToString("yyyy-MM-dd HH:mm")</td>
-                    <td>
-                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(t.Id)">Delete</button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+<div style="overflow-x:auto">
+<RadzenDataGrid TItem="TurbulenceRow" Data="@turbulences" IsLoading="@(turbulences is null)"
+                AllowPaging="true" PageSize="20"
+                AllowSorting="true" AllowFiltering="true"
+                FilterMode="FilterMode.SimpleWithMenu"
+                PagerHorizontalAlign="HorizontalAlign.Left"
+                ShowPagingSummary="true" Density="Density.Compact"
+                Style="min-width:600px">
+    <Columns>
+        <RadzenDataGridColumn TItem="TurbulenceRow" Property="Id" Title="Id" Width="80px" />
+        <RadzenDataGridColumn TItem="TurbulenceRow" Property="Index" Title="Index" Width="100px" />
+        <RadzenDataGridColumn TItem="TurbulenceRow" Property="RoadTurbulenceType" Title="Type">
+            <Template Context="t">
+                @if (t.RoadTurbulenceType == RoadTurbulenceType.None) { <span class="text-muted">None</span> }
+                else { @t.RoadTurbulenceType.ToString() }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="TurbulenceRow" Property="HexagonId" Title="Hexagon" Width="120px">
+            <Template Context="t">@(t.HexagonId?.ToString() ?? "—")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="TurbulenceRow" Property="DateCreated" Title="Date Created"
+                              Width="160px" FormatString="{0:yyyy-MM-dd HH:mm}" />
+        <RadzenDataGridColumn TItem="TurbulenceRow" Title="" Width="80px" Sortable="false" Filterable="false" TextAlign="TextAlign.End">
+            <Template Context="t">
+                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                              Click="@(() => ConfirmDelete(t))" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+</div>
 
 @code {
     private List<TurbulenceRow>? turbulences;
-    private string? errorMessage;
-    private string? successMessage;
 
     protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load()
     {
-        errorMessage = null;
         try
         {
             var client = HttpClientFactory.CreateClient("ExifApi");
@@ -81,23 +55,31 @@ else
         }
         catch (Exception ex)
         {
-            errorMessage = $"Failed to load turbulences: {ex.Message}";
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
         }
+    }
+
+    private async Task ConfirmDelete(TurbulenceRow t)
+    {
+        var confirmed = await DialogService.Confirm(
+            $"Delete turbulence record #{t.Id}? This cannot be undone.",
+            "Confirm Delete",
+            new ConfirmOptions { OkButtonText = "Delete", CancelButtonText = "Cancel" });
+        if (confirmed == true)
+            await Delete(t.Id);
     }
 
     private async Task Delete(int id)
     {
-        errorMessage = null;
-        successMessage = null;
         var client = HttpClientFactory.CreateClient("ExifApi");
         var response = await client.DeleteAsync($"api/turbulences/{id}");
         if (response.IsSuccessStatusCode)
         {
-            successMessage = "Turbulence record deleted.";
+            NotificationService.Notify(NotificationSeverity.Success, "Deleted", "Turbulence record removed.", 3000);
             await Load();
         }
         else
-            errorMessage = $"Delete failed ({response.StatusCode})";
+            NotificationService.Notify(NotificationSeverity.Error, "Delete failed", $"Status {(int)response.StatusCode}", 5000);
     }
 
     private record TurbulenceRow(int Id, int Index, RoadTurbulenceType RoadTurbulenceType, int? HexagonId, DateTime DateCreated);

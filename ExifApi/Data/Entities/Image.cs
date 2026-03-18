@@ -35,7 +35,8 @@ public class Image
     [MaxLength(255)]
     public string? CameraModel { get; set; }
     public DateTime? DateTaken { get; set; }
-    public int? Turbulence { get; set; }
+    public int? RoadTurbulenceId { get; set; }
+    public RoadTurbulence? RoadTurbulence { get; set;}
     public JsonDocument? Notes { get; set; }
     public int? HexagonId { get; set; }
     public Hexagon? Hexagon { get; set; }

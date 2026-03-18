@@ -1,5 +1,7 @@
 using ExifApi.Data.Entities;
+using ExifApi.Dtos;
 using ExifApi.Services;
+using H3Standard;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExifApi.Endpoints;
@@ -35,6 +37,18 @@ public static class H3Endpoints
         group.MapGet("/view", GetViewport)
             .WithName("GetH3Viewport")
             .WithDescription("Returns hexagons linked to images within a lat/lon viewport, aggregated at the requested resolution");
+
+        // ------------------------------------------------------------
+        // weird, alien endpoint
+        // ------------------------------------------------------------
+
+        group.MapGet("/next-image", GetNextImage)
+            .WithName("GetNextImage")
+            .WithDescription("Returns next image from a given image id, n: n -> n+1");
+
+        group.MapGet("/metadata", GetHexagonImagesMetadata)
+            .WithName("GetHexagonImagesMetadata")
+            .WithDescription("Returns, if any, all metadata associated to all images within given hexagon");
     }
 
     private static IResult GetCell(double lat, double lon, int resolution, H3Service h3Service)
@@ -83,7 +97,7 @@ public static class H3Endpoints
 
         if (!TryParseFirst(latMin, out var latMinD) || !TryParseFirst(latMax, out var latMaxD) ||
             !TryParseFirst(lonMin, out var lonMinD) || !TryParseFirst(lonMax, out var lonMaxD))
-            return Results.BadRequest("Invalid coordinate value — expected decimal numbers (e.g. 37.09)");
+            return Results.BadRequest("Invalid coordinate value -- expected decimal numbers (e.g. 37.09)");
 
         if (latMinD >= latMaxD)
             return Results.BadRequest("latMin must be less than latMax");
@@ -104,5 +118,24 @@ public static class H3Endpoints
             endDate,
             resolution);
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetNextImage(int id, ImageService imageService)
+    {
+        var result = await imageService.GetByIdAsync(id + 1);
+        return result is null
+            ? Results.NotFound($"No image found with id {id + 1}")
+            : Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetHexagonImagesMetadata(
+        string h3Index,
+        H3Service h3Service
+        )
+    {
+        var result = await h3Service.GetHexagonImagesMetadata(h3Index);
+        return result.Count == 0
+            ? Results.NotFound($"No data")
+            : Results.Ok(result);
     }
 }
