@@ -87,6 +87,12 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         await db.RoadTurbulences.ExecuteDeleteAsync();
         await db.Images.ExecuteDeleteAsync();
         await db.Hexagons.ExecuteDeleteAsync();
+
+        // Reset auto-increment counters so next inserts start from ID 1
+        await db.Database.ExecuteSqlRawAsync("""
+            DELETE FROM sqlite_sequence
+            WHERE name IN ('RoadVisualAnomalies', 'Images', 'RoadTurbulences', 'Hexagons');
+            """);
     }
 
     private List<Image> BuildImages(Random rng)
