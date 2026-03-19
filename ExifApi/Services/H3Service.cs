@@ -115,23 +115,15 @@ public class H3Service
                 && i.Longitude >= (decimal)lonMin
                 && i.Longitude <= (decimal)lonMax)
             .ToListAsync();
-        
-        images = viewFilterType switch
-        {
-             ViewFilterType.Or =>
-                images.Where(i => anomalies == null
-                    || !anomalies.Any()
-                    || i.Anomalies.Any(a => anomalies.Contains(a.AnomalyType))).ToList(),
-            ViewFilterType.And =>
-                images.Where(i => anomalies == null
-                    || !anomalies.Any()
-                        || anomalies.All(type => i.Anomalies.Any(a => a.AnomalyType == type))).ToList(),
-            ViewFilterType.Not =>
-                images.Where(i => anomalies == null
-                    || !anomalies.Any()
-                    || !i.Anomalies.Any(a => anomalies.Contains(a.AnomalyType))).ToList(),
-            _ => images
-        };
+
+        if (anomalies is not null && anomalies.Any())
+            images = viewFilterType switch
+            {
+                ViewFilterType.Or => images.Where(i => i.Anomalies.Any(a => anomalies.Contains(a.AnomalyType))).ToList(),
+                ViewFilterType.And => images.Where(i => anomalies.All(type => i.Anomalies.Any(a => a.AnomalyType == type))).ToList(),
+                ViewFilterType.Not => images.Where(i => !i.Anomalies.Any(a => anomalies.Contains(a.AnomalyType))).ToList(),
+                _ => images
+            };
 
         _logger.LogDebug("viewFilterType is {ViewFilterType}", viewFilterType);
 
@@ -423,7 +415,7 @@ public class H3Service
     };
 
     [JsonConverter(typeof(JsonStringEnumConverter))]
-    internal enum ViewFilterType
+    public enum ViewFilterType
     {
         Or,
         And,
