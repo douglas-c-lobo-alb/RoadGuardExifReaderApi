@@ -3,6 +3,7 @@ using ExifApi.Dtos;
 using ExifApi.Services;
 using H3Standard;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace ExifApi.Endpoints;
 
@@ -89,6 +90,7 @@ public static class H3Endpoints
         string lonMin,
         string lonMax,
         H3Service h3Service,
+        H3Service.ViewFilterType viewFilterType = H3Service.ViewFilterType.Or, 
         [FromQuery] AnomalyType[]? anomalies = null,
         DateOnly? startDate = null,
         DateOnly? endDate = null,
@@ -111,12 +113,15 @@ public static class H3Endpoints
             return Results.BadRequest("resolution must be between 0 and 15");
         if (startDate > endDate)
             return Results.BadRequest($"startDate ({startDate}) must be before endDate ({endDate})");
+        if  (!Enum.GetNames(typeof(H3Service.ViewFilterType)).ToList().Contains(viewFilterType.ToString()))
+            return Results.BadRequest($"invalid filter type, allowed ones: {Enum.GetNames(typeof(H3Service.ViewFilterType)).ToList()}");
 
         var result = await h3Service.GetHexagonsByViewportAsync(
             latMinD,
             latMaxD,
             lonMinD,
             lonMaxD,
+            viewFilterType,
             anomalies?.ToList(),
             startDate,
             endDate,
