@@ -39,8 +39,12 @@
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
         => StateHasChanged();
 
-    private bool IsActive(string section) =>
-        NavigationManager.Uri.Contains($"/{section}", StringComparison.OrdinalIgnoreCase);
+    private bool IsActive(string section)
+    {
+        var uri = NavigationManager.Uri;
+        return uri.Contains($"/{section}/create", StringComparison.OrdinalIgnoreCase)
+            || uri.Contains($"/{section}/", StringComparison.OrdinalIgnoreCase) && uri.Contains("/edit", StringComparison.OrdinalIgnoreCase);
+    }
 
     public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
 }
