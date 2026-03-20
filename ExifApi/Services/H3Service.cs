@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Dtos;
@@ -95,6 +96,7 @@ public class H3Service
         double latMax,
         double lonMin,
         double lonMax,
+        ViewFilterType viewFilterType = ViewFilterType.Or,
         List<AnomalyType>? anomalies = null,
         DateOnly? startDate = null,
         DateOnly? endDate = null,
@@ -112,10 +114,18 @@ public class H3Service
                 && i.Latitude <= (decimal)latMax
                 && i.Longitude >= (decimal)lonMin
                 && i.Longitude <= (decimal)lonMax)
-            .Where(i => anomalies == null
-                || !anomalies.Any()
-                || i.Anomalies.Any(a => anomalies.Contains(a.AnomalyType)))
             .ToListAsync();
+
+        if (anomalies is not null && anomalies.Any())
+            images = viewFilterType switch
+            {
+                ViewFilterType.Or => images.Where(i => i.Anomalies.Any(a => anomalies.Contains(a.AnomalyType))).ToList(),
+                ViewFilterType.And => images.Where(i => anomalies.All(type => i.Anomalies.Any(a => a.AnomalyType == type))).ToList(),
+                ViewFilterType.Not => images.Where(i => !i.Anomalies.Any(a => anomalies.Contains(a.AnomalyType))).ToList(),
+                _ => images
+            };
+
+        _logger.LogDebug("viewFilterType is {ViewFilterType}", viewFilterType);
 
         var hexagonIds = images
             .Where(i => i.HexagonId != null)
@@ -403,5 +413,13 @@ public class H3Service
         H3Index = H3Net.H3ToString(h3Raw),
         Resolution = H3Net.GetResolution(h3Raw)
     };
+
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum ViewFilterType
+    {
+        Or,
+        And,
+        Not
+    }
 }
 
