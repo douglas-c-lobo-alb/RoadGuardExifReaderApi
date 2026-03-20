@@ -23,7 +23,6 @@ public static class ImageEndpoints
             .WithName("UploadImage")
             .WithDescription("[Backoffice usage only intented] Uploads an image, extracts EXIF metadata and registers it in the database")
             .DisableAntiforgery()
-            .Accepts<IFormFile>("multipart/form-data")
             .WithOpenApi(op =>
             {
                 op.RequestBody = new OpenApiRequestBody
