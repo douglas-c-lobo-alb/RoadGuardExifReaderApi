@@ -1,0 +1,112 @@
+@page "/turbulences/create"
+@using ExifApi.Data.Entities
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@inject NotificationService NotificationService
+@rendermode InteractiveServer
+
+<PageTitle>New Turbulence</PageTitle>
+<h1>New Turbulence</h1>
+
+<div style="max-width:500px">
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Index</label>
+        <RadzenNumeric TValue="int" @bind-Value="index" Min="0" Max="10" Style="width:100%" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Road Turbulence Type</label>
+        <RadzenDropDown @bind-Value="selectedTypes"
+                        Data="@turbulenceTypeOptions"
+                        Multiple="true"
+                        AllowClear="true"
+                        Placeholder="— select types —"
+                        Style="width:100%" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Hexagon</label>
+        <RadzenDropDown TValue="int?"
+                        @bind-Value="hexagonId"
+                        Data="@hexagons"
+                        TextProperty="H3Index"
+                        ValueProperty="Id"
+                        AllowClear="true"
+                        Placeholder="— none —"
+                        Style="width:100%" />
+    </div>
+
+    <RadzenButton Text="@(submitting ? "Saving..." : "Create")" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                  Disabled="@submitting" Click="Submit" />
+    <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" class="ms-2"
+                  Click="@(() => NavigationManager.NavigateTo("/turbulences"))" />
+</div>
+
+@code {
+    private static readonly IEnumerable<RoadTurbulenceType> turbulenceTypeOptions =
+    [
+        RoadTurbulenceType.Pothole,
+        RoadTurbulenceType.Speedbump,
+        RoadTurbulenceType.LongitudinalCrack,
+        RoadTurbulenceType.TransverseCrack,
+        RoadTurbulenceType.Depression,
+        RoadTurbulenceType.AbruptSwerving,
+        RoadTurbulenceType.WaterLeakage,
+    ];
+
+    private int index;
+    private IEnumerable<RoadTurbulenceType> selectedTypes = [];
+    private int? hexagonId;
+    private List<HexagonOption> hexagons = [];
+    private bool submitting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            hexagons = await client.GetFromJsonAsync<List<HexagonOption>>("api/hexagons/") ?? [];
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
+        }
+    }
+
+    private async Task Submit()
+    {
+        submitting = true;
+        try
+        {
+            var turbulenceType = selectedTypes.Any()
+                ? selectedTypes.Aggregate((a, b) => a | b)
+                : RoadTurbulenceType.None;
+
+            var payload = new[] { new { Index = index, RoadTurbulenceType = turbulenceType, HexagonId = hexagonId } };
+
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PostAsJsonAsync("api/turbulences", payload);
+
+            if (response.IsSuccessStatusCode)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Created", "Turbulence record created.", 3000);
+                NavigationManager.NavigateTo("/turbulences");
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                NotificationService.Notify(NotificationSeverity.Error, "Save failed", $"({(int)response.StatusCode}) {body}", 6000);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", ex.Message, 6000);
+        }
+        finally
+        {
+            submitting = false;
+        }
+    }
+
+    private record HexagonOption(int Id, string H3Index, int Resolution);
+}
