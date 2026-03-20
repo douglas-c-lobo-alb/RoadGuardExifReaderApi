@@ -14,13 +14,20 @@ public static class SeedEndpoints
             .WithName("ClearDatabase")
             .WithDescription("Clears the database")
             .WithOpenApi();
+        api.MapPost("/clearimages", ClearImages)
+            .WithName("ClearImages")
+            .WithDescription("Deletes all files in the wwwroot/images folder")
+            .WithOpenApi();
     }
 
-    private static async Task<IResult> SeedDatabase(SeedService seedService)
+    private static async Task<IResult> SeedDatabase(
+        SeedService seedService,
+        bool withAnomalies = true,
+        bool withTurbulences = true)
     {
         try
         {
-            var result = await seedService.RunAsync();
+            var result = await seedService.RunAsync(withAnomalies, withTurbulences);
             return Results.Ok(result);
         }
         catch (Exception ex)
@@ -34,10 +41,23 @@ public static class SeedEndpoints
         {
             await seedService.ClearDatabaseAsync();
             return Results.Ok();
-        } 
+        }
         catch (Exception ex)
         {
             return Results.Problem(detail: ex.Message, title: "Clear failed", statusCode: 500);
+        }
+    }
+
+    private static async Task<IResult> ClearImages(SeedService seedService)
+    {
+        try
+        {
+            var count = await seedService.ClearImagesFolderAsync();
+            return Results.Ok(new { FilesDeleted = count });
+        }
+        catch (Exception ex)
+        {
+            return Results.Problem(detail: ex.Message, title: "Clear images failed", statusCode: 500);
         }
     }
 }

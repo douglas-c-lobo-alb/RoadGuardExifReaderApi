@@ -16,7 +16,7 @@
 }
 else
 {
-    <div class="row mb-4">
+    <div class="row mb-4 align-items-center">
         <div class="col-auto">
             @if (!string.IsNullOrEmpty(filePath))
             {
@@ -28,12 +28,12 @@ else
             <div class="fw-semibold">@fileName</div>
             <div class="text-muted small">
                 Image #@Id
-                @if (hexagonId > 0)
+                @if (hexagonId.HasValue)
                 {
                     <span> &mdash; Hexagon <a href="/hexagons/@hexagonId/edit">#@hexagonId</a>
-                        @if (!string.IsNullOrEmpty(h3Index))
+                        @if (!string.IsNullOrEmpty(hexagonH3Index))
                         {
-                            <text> (<code>@h3Index</code>)</text>
+                            <text> (<code>@hexagonH3Index</code>)</text>
                         }
                     </span>
                 }
@@ -75,8 +75,8 @@ else
             </div>
         </div>
         <div class="mb-3">
-            <label class="form-label">Anomaly Notes</label>
-            <RadzenTextArea @bind-Value="anomalyNotes" Rows="3" Style="width:100%" />
+            <label class="form-label">Anomaly Notes (JSON)</label>
+            <RadzenTextArea @bind-Value="anomalyNotes" Rows="3" Style="width:100%;font-family:monospace" />
         </div>
 
         <RadzenButton Text="@(submitting ? "Saving…" : "Save")" Icon="save"
@@ -93,8 +93,8 @@ else
     private string apiBase = string.Empty;
     private string? fileName;
     private string? filePath;
-    private int hexagonId;
-    private string? h3Index;
+    private int? hexagonId;
+    private string? hexagonH3Index;
 
     private string? cameraMake;
     private string? cameraModel;
@@ -117,18 +117,18 @@ else
             var img = await client.GetFromJsonAsync<ImageRow>($"api/images/{Id}");
             if (img is null) { NotificationService.Notify(NotificationSeverity.Error, "Not found", "Image not found.", 5000); return; }
 
-            fileName = img.FileName;
-            filePath = img.FilePath;
-            hexagonId = img.Hexagon?.Id ?? 0;
-            h3Index = img.Hexagon?.H3Index;
+            fileName   = img.FileName;
+            filePath   = img.FilePath;
+            hexagonId  = img.Hexagon?.Id;
+            hexagonH3Index = img.Hexagon?.H3Index;
             cameraMake = img.CameraMake;
             cameraModel = img.CameraModel;
-            dateTaken = img.DateTaken;
-            latitude = img.Latitude;
-            longitude = img.Longitude;
-            altitude = img.Altitude;
-            heading = img.Heading;
-            anomalyNotes = img.AnomalyNotes?.RootElement.ToString();
+            dateTaken  = img.DateTaken;
+            latitude   = img.Latitude;
+            longitude  = img.Longitude;
+            altitude   = img.Altitude;
+            heading    = img.Heading;
+            anomalyNotes = img.AnomalyNotes?.RootElement.GetRawText();
         }
         catch (Exception ex)
         {
@@ -140,27 +140,32 @@ else
 
     private async Task Submit()
     {
+        JsonDocument? notesDoc = null;
+        if (!string.IsNullOrWhiteSpace(anomalyNotes))
+        {
+            try { notesDoc = JsonDocument.Parse(anomalyNotes); }
+            catch (JsonException)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Invalid JSON", "Anomaly Notes contains invalid JSON.", 5000);
+                return;
+            }
+        }
+
         submitting = true;
         try
         {
-            var client = HttpClientFactory.CreateClient("ExifApi");
-            JsonDocument? notesDoc = null;
-            if (!string.IsNullOrWhiteSpace(anomalyNotes))
-            {
-                try { notesDoc = JsonDocument.Parse(anomalyNotes); }
-                catch (JsonException) { notesDoc = JsonSerializer.SerializeToDocument(anomalyNotes); }
-            }
             var payload = new
             {
-                CameraMake = cameraMake,
+                CameraMake  = cameraMake,
                 CameraModel = cameraModel,
-                DateTaken = dateTaken,
-                Latitude = latitude,
-                Longitude = longitude,
-                Altitude = altitude,
-                Heading = heading,
+                DateTaken   = dateTaken,
+                Latitude    = latitude,
+                Longitude   = longitude,
+                Altitude    = altitude,
+                Heading     = heading,
                 AnomalyNotes = notesDoc
             };
+            var client = HttpClientFactory.CreateClient("ExifApi");
             var response = await client.PutAsJsonAsync($"api/images/{Id}", payload);
             if (response.IsSuccessStatusCode)
             {

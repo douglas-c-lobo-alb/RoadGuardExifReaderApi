@@ -20,6 +20,7 @@ builder.Services.AddSwaggerGen(options =>
     options.SchemaFilter<EnumSchemaFilter>();
 });
 builder.Services.AddScoped<ExifService>();
+builder.Services.AddScoped<RoadVisualAnomalyService>();
 builder.Services.AddScoped<H3Service>();
 builder.Services.AddScoped<ImageService>();
 builder.Services.AddScoped<RoadTurbulenceService>();
@@ -84,8 +85,10 @@ api.MapH3Endpoints();
 api.MapHexagonEndpoints();
 api.MapImageEndpoints();
 api.MapRoadTurbulenceEndpoints();
+api.MapAnomalyEndpoints();
 api.MapSeedEndpoints();
 api.MapIntrospectiveEndpoints();
+
 
 app.Run();
 

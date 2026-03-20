@@ -3,11 +3,17 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject DialogService DialogService
 @inject NotificationService NotificationService
+@inject NavigationManager NavigationManager
 @rendermode InteractiveServer
 
 <PageTitle>Turbulences</PageTitle>
 
 <h1>Road Turbulences</h1>
+
+<div class="mb-3">
+    <RadzenButton Text="New Turbulence" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                  Click="@(() => NavigationManager.NavigateTo("/turbulences/create"))" />
+</div>
 
 <div style="overflow-x:auto">
 <RadzenDataGrid TItem="TurbulenceRow" Data="@turbulences" IsLoading="@(turbulences is null)"
@@ -31,8 +37,10 @@
         </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="DateCreated" Title="Date Created"
                               Width="160px" FormatString="{0:yyyy-MM-dd HH:mm}" />
-        <RadzenDataGridColumn TItem="TurbulenceRow" Title="" Width="80px" Sortable="false" Filterable="false" TextAlign="TextAlign.End">
+        <RadzenDataGridColumn TItem="TurbulenceRow" Title="" Width="110px" Sortable="false" Filterable="false" TextAlign="TextAlign.End">
             <Template Context="t">
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="me-1"
+                              Click="@(() => NavigationManager.NavigateTo($"/turbulences/{t.Id}/edit"))" />
                 <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
                               Click="@(() => ConfirmDelete(t))" />
             </Template>

@@ -1,0 +1,139 @@
+@page "/turbulences/{Id:int}/edit"
+@using ExifApi.Data.Entities
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@inject NotificationService NotificationService
+@rendermode InteractiveServer
+
+<PageTitle>Edit Turbulence</PageTitle>
+<h1>Edit Turbulence #@Id</h1>
+
+@if (!loaded)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div style="max-width:500px">
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Index</label>
+            <RadzenNumeric TValue="int" @bind-Value="index" Min="0" Max="10" Style="width:100%" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Road Turbulence Type</label>
+            <RadzenDropDown @bind-Value="selectedTypes"
+                            Data="@turbulenceTypeOptions"
+                            Multiple="true"
+                            AllowClear="true"
+                            Placeholder="— select types —"
+                            Style="width:100%" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Hexagon</label>
+            <RadzenDropDown TValue="int?"
+                            @bind-Value="hexagonId"
+                            Data="@hexagons"
+                            TextProperty="H3Index"
+                            ValueProperty="Id"
+                            AllowClear="true"
+                            Placeholder="— none —"
+                            Style="width:100%" />
+        </div>
+
+        <RadzenButton Text="@(submitting ? "Saving..." : "Save")" Icon="save" ButtonStyle="ButtonStyle.Primary"
+                      Disabled="@submitting" Click="Submit" />
+        <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" class="ms-2"
+                      Click="@(() => NavigationManager.NavigateTo("/turbulences"))" />
+
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private static readonly IEnumerable<RoadTurbulenceType> turbulenceTypeOptions =
+    [
+        RoadTurbulenceType.Pothole,
+        RoadTurbulenceType.Speedbump,
+        RoadTurbulenceType.LongitudinalCrack,
+        RoadTurbulenceType.TransverseCrack,
+        RoadTurbulenceType.Depression,
+        RoadTurbulenceType.AbruptSwerving,
+        RoadTurbulenceType.WaterLeakage,
+    ];
+
+    private int index;
+    private IEnumerable<RoadTurbulenceType> selectedTypes = [];
+    private int? hexagonId;
+    private List<HexagonOption> hexagons = [];
+    private bool loaded;
+    private bool submitting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+
+            var dto = await client.GetFromJsonAsync<TurbulenceRow>($"api/turbulences/{Id}");
+            if (dto is null)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Not found", $"Turbulence #{Id} does not exist.", 5000);
+                NavigationManager.NavigateTo("/turbulences");
+                return;
+            }
+
+            index      = dto.Index;
+            hexagonId  = dto.HexagonId;
+            selectedTypes = turbulenceTypeOptions.Where(f => dto.RoadTurbulenceType.HasFlag(f)).ToList();
+            hexagons   = await client.GetFromJsonAsync<List<HexagonOption>>("api/hexagons/") ?? [];
+
+            loaded = true;
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
+        }
+    }
+
+    private async Task Submit()
+    {
+        submitting = true;
+        try
+        {
+            var turbulenceType = selectedTypes.Any()
+                ? selectedTypes.Aggregate((a, b) => a | b)
+                : RoadTurbulenceType.None;
+
+            var payload = new { Index = index, RoadTurbulenceType = turbulenceType, HexagonId = hexagonId };
+
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PutAsJsonAsync($"api/turbulences/{Id}", payload);
+
+            if (response.IsSuccessStatusCode)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Saved", "Turbulence updated.", 3000);
+                NavigationManager.NavigateTo("/turbulences");
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                NotificationService.Notify(NotificationSeverity.Error, "Save failed", $"({(int)response.StatusCode}) {body}", 6000);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", ex.Message, 6000);
+        }
+        finally
+        {
+            submitting = false;
+        }
+    }
+
+    private record TurbulenceRow(int Id, int Index, RoadTurbulenceType RoadTurbulenceType, int? HexagonId);
+    private record HexagonOption(int Id, string H3Index, int Resolution);
+}

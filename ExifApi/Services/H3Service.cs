@@ -287,8 +287,15 @@ public class H3Service
 
     public async Task<HexagonDto?> GetHexagonByIdAsync(int id)
     {
-        var hexagon = await _context.Hexagons.FindAsync(id);
-        return hexagon is null ? null : ToDtoFromEntity(hexagon);
+        var hexagonTask = _context.Hexagons.FindAsync(id).AsTask();
+        var imageTask = _context.Images.FirstOrDefaultAsync(i => i.HexagonId == id);
+        await Task.WhenAll(hexagonTask, imageTask);
+
+        var hexagon = hexagonTask.Result;
+        if (hexagon is null) return null;
+        var dto = ToDtoFromEntity(hexagon);
+        dto.ImageId = imageTask.Result?.Id;
+        return dto;
     }
 
     public async Task<HexagonDto?> CreateHexagonAsync(CreateHexagonDto dto)
@@ -378,10 +385,32 @@ public class H3Service
             }
             hexagon.H3Index = H3Net.H3ToString(h3Raw);
         }
-        else
+        else if (!dto.ImageId.HasValue)
         {
-            _logger.LogWarning("UpdateHexagon: must provide H3Index or Latitude/Longitude/Resolution");
+            _logger.LogWarning("UpdateHexagon: must provide H3Index, Latitude/Longitude/Resolution, or ImageId");
             return null;
+        }
+
+        if (dto.ImageId.HasValue)
+        {
+            var oldImageTask = _context.Images.FirstOrDefaultAsync(i => i.HexagonId == hexagon.Id);
+            var newImageTask = _context.Images.FindAsync(dto.ImageId.Value).AsTask();
+            await Task.WhenAll(oldImageTask, newImageTask);
+
+            var newImage = newImageTask.Result;
+            if (newImage is null)
+            {
+                _logger.LogWarning("UpdateHexagon: image {Id} not found", dto.ImageId);
+                return null;
+            }
+
+            if (newImage.HexagonId != hexagon.Id)
+            {
+                var oldImage = oldImageTask.Result;
+                if (oldImage is not null && oldImage.Id != dto.ImageId.Value)
+                    oldImage.HexagonId = null;
+                newImage.HexagonId = hexagon.Id;
+            }
         }
 
         await _context.SaveChangesAsync();

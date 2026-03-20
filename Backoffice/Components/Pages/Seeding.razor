@@ -1,0 +1,179 @@
+@page "/seeding"
+@rendermode InteractiveServer
+@inject IHttpClientFactory HttpClientFactory
+@inject NotificationService NotificationService
+
+<PageTitle>Seeding</PageTitle>
+
+<h1 class="mb-4">Seeding</h1>
+
+<div class="row g-4">
+    <div class="col-md-5">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">Clear Database</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text text-muted small">Deletes all records and resets IDs back to 1.</p>
+                <RadzenButton Text="Clear DB" Icon="delete_forever" ButtonStyle="ButtonStyle.Danger"
+                              IsBusy="@clearing" BusyText="Clearing..."
+                              Click="@ClearDatabase" class="me-2" />
+                <RadzenButton Text="Clear Images" Icon="folder_delete" ButtonStyle="ButtonStyle.Danger"
+                              IsBusy="@clearingImages" BusyText="Clearing..."
+                              Click="@ClearImages" />
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Seed Hexagons</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text text-muted small mb-3">Seeds images and hexagons from EXIF data. Toggle which related data to include.</p>
+
+                <div class="d-flex gap-4 mb-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="withAnomalies"
+                               @bind="withAnomalies" />
+                        <label class="form-check-label" for="withAnomalies">With Anomalies</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="withTurbulences"
+                               @bind="withTurbulences" />
+                        <label class="form-check-label" for="withTurbulences">With Turbulences</label>
+                    </div>
+                </div>
+
+                <RadzenButton Text="Seed" Icon="grass" ButtonStyle="ButtonStyle.Success"
+                              IsBusy="@seeding" BusyText="Seeding..."
+                              Click="@SeedDatabase" />
+            </div>
+        </div>
+    </div>
+
+    @if (seedResult is not null)
+    {
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">Seed Result</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 text-center">
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 bg-light rounded">
+                                <div class="fs-2 fw-bold">@seedResult.ImagesCreated</div>
+                                <div class="text-muted small">Images</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 bg-light rounded">
+                                <div class="fs-2 fw-bold">@seedResult.HexagonsCreated</div>
+                                <div class="text-muted small">Hexagons</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 bg-light rounded">
+                                <div class="fs-2 fw-bold">@seedResult.AnomaliesCreated</div>
+                                <div class="text-muted small">Anomalies</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-3 bg-light rounded">
+                                <div class="fs-2 fw-bold">@seedResult.TurbulencesCreated</div>
+                                <div class="text-muted small">Turbulences</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool clearing;
+    private bool clearingImages;
+    private bool seeding;
+    private bool withAnomalies = true;
+    private bool withTurbulences = true;
+    private SeedResultDto? seedResult;
+
+    private async Task ClearDatabase()
+    {
+        clearing = true;
+        seedResult = null;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PostAsync("api/cleardatabase", null);
+            if (response.IsSuccessStatusCode)
+                NotificationService.Notify(NotificationSeverity.Success, "Cleared", "Database cleared and IDs reset.", 4000);
+            else
+                NotificationService.Notify(NotificationSeverity.Error, "Clear failed", $"Status {(int)response.StatusCode}", 5000);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Clear failed", ex.Message, 5000);
+        }
+        finally
+        {
+            clearing = false;
+        }
+    }
+
+    private async Task ClearImages()
+    {
+        clearingImages = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PostAsync("api/clearimages", null);
+            if (response.IsSuccessStatusCode)
+                NotificationService.Notify(NotificationSeverity.Success, "Cleared", "Images folder cleared.", 4000);
+            else
+                NotificationService.Notify(NotificationSeverity.Error, "Clear failed", $"Status {(int)response.StatusCode}", 5000);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Clear failed", ex.Message, 5000);
+        }
+        finally
+        {
+            clearingImages = false;
+        }
+    }
+
+    private async Task SeedDatabase()
+    {
+        seeding = true;
+        seedResult = null;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var url = $"api/seed?withAnomalies={withAnomalies.ToString().ToLower()}&withTurbulences={withTurbulences.ToString().ToLower()}";
+            var response = await client.PostAsync(url, null);
+            if (response.IsSuccessStatusCode)
+            {
+                seedResult = await response.Content.ReadFromJsonAsync<SeedResultDto>();
+                NotificationService.Notify(NotificationSeverity.Success, "Seeded", "Database seeded successfully.", 4000);
+            }
+            else
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Seed failed", $"Status {(int)response.StatusCode}", 5000);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Seed failed", ex.Message, 5000);
+        }
+        finally
+        {
+            seeding = false;
+        }
+    }
+
+    private record SeedResultDto(int ImagesCreated, int HexagonsCreated, int AnomaliesCreated, int TurbulencesCreated);
+}

@@ -1,7 +1,9 @@
 using System.Text.Json;
 using ExifApi.Data;
 using ExifApi.Data.Entities;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace ExifApi.Services;
 
@@ -11,7 +13,7 @@ public record SeedResult(
     int AnomaliesCreated,
     int TurbulencesCreated);
 
-public class SeedService(ApplicationDbContext db, ExifService exifService, H3Service h3Service)
+public class SeedService(ApplicationDbContext db, ExifService exifService, H3Service h3Service, IWebHostEnvironment env, IConfiguration configuration)
 {
     private const double DefaultLat = 48.8566;
     private const double DefaultLon = 2.3522;
@@ -47,7 +49,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         RoadTurbulenceType.Pothole | RoadTurbulenceType.WaterLeakage,
     ];
 
-    public async Task<SeedResult> RunAsync()
+    public async Task<SeedResult> RunAsync(bool withAnomalies = true, bool withTurbulences = true)
     {
         await ClearDatabaseAsync();
 
@@ -55,27 +57,35 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         var images = BuildImages(rng);
         var hexagonMap = await CreateHexagonsAsync(images);
 
-        // Save turbulences first so their PKs are available for image linking
-        var turbulences = BuildTurbulences(hexagonMap, rng);
-        db.RoadTurbulences.AddRange(turbulences);
-        await db.SaveChangesAsync();
-
-        // Link each image to one of the turbulences for its hexagon
-        var turbulencesByHexId = turbulences
-            .GroupBy(t => t.HexagonId!.Value)
-            .ToDictionary(g => g.Key, g => g.ToList());
-        foreach (var image in images.Where(i => i.HexagonId != null))
+        List<RoadTurbulence> turbulences = [];
+        if (withTurbulences)
         {
-            if (turbulencesByHexId.TryGetValue(image.HexagonId!.Value, out var hexTurbulences))
-                image.RoadTurbulenceId = hexTurbulences[rng.Next(hexTurbulences.Count)].Id;
+            // Save turbulences first so their PKs are available for image linking
+            turbulences = BuildTurbulences(hexagonMap, rng);
+            db.RoadTurbulences.AddRange(turbulences);
+            await db.SaveChangesAsync();
+
+            // Link each image to one of the turbulences for its hexagon
+            var turbulencesByHexId = turbulences
+                .GroupBy(t => t.HexagonId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            foreach (var image in images.Where(i => i.HexagonId != null))
+            {
+                if (turbulencesByHexId.TryGetValue(image.HexagonId!.Value, out var hexTurbulences))
+                    image.RoadTurbulenceId = hexTurbulences[rng.Next(hexTurbulences.Count)].Id;
+            }
         }
 
         db.Images.AddRange(images);
         await db.SaveChangesAsync();
 
-        var anomalies = BuildAnomalies(images, rng);
-        db.RoadVisualAnomalies.AddRange(anomalies);
-        await db.SaveChangesAsync();
+        List<RoadVisualAnomaly> anomalies = [];
+        if (withAnomalies)
+        {
+            anomalies = BuildAnomalies(images, rng);
+            db.RoadVisualAnomalies.AddRange(anomalies);
+            await db.SaveChangesAsync();
+        }
 
         return new SeedResult(images.Count, hexagonMap.Count, anomalies.Count, turbulences.Count);
     }
@@ -95,6 +105,21 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
             """);
     }
 
+    public Task<int> ClearImagesFolderAsync()
+    {
+        var folder = configuration.GetSection("Image:Path").Value ?? "images";
+        var imagesPath = Path.Combine(env.WebRootPath, folder);
+
+        if (!Directory.Exists(imagesPath))
+            return Task.FromResult(0);
+
+        var files = Directory.GetFiles(imagesPath);
+        foreach (var file in files)
+            File.Delete(file);
+
+        return Task.FromResult(files.Length);
+    }
+
     private List<Image> BuildImages(Random rng)
     {
         var allMeta = exifService.GetAllImageMetadata().ToList();
@@ -112,7 +137,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
                 Altitude         = meta.Altitude,
                 CameraMake       = meta.CameraMake,
                 CameraModel      = meta.CameraModel,
-                Heading          = Math.Round((decimal)(rng.NextDouble() * 360), 2),
+                Heading          = meta.Heading ?? Math.Round((decimal)(rng.NextDouble() * 360), 2),
                 Notes            = BuildImageNotes(rng, i),
                 DateTaken        = meta.DateTaken ?? DateTime.UtcNow.AddDays(-rng.Next(1, 365)),
                 CreatedDate      = DateTime.UtcNow,
@@ -175,6 +200,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
 
         for (int i = 0; i < images.Count; i++)
         {
+            if (rng.Next(10) != 0) continue;
             int count = rng.Next(1, 4);
             for (int j = 0; j < count; j++)
             {
@@ -202,6 +228,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
 
         foreach (var hexagon in hexagonMap.Values)
         {
+            if (rng.Next(10) != 0) continue;
             int count = rng.Next(1, 3);
             for (int k = 0; k < count; k++)
             {

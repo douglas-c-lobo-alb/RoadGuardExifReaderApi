@@ -1,0 +1,171 @@
+@page "/anomalies"
+@using ExifApi.Data.Entities
+@using ExifApi.Dtos
+@using System.Text.Json
+@inject IHttpClientFactory HttpClientFactory
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Anomalies</PageTitle>
+
+<h1>Road Anomalies</h1>
+
+<div class="mb-3">
+    <RadzenButton Text="New Anomaly" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                  Click="@(() => NavigationManager.NavigateTo("/anomalies/create"))" />
+</div>
+
+<div style="overflow-x:auto">
+<RadzenDataGrid TItem="AnomalyRow" Data="@anomalies" IsLoading="@(anomalies is null)"
+                AllowPaging="true" PageSize="20"
+                AllowSorting="true" AllowFiltering="true"
+                FilterMode="FilterMode.SimpleWithMenu"
+                PagerHorizontalAlign="HorizontalAlign.Left"
+                ShowPagingSummary="true" Density="Density.Compact"
+                Style="min-width:600px">
+    <Columns>
+        <RadzenDataGridColumn TItem="AnomalyRow" Property="Id" Title="Id" Width="80px" />
+        <RadzenDataGridColumn TItem="AnomalyRow" Property="ImageFileName" Title="Image">
+            <Template Context="t">@(t.ImageFileName ?? "—")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="AnomalyRow" Property="AnomalyType" Title="Type">
+            <Template Context="t">
+                @if (t.AnomalyType == AnomalyType.None) { <span class="text-muted">None</span> }
+                else { @t.AnomalyType.ToString() }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="AnomalyRow" Property="Confidence" Title="Confidence" Width="120px"
+                              FormatString="{0:P1}" />
+        <RadzenDataGridColumn TItem="AnomalyRow" Property="UpVote" Title="Up" Width="60px" />
+        <RadzenDataGridColumn TItem="AnomalyRow" Property="DownVote" Title="Down" Width="70px" />
+        <RadzenDataGridColumn TItem="AnomalyRow" Property="AlreadyVoted" Title="Voted" Width="80px">
+            <Template Context="t">@(t.AlreadyVoted ? "Yes" : "No")</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="AnomalyRow" Property="ResolvedAt" Title="Resolved"
+                              Width="160px" FormatString="{0:yyyy-MM-dd HH:mm}" />
+        <RadzenDataGridColumn TItem="AnomalyRow" Property="CreatedDate" Title="Date Created"
+                              Width="160px" FormatString="{0:yyyy-MM-dd HH:mm}" />
+        <RadzenDataGridColumn TItem="AnomalyRow" Title="" Width="210px" Sortable="false" Filterable="false" TextAlign="TextAlign.End">
+            <Template Context="t">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center"
+                             JustifyContent="JustifyContent.End" Gap="4px">
+                    @if (t.AlreadyVoted)
+                    {
+                        <RadzenBadge Text="Voted" BadgeStyle="BadgeStyle.Info" IsPill="true" />
+                    }
+                    <RadzenButton Icon="thumb_up" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                  Click="@(() => Upvote(t))" />
+                    <RadzenButton Icon="thumb_down" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small"
+                                  Click="@(() => Downvote(t))" />
+                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                  Click="@(() => NavigationManager.NavigateTo($"/anomalies/{t.Id}/edit"))" />
+                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                  Click="@(() => ConfirmDelete(t))" />
+                </RadzenStack>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+</div>
+
+@code {
+    private List<AnomalyRow>? anomalies;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var dtos = await client.GetFromJsonAsync<List<RoadVisualAnomalyDto>>("api/anomalies/") ?? [];
+            anomalies = dtos.Select(d => new AnomalyRow(
+                d.Id,
+                d.Image?.Id,
+                d.Image?.FileName,
+                d.AnomalyType,
+                d.Confidence,
+                d.AlreadyVoted,
+                d.UpVote,
+                d.DownVote,
+                d.ResolvedAt,
+                d.CreatedDate
+            )).ToList();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
+        }
+    }
+
+    private async Task Upvote(AnomalyRow t)
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PostAsync($"api/anomalies/{t.Id}/upvote", null);
+            if (response.IsSuccessStatusCode)
+                await Load();
+            else
+                NotificationService.Notify(NotificationSeverity.Error, "Upvote failed", $"Status {(int)response.StatusCode}", 5000);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Upvote failed", ex.Message, 5000);
+        }
+    }
+
+    private async Task Downvote(AnomalyRow t)
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PostAsync($"api/anomalies/{t.Id}/downvote", null);
+            if (response.IsSuccessStatusCode)
+                await Load();
+            else
+                NotificationService.Notify(NotificationSeverity.Error, "Downvote failed", $"Status {(int)response.StatusCode}", 5000);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Downvote failed", ex.Message, 5000);
+        }
+    }
+
+    private async Task ConfirmDelete(AnomalyRow t)
+    {
+        var confirmed = await DialogService.Confirm(
+            $"Delete anomaly record #{t.Id}? This cannot be undone.",
+            "Confirm Delete",
+            new ConfirmOptions { OkButtonText = "Delete", CancelButtonText = "Cancel" });
+        if (confirmed == true)
+            await Delete(t.Id);
+    }
+
+    private async Task Delete(int id)
+    {
+        var client = HttpClientFactory.CreateClient("ExifApi");
+        var response = await client.DeleteAsync($"api/anomalies/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Deleted", "Anomaly record removed.", 3000);
+            await Load();
+        }
+        else
+            NotificationService.Notify(NotificationSeverity.Error, "Delete failed", $"Status {(int)response.StatusCode}", 5000);
+    }
+
+    private record AnomalyRow(
+        int Id,
+        int? ImageId,
+        string? ImageFileName,
+        AnomalyType AnomalyType,
+        decimal Confidence,
+        bool AlreadyVoted,
+        int UpVote,
+        int DownVote,
+        DateTime? ResolvedAt,
+        DateTime CreatedDate);
+}

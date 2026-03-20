@@ -10,4 +10,5 @@ public class ImageInfoDto
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     public double? Altitude { get; set; }
+    public decimal? Heading { get; set; }
 }
