@@ -61,6 +61,14 @@ public class ExifService
             var cameraModel = ifd0?.GetDescription(ExifDirectoryBase.TagModel);
             var gps = directories.OfType<GpsDirectory>().FirstOrDefault();
             var geo = gps is not null && gps.TryGetGeoLocation(out var loc) ? loc : (GeoLocation?)null;
+            decimal? heading = null;
+            if (gps is not null)
+            {
+                if (gps.TryGetRational(GpsDirectory.TagImgDirection, out var imgDirRational))
+                    heading = Math.Round(imgDirRational.ToDecimal(), 2);
+                else if (gps.TryGetRational(GpsDirectory.TagTrack, out var trackRational))
+                    heading = Math.Round(trackRational.ToDecimal(), 2);
+            }
 
             if (gps is null)
                 _logger.LogWarning("No GPS directory found in {FileName}", fileName);
@@ -90,7 +98,8 @@ public class ExifService
                 DateTaken = dateTaken,
                 Latitude = geo.HasValue ? (decimal?)geo.Value.Latitude : null,
                 Longitude = geo.HasValue ? (decimal?)geo.Value.Longitude : null,
-                Altitude = altitude
+                Altitude = altitude,
+                Heading = heading,
             };
         }
         catch (Exception e)
