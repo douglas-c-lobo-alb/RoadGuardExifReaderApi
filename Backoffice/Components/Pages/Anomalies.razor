@@ -12,6 +12,11 @@
 
 <h1>Road Anomalies</h1>
 
+<div class="mb-3">
+    <RadzenButton Text="New Anomaly" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                  Click="@(() => NavigationManager.NavigateTo("/anomalies/create"))" />
+</div>
+
 <div style="overflow-x:auto">
 <RadzenDataGrid TItem="AnomalyRow" Data="@anomalies" IsLoading="@(anomalies is null)"
                 AllowPaging="true" PageSize="20"
