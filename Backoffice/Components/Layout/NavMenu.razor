@@ -22,6 +22,7 @@
             <RadzenPanelMenuItem Text="Edit" Icon="edit" Path="turbulences" Match="NavLinkMatch.All" />
         </ChildContent>
     </RadzenPanelMenuItem>
+    <RadzenPanelMenuItem Text="Seeding" Icon="grass" Path="seeding" />
     <RadzenPanelMenuItem @key="@("anomalies-" + IsActive("anomalies"))" Text="Anomalies" Icon="warning" Path="anomalies" Expanded="@IsActive("anomalies")">
         <ChildContent>
             <RadzenPanelMenuItem Text="Create" Icon="add" Path="anomalies/create" />

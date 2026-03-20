@@ -47,7 +47,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         RoadTurbulenceType.Pothole | RoadTurbulenceType.WaterLeakage,
     ];
 
-    public async Task<SeedResult> RunAsync()
+    public async Task<SeedResult> RunAsync(bool withAnomalies = true, bool withTurbulences = true)
     {
         await ClearDatabaseAsync();
 
@@ -55,27 +55,35 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         var images = BuildImages(rng);
         var hexagonMap = await CreateHexagonsAsync(images);
 
-        // Save turbulences first so their PKs are available for image linking
-        var turbulences = BuildTurbulences(hexagonMap, rng);
-        db.RoadTurbulences.AddRange(turbulences);
-        await db.SaveChangesAsync();
-
-        // Link each image to one of the turbulences for its hexagon
-        var turbulencesByHexId = turbulences
-            .GroupBy(t => t.HexagonId!.Value)
-            .ToDictionary(g => g.Key, g => g.ToList());
-        foreach (var image in images.Where(i => i.HexagonId != null))
+        List<RoadTurbulence> turbulences = [];
+        if (withTurbulences)
         {
-            if (turbulencesByHexId.TryGetValue(image.HexagonId!.Value, out var hexTurbulences))
-                image.RoadTurbulenceId = hexTurbulences[rng.Next(hexTurbulences.Count)].Id;
+            // Save turbulences first so their PKs are available for image linking
+            turbulences = BuildTurbulences(hexagonMap, rng);
+            db.RoadTurbulences.AddRange(turbulences);
+            await db.SaveChangesAsync();
+
+            // Link each image to one of the turbulences for its hexagon
+            var turbulencesByHexId = turbulences
+                .GroupBy(t => t.HexagonId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            foreach (var image in images.Where(i => i.HexagonId != null))
+            {
+                if (turbulencesByHexId.TryGetValue(image.HexagonId!.Value, out var hexTurbulences))
+                    image.RoadTurbulenceId = hexTurbulences[rng.Next(hexTurbulences.Count)].Id;
+            }
         }
 
         db.Images.AddRange(images);
         await db.SaveChangesAsync();
 
-        var anomalies = BuildAnomalies(images, rng);
-        db.RoadVisualAnomalies.AddRange(anomalies);
-        await db.SaveChangesAsync();
+        List<RoadVisualAnomaly> anomalies = [];
+        if (withAnomalies)
+        {
+            anomalies = BuildAnomalies(images, rng);
+            db.RoadVisualAnomalies.AddRange(anomalies);
+            await db.SaveChangesAsync();
+        }
 
         return new SeedResult(images.Count, hexagonMap.Count, anomalies.Count, turbulences.Count);
     }

@@ -16,11 +16,14 @@ public static class SeedEndpoints
             .WithOpenApi();
     }
 
-    private static async Task<IResult> SeedDatabase(SeedService seedService)
+    private static async Task<IResult> SeedDatabase(
+        SeedService seedService,
+        bool withAnomalies = true,
+        bool withTurbulences = true)
     {
         try
         {
-            var result = await seedService.RunAsync();
+            var result = await seedService.RunAsync(withAnomalies, withTurbulences);
             return Results.Ok(result);
         }
         catch (Exception ex)
