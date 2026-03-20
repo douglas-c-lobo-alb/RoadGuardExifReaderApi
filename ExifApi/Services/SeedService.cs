@@ -137,7 +137,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
                 Altitude         = meta.Altitude,
                 CameraMake       = meta.CameraMake,
                 CameraModel      = meta.CameraModel,
-                Heading          = Math.Round((decimal)(rng.NextDouble() * 360), 2),
+                Heading          = meta.Heading ?? Math.Round((decimal)(rng.NextDouble() * 360), 2),
                 Notes            = BuildImageNotes(rng, i),
                 DateTaken        = meta.DateTaken ?? DateTime.UtcNow.AddDays(-rng.Next(1, 365)),
                 CreatedDate      = DateTime.UtcNow,

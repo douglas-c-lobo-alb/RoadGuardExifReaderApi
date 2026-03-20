@@ -58,7 +58,8 @@ public class ImageService
             DateTaken = metadata?.DateTaken,
             Latitude = metadata?.Latitude,
             Longitude = metadata?.Longitude,
-            Altitude = metadata?.Altitude
+            Altitude = metadata?.Altitude,
+            Heading = metadata?.Heading
         };
 
         _context.Images.Add(image);
