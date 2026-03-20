@@ -15,9 +15,12 @@
             </div>
             <div class="card-body">
                 <p class="card-text text-muted small">Deletes all records and resets IDs back to 1.</p>
-                <RadzenButton Text="Clear" Icon="delete_forever" ButtonStyle="ButtonStyle.Danger"
+                <RadzenButton Text="Clear DB" Icon="delete_forever" ButtonStyle="ButtonStyle.Danger"
                               IsBusy="@clearing" BusyText="Clearing..."
-                              Click="@ClearDatabase" />
+                              Click="@ClearDatabase" class="me-2" />
+                <RadzenButton Text="Clear Images" Icon="folder_delete" ButtonStyle="ButtonStyle.Danger"
+                              IsBusy="@clearingImages" BusyText="Clearing..."
+                              Click="@ClearImages" />
             </div>
         </div>
     </div>
@@ -92,6 +95,7 @@
 
 @code {
     private bool clearing;
+    private bool clearingImages;
     private bool seeding;
     private bool withAnomalies = true;
     private bool withTurbulences = true;
@@ -117,6 +121,28 @@
         finally
         {
             clearing = false;
+        }
+    }
+
+    private async Task ClearImages()
+    {
+        clearingImages = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PostAsync("api/clearimages", null);
+            if (response.IsSuccessStatusCode)
+                NotificationService.Notify(NotificationSeverity.Success, "Cleared", "Images folder cleared.", 4000);
+            else
+                NotificationService.Notify(NotificationSeverity.Error, "Clear failed", $"Status {(int)response.StatusCode}", 5000);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Clear failed", ex.Message, 5000);
+        }
+        finally
+        {
+            clearingImages = false;
         }
     }
 

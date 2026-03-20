@@ -1,7 +1,9 @@
 using System.Text.Json;
 using ExifApi.Data;
 using ExifApi.Data.Entities;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace ExifApi.Services;
 
@@ -11,7 +13,7 @@ public record SeedResult(
     int AnomaliesCreated,
     int TurbulencesCreated);
 
-public class SeedService(ApplicationDbContext db, ExifService exifService, H3Service h3Service)
+public class SeedService(ApplicationDbContext db, ExifService exifService, H3Service h3Service, IWebHostEnvironment env, IConfiguration configuration)
 {
     private const double DefaultLat = 48.8566;
     private const double DefaultLon = 2.3522;
@@ -103,6 +105,21 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
             """);
     }
 
+    public Task<int> ClearImagesFolderAsync()
+    {
+        var folder = configuration.GetSection("Image:Path").Value ?? "images";
+        var imagesPath = Path.Combine(env.WebRootPath, folder);
+
+        if (!Directory.Exists(imagesPath))
+            return Task.FromResult(0);
+
+        var files = Directory.GetFiles(imagesPath);
+        foreach (var file in files)
+            File.Delete(file);
+
+        return Task.FromResult(files.Length);
+    }
+
     private List<Image> BuildImages(Random rng)
     {
         var allMeta = exifService.GetAllImageMetadata().ToList();
@@ -183,6 +200,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
 
         for (int i = 0; i < images.Count; i++)
         {
+            if (rng.Next(10) != 0) continue;
             int count = rng.Next(1, 4);
             for (int j = 0; j < count; j++)
             {
@@ -210,6 +228,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
 
         foreach (var hexagon in hexagonMap.Values)
         {
+            if (rng.Next(10) != 0) continue;
             int count = rng.Next(1, 3);
             for (int k = 0; k < count; k++)
             {
