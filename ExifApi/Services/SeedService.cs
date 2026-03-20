@@ -21,7 +21,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
     private static readonly AnomalyType[] AnomalyTypes =
     [
         AnomalyType.Pothole, AnomalyType.Crack, AnomalyType.MissingRoadSign,
-        AnomalyType.WaterLeakage, AnomalyType.AnimalCorpse, AnomalyType.None
+        AnomalyType.WaterLeakage, AnomalyType.AnimalCorpse
     ];
 
     private static readonly string[] NoteSeverities = ["low", "medium", "high"];
@@ -34,7 +34,6 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
 
     private static readonly RoadTurbulenceType[] TurbulenceTypes =
     [
-        RoadTurbulenceType.None,
         RoadTurbulenceType.Pothole,
         RoadTurbulenceType.Speedbump,
         RoadTurbulenceType.LongitudinalCrack,
@@ -200,7 +199,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
 
         for (int i = 0; i < images.Count; i++)
         {
-            if (rng.Next(10) != 0) continue;
+            if (rng.Next(30) != 0) continue;
             int count = rng.Next(1, 4);
             for (int j = 0; j < count; j++)
             {
@@ -228,7 +227,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
 
         foreach (var hexagon in hexagonMap.Values)
         {
-            if (rng.Next(10) != 0) continue;
+            if (rng.Next(30) != 0) continue;
             int count = rng.Next(1, 3);
             for (int k = 0; k < count; k++)
             {
