@@ -288,7 +288,11 @@ public class H3Service
     public async Task<HexagonDto?> GetHexagonByIdAsync(int id)
     {
         var hexagon = await _context.Hexagons.FindAsync(id);
-        return hexagon is null ? null : ToDtoFromEntity(hexagon);
+        if (hexagon is null) return null;
+        var dto = ToDtoFromEntity(hexagon);
+        var image = await _context.Images.FirstOrDefaultAsync(i => i.HexagonId == id);
+        dto.ImageId = image?.Id;
+        return dto;
     }
 
     public async Task<HexagonDto?> CreateHexagonAsync(CreateHexagonDto dto)
@@ -378,10 +382,25 @@ public class H3Service
             }
             hexagon.H3Index = H3Net.H3ToString(h3Raw);
         }
-        else
+        else if (!dto.ImageId.HasValue)
         {
-            _logger.LogWarning("UpdateHexagon: must provide H3Index or Latitude/Longitude/Resolution");
+            _logger.LogWarning("UpdateHexagon: must provide H3Index, Latitude/Longitude/Resolution, or ImageId");
             return null;
+        }
+
+        if (dto.ImageId.HasValue)
+        {
+            var oldImage = await _context.Images.FirstOrDefaultAsync(i => i.HexagonId == hexagon.Id);
+            if (oldImage is not null && oldImage.Id != dto.ImageId.Value)
+                oldImage.HexagonId = null;
+
+            var newImage = await _context.Images.FindAsync(dto.ImageId.Value);
+            if (newImage is null)
+            {
+                _logger.LogWarning("UpdateHexagon: image {Id} not found", dto.ImageId);
+                return null;
+            }
+            newImage.HexagonId = hexagon.Id;
         }
 
         await _context.SaveChangesAsync();
