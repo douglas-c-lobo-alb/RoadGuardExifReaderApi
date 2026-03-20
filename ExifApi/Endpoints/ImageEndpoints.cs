@@ -1,5 +1,6 @@
 using ExifApi.Dtos;
 using ExifApi.Services;
+using Microsoft.OpenApi.Models;
 
 namespace ExifApi.Endpoints;
 
@@ -21,7 +22,31 @@ public static class ImageEndpoints
         group.MapPost("/", Upload)
             .WithName("UploadImage")
             .WithDescription("[Backoffice usage only intented] Uploads an image, extracts EXIF metadata and registers it in the database")
-            .DisableAntiforgery();
+            .DisableAntiforgery()
+            .Accepts<IFormFile>("multipart/form-data")
+            .WithOpenApi(op =>
+            {
+                op.RequestBody = new OpenApiRequestBody
+                {
+                    Required = true,
+                    Content =
+                    {
+                        ["multipart/form-data"] = new OpenApiMediaType
+                        {
+                            Schema = new OpenApiSchema
+                            {
+                                Type = "object",
+                                Properties =
+                                {
+                                    ["file"] = new OpenApiSchema { Type = "string", Format = "binary" }
+                                },
+                                Required = { "file" }
+                            }
+                        }
+                    }
+                };
+                return op;
+            });
 
         group.MapPut("/{id:int}", Update)
             .WithName("UpdateImage")

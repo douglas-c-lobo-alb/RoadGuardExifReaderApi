@@ -52,6 +52,7 @@
                     var lat = img.Latitude?.ToString("F6");
                     var lon = img.Longitude?.ToString("F6");
                     var alt = img.Altitude?.ToString("F2");
+                    var head = img.Heading?.ToString("F2");
                     <div class="small text-monospace">
                         @if (lat is not null)
                         {
@@ -69,6 +70,12 @@
                         {
                             <div style="cursor:pointer" title="Click to copy" @onclick="() => CopyToClipboard(alt)">
                                 alt: <strong>@alt</strong>
+                            </div>
+                        }
+                        @if (head is not null)
+                        {
+                            <div style="cursor:pointer" title="Click to copy" @onclick="() => CopyToClipboard(head)">
+                                head: <strong>@head</strong>
                             </div>
                         }
                     </div>
@@ -192,6 +199,6 @@
     private record HexagonRow(int Id, string H3Index, int Resolution);
     private record ImageRow(int Id, string FileName, string FilePath,
         string? CameraMake, string? CameraModel, DateTime? DateTaken,
-        decimal? Latitude, decimal? Longitude, double? Altitude,
+        decimal? Latitude, decimal? Longitude, double? Altitude, decimal? Heading,
         int AnomalyCount, HexagonRow? Hexagon);
 }
