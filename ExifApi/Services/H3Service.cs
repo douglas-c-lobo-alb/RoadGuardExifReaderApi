@@ -287,11 +287,14 @@ public class H3Service
 
     public async Task<HexagonDto?> GetHexagonByIdAsync(int id)
     {
-        var hexagon = await _context.Hexagons.FindAsync(id);
+        var hexagonTask = _context.Hexagons.FindAsync(id).AsTask();
+        var imageTask = _context.Images.FirstOrDefaultAsync(i => i.HexagonId == id);
+        await Task.WhenAll(hexagonTask, imageTask);
+
+        var hexagon = hexagonTask.Result;
         if (hexagon is null) return null;
         var dto = ToDtoFromEntity(hexagon);
-        var image = await _context.Images.FirstOrDefaultAsync(i => i.HexagonId == id);
-        dto.ImageId = image?.Id;
+        dto.ImageId = imageTask.Result?.Id;
         return dto;
     }
 
@@ -390,17 +393,24 @@ public class H3Service
 
         if (dto.ImageId.HasValue)
         {
-            var oldImage = await _context.Images.FirstOrDefaultAsync(i => i.HexagonId == hexagon.Id);
-            if (oldImage is not null && oldImage.Id != dto.ImageId.Value)
-                oldImage.HexagonId = null;
+            var oldImageTask = _context.Images.FirstOrDefaultAsync(i => i.HexagonId == hexagon.Id);
+            var newImageTask = _context.Images.FindAsync(dto.ImageId.Value).AsTask();
+            await Task.WhenAll(oldImageTask, newImageTask);
 
-            var newImage = await _context.Images.FindAsync(dto.ImageId.Value);
+            var newImage = newImageTask.Result;
             if (newImage is null)
             {
                 _logger.LogWarning("UpdateHexagon: image {Id} not found", dto.ImageId);
                 return null;
             }
-            newImage.HexagonId = hexagon.Id;
+
+            if (newImage.HexagonId != hexagon.Id)
+            {
+                var oldImage = oldImageTask.Result;
+                if (oldImage is not null && oldImage.Id != dto.ImageId.Value)
+                    oldImage.HexagonId = null;
+                newImage.HexagonId = hexagon.Id;
+            }
         }
 
         await _context.SaveChangesAsync();

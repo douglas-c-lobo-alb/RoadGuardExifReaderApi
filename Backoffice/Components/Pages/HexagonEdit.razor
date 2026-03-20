@@ -1,4 +1,5 @@
 @page "/hexagons/{Id:int}/edit"
+@using ExifApi.Dtos
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager NavigationManager
 @inject NotificationService NotificationService
@@ -92,7 +93,7 @@ else
         var client = HttpClientFactory.CreateClient("ExifApi");
         try
         {
-            var hex = await client.GetFromJsonAsync<HexagonRow>($"api/hexagons/{Id}");
+            var hex = await client.GetFromJsonAsync<HexagonDto>($"api/hexagons/{Id}");
             if (hex is null) { NotificationService.Notify(NotificationSeverity.Error, "Not found", "Hexagon not found.", 5000); return; }
 
             imageId    = hex.ImageId ?? 0;
@@ -138,10 +139,9 @@ else
         try
         {
             var client = HttpClientFactory.CreateClient("ExifApi");
-            var imgId = imageId > 0 ? (int?)imageId : null;
             object payload = mode == InputMode.Coordinates
-                ? new { ImageId = imgId, Latitude = (double?)latitude, Longitude = (double?)longitude, Resolution = (int?)resolution, H3Index = (string?)null }
-                : new { ImageId = imgId, Latitude = (double?)null, Longitude = (double?)null, Resolution = (int?)null, H3Index = h3Index };
+                ? new { ImageId = (int?)imageId, Latitude = (double?)latitude, Longitude = (double?)longitude, Resolution = (int?)resolution, H3Index = (string?)null }
+                : new { ImageId = (int?)imageId, Latitude = (double?)null, Longitude = (double?)null, Resolution = (int?)null, H3Index = h3Index };
 
             var response = await client.PutAsJsonAsync($"api/hexagons/{Id}", payload);
             if (response.IsSuccessStatusCode)
@@ -165,7 +165,7 @@ else
         }
     }
 
-    private record HexagonRow(int Id, string H3Index, int Resolution, double Lat, double Lon, int? ImageId, int ImageCount, int AnomalyCount);
+
     private record ImageOption(int Id, string FileName);
     private record H3Preview(string H3Index, int Resolution, double Lat, double Lon);
 }
