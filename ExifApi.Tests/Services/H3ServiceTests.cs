@@ -505,20 +505,11 @@ public class H3ServiceTests : IDisposable
         Assert.Equal(2, result.SelectMany(h => h.Images).Count());
     }
 
-    // AND filter: an image must have ALL requested anomaly types to be returned.
-    // Pattern is identical to OR tests — only the ViewFilterType enum value changes.
-    // To add a new filter type test:
-    //   1. Seed images whose anomalies represent each interesting edge case for that filter.
-    //   2. Call GetHexagonsByViewportAsync with the new ViewFilterType value.
-    //   3. Assert on result.SelectMany(h => h.Images).Count() (or Assert.Single for exactly one).
-
     [Fact]
     public async Task GetHexagonsByViewportAsync_ViewFilterAnomalyAnd_ReturnsByAnd()
     {
-        // Image 1 has only Pothole — fails AND when both types are requested.
         SeedImageWithAnomaly(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
             anomalies: [AnomalyType.Pothole]);
-        // Image 2 has both Pothole and Crack — satisfies ALL requested types.
         SeedImageWithAnomaly(id: 2, lat: 37.0998m, lon: -8.6877m, h3Index: KnownH3Index,
             anomalies: [AnomalyType.Pothole, AnomalyType.Crack]);
 
@@ -531,13 +522,10 @@ public class H3ServiceTests : IDisposable
     [Fact]
     public async Task GetHexagonsByViewportAsync_ViewFilterAnomalyAndWithExtra_ReturnsByAnd()
     {
-        // Image 1 has only Crack — missing Pothole, so excluded.
         SeedImageWithAnomaly(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
             anomalies: [AnomalyType.Crack]);
-        // Image 2 has exactly the two requested types — included.
         SeedImageWithAnomaly(id: 2, lat: 37.0998m, lon: -8.6877m, h3Index: KnownH3Index,
             anomalies: [AnomalyType.Pothole, AnomalyType.Crack]);
-        // Image 3 has the two requested types plus an extra — still satisfies ALL, so included.
         SeedImageWithAnomaly(id: 3, lat: 37.0992m, lon: -8.6874m, h3Index: KnownH3Index,
             anomalies: [AnomalyType.Pothole, AnomalyType.Crack, AnomalyType.MissingRoadSign]);
 
@@ -547,15 +535,11 @@ public class H3ServiceTests : IDisposable
         Assert.Equal(2, result.SelectMany(h => h.Images).Count());
     }
 
-    // NOT filter: an image must have NONE of the requested anomaly types to be returned.
-
     [Fact]
     public async Task GetHexagonsByViewportAsync_ViewFilterAnomalyNot_ReturnsByNot()
     {
-        // Image 1 has Pothole — matches the excluded type, so not returned.
         SeedImageWithAnomaly(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
             anomalies: [AnomalyType.Pothole]);
-        // Image 2 has only Crack — does not match the excluded type, so returned.
         SeedImageWithAnomaly(id: 2, lat: 37.0998m, lon: -8.6877m, h3Index: KnownH3Index,
             anomalies: [AnomalyType.Crack]);
 
@@ -568,13 +552,10 @@ public class H3ServiceTests : IDisposable
     [Fact]
     public async Task GetHexagonsByViewportAsync_ViewFilterAnomalyNotWithMany_ReturnsByNot()
     {
-        // Image 1 has Pothole — excluded.
         SeedImageWithAnomaly(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
             anomalies: [AnomalyType.Pothole]);
-        // Image 2 has Crack — excluded because Crack is also in the NOT list.
         SeedImageWithAnomaly(id: 2, lat: 37.0998m, lon: -8.6877m, h3Index: KnownH3Index,
             anomalies: [AnomalyType.Crack]);
-        // Image 3 has only MissingRoadSign — neither Pothole nor Crack, so returned.
         SeedImageWithAnomaly(id: 3, lat: 37.0992m, lon: -8.6874m, h3Index: KnownH3Index,
             anomalies: [AnomalyType.MissingRoadSign]);
 
