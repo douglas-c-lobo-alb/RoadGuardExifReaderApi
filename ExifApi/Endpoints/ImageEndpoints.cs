@@ -21,7 +21,8 @@ public static class ImageEndpoints
         group.MapPost("/", Upload)
             .WithName("UploadImage")
             .WithDescription("[Backoffice usage only intented] Uploads an image, extracts EXIF metadata and registers it in the database")
-            .DisableAntiforgery();
+            .DisableAntiforgery()
+            .Accepts<IFormFile>("multipart/form-data");
 
         group.MapPut("/{id:int}", Update)
             .WithName("UpdateImage")
