@@ -1,6 +1,7 @@
 @page "/"
 @rendermode InteractiveServer
 @inject IHttpClientFactory HttpClientFactory
+@inject NotificationService NotificationService
 
 <PageTitle>Dashboard</PageTitle>
 
@@ -72,9 +73,9 @@ else
             var turbulences = await client.GetFromJsonAsync<List<System.Text.Json.JsonElement>>("api/turbulences/");
             turbulenceCount = turbulences?.Count ?? 0;
         }
-        catch (HttpRequestException)
+        catch (Exception ex)
         {
-            // API unavailable or returned an error — counts stay 0
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
         }
         finally
         {

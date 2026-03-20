@@ -1,4 +1,5 @@
 @page "/hexagons/{Id:int}/edit"
+@using ExifApi.Dtos
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager NavigationManager
 @inject NotificationService NotificationService
@@ -20,6 +21,10 @@ else
             <RadzenDropDown TValue="int" @bind-Value="imageId" Data="@images"
                             TextProperty="FileName" ValueProperty="Id"
                             Placeholder="— select an image —" Style="width:100%" />
+            @if (showImageError)
+            {
+                <div class="text-danger small mt-1">Image is required.</div>
+            }
         </div>
 
         <div class="mb-3">
@@ -55,7 +60,7 @@ else
         {
             <div class="mb-3">
                 <label class="form-label">H3 Index</label>
-                <RadzenTextBox @bind-Value="h3Index" Style="width:100%;font-family:monospace" />
+                <RadzenTextBox @bind-Value="h3Index" Placeholder="e.g. 8f283473ad30d25" Style="width:100%;font-family:monospace" />
             </div>
         }
 
@@ -81,28 +86,23 @@ else
     private string? h3Index;
     private bool loaded;
     private bool submitting;
+    private bool showImageError;
 
     protected override async Task OnInitializedAsync()
     {
         var client = HttpClientFactory.CreateClient("ExifApi");
         try
         {
-            var hex = await client.GetFromJsonAsync<HexagonRow>($"api/hexagons/{Id}");
+            var hex = await client.GetFromJsonAsync<HexagonDto>($"api/hexagons/{Id}");
             if (hex is null) { NotificationService.Notify(NotificationSeverity.Error, "Not found", "Hexagon not found.", 5000); return; }
-            imageId = hex.ImageId ?? 0;
-            h3Index = hex.H3Index;
-            resolution = hex.Resolution;
-            latitude = hex.Lat;
-            longitude = hex.Lon;
-        }
-        catch (Exception ex)
-        {
-            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
-            return;
-        }
 
-        try
-        {
+            imageId    = hex.ImageId ?? 0;
+            h3Index    = hex.H3Index;
+            resolution = hex.Resolution;
+            latitude   = hex.Lat;
+            longitude  = hex.Lon;
+            mode       = InputMode.H3Index;
+
             images = await client.GetFromJsonAsync<List<ImageOption>>("api/images/") ?? [];
         }
         catch (Exception ex)
@@ -110,7 +110,6 @@ else
             NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
             return;
         }
-
         loaded = true;
     }
 
@@ -133,7 +132,8 @@ else
 
     private async Task Submit()
     {
-        if (imageId == 0) { NotificationService.Notify(NotificationSeverity.Warning, "Validation", "Please select an image.", 4000); return; }
+        showImageError = imageId == 0;
+        if (showImageError) return;
 
         submitting = true;
         try
@@ -165,7 +165,7 @@ else
         }
     }
 
-    private record HexagonRow(int Id, string H3Index, int Resolution, double Lat, double Lon, int? ImageId);
+
     private record ImageOption(int Id, string FileName);
     private record H3Preview(string H3Index, int Resolution, double Lat, double Lon);
 }

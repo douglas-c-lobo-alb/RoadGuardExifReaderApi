@@ -1,5 +1,6 @@
 @page "/metadata"
 @inject IHttpClientFactory HttpClientFactory
+@inject NotificationService NotificationService
 
 <PageTitle>Metadata</PageTitle>
 
@@ -30,9 +31,10 @@ else
             var client = HttpClientFactory.CreateClient("ExifApi");
             json = await client.GetStringAsync("api/metadata/");
         }
-        catch
+        catch (Exception ex)
         {
             fetchFailed = true;
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
         }
         finally
         {
