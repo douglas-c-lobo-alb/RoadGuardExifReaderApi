@@ -1,0 +1,207 @@
+@page "/anomalies/{Id:int}/edit"
+@using ExifApi.Data.Entities
+@using ExifApi.Dtos
+@using System.Text.Json
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@inject NotificationService NotificationService
+@rendermode InteractiveServer
+
+<PageTitle>Edit Anomaly</PageTitle>
+
+<h1>Edit Anomaly #@Id</h1>
+
+@if (!loaded)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div style="max-width:600px">
+
+        <div class="mb-3">
+            <RadzenLabel Text="Anomaly Type" Component="AnomalyTypeDropDown" />
+            <RadzenDropDown @bind-Value="selectedAnomalyTypes"
+                            Data="@anomalyTypeOptions"
+                            Multiple="true"
+                            AllowClear="true"
+                            Placeholder="Select anomaly types"
+                            Name="AnomalyTypeDropDown"
+                            Style="width:100%" />
+        </div>
+
+        <div class="mb-3">
+            <RadzenLabel Text="Confidence (0–1)" Component="ConfidenceNumeric" />
+            <RadzenNumeric TValue="decimal" @bind-Value="confidence"
+                           Format="F2" Min="0" Max="1" Step="0.01m"
+                           Name="ConfidenceNumeric"
+                           Style="width:100%" />
+        </div>
+
+        <div class="mb-3">
+            <RadzenLabel Text="Notes (JSON)" Component="NotesArea" />
+            <RadzenTextArea @bind-Value="notesJson"
+                            Rows="3"
+                            Name="NotesArea"
+                            Style="width:100%; font-family:monospace" />
+        </div>
+
+        <div class="mb-3">
+            <RadzenLabel Text="Bounding Box" />
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-top:0.25rem">
+                <div>
+                    <RadzenLabel Text="X1" Component="BoxX1" />
+                    <RadzenNumeric TValue="int" @bind-Value="boxX1" Min="0" Name="BoxX1" Style="width:100%" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Y1" Component="BoxY1" />
+                    <RadzenNumeric TValue="int" @bind-Value="boxY1" Min="0" Name="BoxY1" Style="width:100%" />
+                </div>
+                <div>
+                    <RadzenLabel Text="X2" Component="BoxX2" />
+                    <RadzenNumeric TValue="int" @bind-Value="boxX2" Min="0" Name="BoxX2" Style="width:100%" />
+                </div>
+                <div>
+                    <RadzenLabel Text="Y2" Component="BoxY2" />
+                    <RadzenNumeric TValue="int" @bind-Value="boxY2" Min="0" Name="BoxY2" Style="width:100%" />
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <RadzenLabel Text="Resolved At" Component="ResolvedAtPicker" />
+            <RadzenDatePicker TValue="DateTime?" @bind-Value="resolvedAt"
+                              ShowTime="true"
+                              DateFormat="yyyy-MM-dd HH:mm"
+                              AllowClear="true"
+                              Placeholder="Not resolved"
+                              Name="ResolvedAtPicker"
+                              Style="width:100%" />
+        </div>
+
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" class="mt-3">
+            <RadzenButton Text="@(submitting ? "Saving..." : "Save")"
+                          Icon="save"
+                          ButtonStyle="ButtonStyle.Primary"
+                          Disabled="@submitting"
+                          Click="Submit" />
+            <RadzenButton Text="Cancel"
+                          ButtonStyle="ButtonStyle.Light"
+                          Click="@(() => NavigationManager.NavigateTo("/anomalies"))" />
+        </RadzenStack>
+
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private bool loaded;
+    private bool submitting;
+
+    private static readonly IEnumerable<AnomalyType> anomalyTypeOptions =
+    [
+        AnomalyType.Pothole,
+        AnomalyType.Crack,
+        AnomalyType.MissingRoadSign,
+        AnomalyType.WaterLeakage,
+        AnomalyType.AnimalCorpse,
+    ];
+
+    private IEnumerable<AnomalyType> selectedAnomalyTypes = [];
+    private decimal confidence;
+    private string? notesJson;
+    private int boxX1, boxY1, boxX2, boxY2;
+    private DateTime? resolvedAt;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var dto = await client.GetFromJsonAsync<RoadVisualAnomalyDto>($"api/anomalies/{Id}");
+            if (dto is null)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Not found", $"Anomaly #{Id} does not exist.", 5000);
+                NavigationManager.NavigateTo("/anomalies");
+                return;
+            }
+
+            selectedAnomalyTypes = anomalyTypeOptions
+                .Where(flag => dto.AnomalyType.HasFlag(flag))
+                .ToList();
+
+            confidence = dto.Confidence;
+            notesJson  = dto.Notes is not null
+                ? JsonSerializer.Serialize(dto.Notes, new JsonSerializerOptions { WriteIndented = true })
+                : null;
+            boxX1      = dto.BoxX1;
+            boxY1      = dto.BoxY1;
+            boxX2      = dto.BoxX2;
+            boxY2      = dto.BoxY2;
+            resolvedAt = dto.ResolvedAt;
+
+            loaded = true;
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
+        }
+    }
+
+    private async Task Submit()
+    {
+        JsonDocument? notesDoc = null;
+        if (!string.IsNullOrWhiteSpace(notesJson))
+        {
+            try { notesDoc = JsonDocument.Parse(notesJson); }
+            catch (JsonException)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Invalid JSON", "Notes field contains invalid JSON.", 5000);
+                return;
+            }
+        }
+
+        submitting = true;
+        try
+        {
+            var anomalyType = selectedAnomalyTypes.Any()
+                ? selectedAnomalyTypes.Aggregate((acc, flag) => acc | flag)
+                : AnomalyType.None;
+
+            var payload = new
+            {
+                AnomalyType = anomalyType,
+                Confidence  = confidence,
+                Notes       = notesDoc,
+                BoxX1       = boxX1,
+                BoxY1       = boxY1,
+                BoxX2       = boxX2,
+                BoxY2       = boxY2,
+                ResolvedAt  = resolvedAt,
+            };
+
+            var client   = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PutAsJsonAsync($"api/anomalies/{Id}", payload);
+
+            if (response.IsSuccessStatusCode)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Saved", "Anomaly updated.", 3000);
+                NavigationManager.NavigateTo("/anomalies");
+            }
+            else
+            {
+                var detail = await response.Content.ReadAsStringAsync();
+                NotificationService.Notify(NotificationSeverity.Error, "Save failed", $"({(int)response.StatusCode}) {detail}", 5000);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Save failed", ex.Message, 5000);
+        }
+        finally
+        {
+            submitting = false;
+        }
+    }
+}
