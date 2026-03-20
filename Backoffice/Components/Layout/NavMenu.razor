@@ -1,5 +1,6 @@
 @inject NavigationManager NavigationManager
 @rendermode InteractiveServer
+@implements IDisposable
 
 <RadzenPanelMenu>
     <RadzenPanelMenuItem Text="Dashboard" Icon="dashboard" Path="" Match="NavLinkMatch.All" />
@@ -30,6 +31,16 @@
 </RadzenPanelMenu>
 
 @code {
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+        => StateHasChanged();
+
     private bool IsActive(string section) =>
         NavigationManager.Uri.Contains($"/{section}", StringComparison.OrdinalIgnoreCase);
+
+    public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
 }
