@@ -2,6 +2,7 @@ using Backoffice.Components;
 using Radzen;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseStaticWebAssets();
 
 builder.Services.AddHttpClient("ExifApi", client =>
 {
