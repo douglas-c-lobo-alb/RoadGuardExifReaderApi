@@ -37,7 +37,8 @@ public static class ImageEndpoints
                                 Type = "object",
                                 Properties =
                                 {
-                                    ["file"] = new OpenApiSchema { Type = "string", Format = "binary" }
+                                    ["file"] = new OpenApiSchema { Type = "string", Format = "binary" },
+                                    ["agentId"] = new OpenApiSchema { Type = "integer", Format = "int32", Nullable = true }
                                 },
                                 Required = { "file" }
                             }
@@ -65,12 +66,19 @@ public static class ImageEndpoints
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 
-    private static async Task<IResult> Upload(IFormFile file, ImageService imageService)
+    private static async Task<IResult> Upload(IFormFile file, IFormCollection form, ImageService imageService)
     {
-        var result = await imageService.RegisterImageAsync(file);
-        return result is null
-            ? Results.BadRequest("Failed to register image")
-            : Results.Created($"/api/images/{result.Id}", result);
+        int? agentId = null;
+        if (form.TryGetValue("agentId", out var agentIdStr) && int.TryParse(agentIdStr, out var parsedAgentId))
+            agentId = parsedAgentId;
+
+        var result = await imageService.RegisterImageAsync(file, agentId);
+        if (result is null)
+            return agentId.HasValue
+                ? Results.BadRequest($"Agent with id={agentId} not found")
+                : Results.BadRequest("Failed to register image");
+
+        return Results.Created($"/api/images/{result.Id}", result);
     }
 
     private static async Task<IResult> Update(int id, UpdateImageDto dto, ImageService imageService)

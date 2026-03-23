@@ -22,8 +22,18 @@ public class ImageService
         _imagesFolder = configuration.GetSection("Image:Path").Value ?? "images";
     }
 
-    public async Task<ImageDto?> RegisterImageAsync(IFormFile file)
+    public async Task<ImageDto?> RegisterImageAsync(IFormFile file, int? agentId = null)
     {
+        if (agentId.HasValue)
+        {
+            var agentExists = await _context.Agents.AnyAsync(a => a.Id == agentId.Value);
+            if (!agentExists)
+            {
+                _logger.LogWarning("Agent id={AgentId} not found", agentId.Value);
+                return null;
+            }
+        }
+
         var imagesPath = Path.Combine(_env.WebRootPath, _imagesFolder);
         Directory.CreateDirectory(imagesPath);
 
@@ -53,6 +63,7 @@ public class ImageService
         var image = new Image
         {
             FileName = fileName,
+            AgentId = agentId,
             CameraMake = metadata?.CameraMake,
             CameraModel = metadata?.CameraModel,
             DateTaken = metadata?.DateTaken,
@@ -140,6 +151,7 @@ public class ImageService
         Turbulence = image.RoadTurbulence?.Index,
         AnomalyNotes = image.Notes,
         AnomalyCount = image.Anomalies.Count,
+        AgentId = image.AgentId,
         Hexagon = image.Hexagon is null ? null : new HexagonDto
         {
             Id = image.Hexagon.Id,

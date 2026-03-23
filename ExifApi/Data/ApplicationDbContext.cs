@@ -8,6 +8,7 @@ public class ApplicationDbContext : DbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
+    public DbSet<Agent> Agents { get; set; }
     public DbSet<Image> Images { get; set; }
     public DbSet<Hexagon> Hexagons { get; set; }
     public DbSet<RoadVisualAnomaly> RoadVisualAnomalies { get; set; }
@@ -15,6 +16,19 @@ public class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Agent>()
+            .Property(a => a.Metadata)
+            .HasConversion(
+                v => v == null ? null : v.RootElement.GetRawText(),
+                v => v == null ? null : JsonDocument.Parse(v, default))
+            .HasColumnType("TEXT");
+
+        modelBuilder.Entity<Image>()
+            .HasOne(i => i.Agent)
+            .WithMany(a => a.Images)
+            .HasForeignKey(i => i.AgentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         modelBuilder.Entity<Image>()
             .HasOne(i => i.Hexagon)
             .WithMany()

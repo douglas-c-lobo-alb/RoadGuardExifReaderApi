@@ -145,6 +145,39 @@ public class ImageServiceTests : IDisposable
     }
 
     // -------------------------------------------------------------------------
+    // RegisterImageAsync — agentId
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task RegisterImageAsync_WithValidAgentId_SetsAgentId()
+    {
+        _context.Agents.Add(new ExifApi.Data.Entities.Agent { Id = 10, Name = "Device-A" });
+        await _context.SaveChangesAsync();
+
+        var fileBytes = System.Text.Encoding.UTF8.GetBytes("fake");
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(f => f.FileName).Returns("img_agent.jpg");
+        mockFile.Setup(f => f.CopyToAsync(It.IsAny<Stream>(), default))
+            .Returns(Task.CompletedTask);
+
+        var result = await _service.RegisterImageAsync(mockFile.Object, agentId: 10);
+
+        Assert.NotNull(result);
+        Assert.Equal(10, result.AgentId);
+    }
+
+    [Fact]
+    public async Task RegisterImageAsync_WithInvalidAgentId_ReturnsNull()
+    {
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(f => f.FileName).Returns("img_bad.jpg");
+
+        var result = await _service.RegisterImageAsync(mockFile.Object, agentId: 9999);
+
+        Assert.Null(result);
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 

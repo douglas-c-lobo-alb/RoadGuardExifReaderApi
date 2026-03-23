@@ -17,5 +17,6 @@ public class ImageDto
     public int? Turbulence { get; set; }
     public JsonDocument? AnomalyNotes { get; set; }
     public int AnomalyCount { get; set; }
+    public int? AgentId { get; set; }
     public HexagonDto? Hexagon { get; set; }
 }

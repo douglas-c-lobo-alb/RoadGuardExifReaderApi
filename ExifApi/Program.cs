@@ -23,6 +23,7 @@ builder.Services.AddScoped<ExifService>();
 builder.Services.AddScoped<RoadVisualAnomalyService>();
 builder.Services.AddScoped<H3Service>();
 builder.Services.AddScoped<ImageService>();
+builder.Services.AddScoped<AgentService>();
 builder.Services.AddScoped<RoadTurbulenceService>();
 builder.Services.AddScoped<SeedService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -79,6 +80,7 @@ var api = app.MapGroup("/api");
 
 Image.SetConfiguration(app.Configuration);
 
+app.MapGroup("/api/agents").MapAgentEndpoints();
 api.MapStatusEndpoints(app.Configuration);
 api.MapMetadataEndpoints();
 api.MapH3Endpoints();
