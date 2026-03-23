@@ -5,9 +5,11 @@ namespace ExifApi.Endpoints;
 
 public static class AgentEndpoints
 {
-    public static void MapAgentEndpoints(this RouteGroupBuilder group)
+    public static void MapAgentEndpoints(this RouteGroupBuilder api)
     {
-        group.WithName("Agents").WithOpenApi();
+        var group = api.MapGroup("/agents")
+            .WithName("Agents")
+            .WithOpenApi();
 
         group.MapGet("/", GetAll)
             .WithName("GetAllAgents");

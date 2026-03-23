@@ -80,7 +80,7 @@ var api = app.MapGroup("/api");
 
 Image.SetConfiguration(app.Configuration);
 
-app.MapGroup("/api/agents").MapAgentEndpoints();
+api.MapAgentEndpoints();
 api.MapStatusEndpoints(app.Configuration);
 api.MapMetadataEndpoints();
 api.MapH3Endpoints();
