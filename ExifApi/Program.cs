@@ -26,6 +26,7 @@ builder.Services.AddScoped<ImageService>();
 builder.Services.AddScoped<AgentService>();
 builder.Services.AddScoped<RoadTurbulenceService>();
 builder.Services.AddScoped<SeedService>();
+builder.Services.AddScoped<VoteService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlite(
@@ -90,7 +91,7 @@ api.MapRoadTurbulenceEndpoints();
 api.MapAnomalyEndpoints();
 api.MapSeedEndpoints();
 api.MapIntrospectiveEndpoints();
-
+api.MapVoteEndpoints();
 
 app.Run();
 
