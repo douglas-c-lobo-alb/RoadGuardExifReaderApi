@@ -56,16 +56,9 @@ public class ApplicationDbContext : DbContext
             .HasColumnType("TEXT");
 
         modelBuilder.Entity<RoadTurbulence>()
-            .HasOne(h => h.Hexagon)
-            .WithMany()
-            .HasForeignKey(h => h.HexagonId)
+            .HasOne(t => t.Image)
+            .WithMany(i => i.Turbulences)
+            .HasForeignKey(t => t.ImageId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        // verify whether all entities have an adequate OnDelete policy
-        modelBuilder.Entity<Image>()
-            .HasOne(i => i.RoadTurbulence)
-            .WithMany()
-            .HasForeignKey(i => i.RoadTurbulenceId)
-            .OnDelete(DeleteBehavior.SetNull);
     }
 }

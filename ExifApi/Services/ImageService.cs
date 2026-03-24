@@ -85,6 +85,7 @@ public class ImageService
         var images = await _context.Images
             .Include(i => i.Hexagon)
             .Include(i => i.Anomalies)
+            .Include(i => i.Turbulences)
             .OrderBy(i => i.DateTaken)
             .ToListAsync();
         return images.Select(ToDto).ToList();
@@ -95,6 +96,7 @@ public class ImageService
         var image = await _context.Images
             .Include(i => i.Hexagon)
             .Include(i => i.Anomalies)
+            .Include(i => i.Turbulences)
             .FirstOrDefaultAsync(i => i.Id == id);
         return image is null ? null : ToDto(image);
     }
@@ -104,6 +106,7 @@ public class ImageService
         var image = await _context.Images
             .Include(i => i.Hexagon)
             .Include(i => i.Anomalies)
+            .Include(i => i.Turbulences)
             .FirstOrDefaultAsync(i => i.Id == id);
         if (image is null) return null;
 
@@ -148,7 +151,7 @@ public class ImageService
         Longitude = image.Longitude,
         Altitude = image.Altitude,
         Heading = image.Heading,
-        Turbulence = image.RoadTurbulence?.Index,
+        Turbulence = image.Turbulences.Max(t => (int?)t.Index),
         AnomalyNotes = image.Notes,
         AnomalyCount = image.Anomalies.Count,
         AgentId = image.AgentId,

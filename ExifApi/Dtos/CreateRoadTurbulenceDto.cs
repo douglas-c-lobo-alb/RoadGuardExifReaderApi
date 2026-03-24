@@ -12,5 +12,5 @@ public class CreateRoadTurbulenceDto
     [Required]
     public RoadTurbulenceType RoadTurbulenceType { get; set; }
 
-    public int? HexagonId { get; set; }
+    public int? ImageId { get; set; }
 }

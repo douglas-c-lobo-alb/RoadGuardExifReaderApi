@@ -41,11 +41,6 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         RoadTurbulenceType.Depression,
         RoadTurbulenceType.AbruptSwerving,
         RoadTurbulenceType.WaterLeakage,
-        RoadTurbulenceType.Pothole | RoadTurbulenceType.Depression,
-        RoadTurbulenceType.LongitudinalCrack | RoadTurbulenceType.WaterLeakage,
-        RoadTurbulenceType.TransverseCrack | RoadTurbulenceType.WaterLeakage,
-        RoadTurbulenceType.Depression | RoadTurbulenceType.WaterLeakage | RoadTurbulenceType.TransverseCrack,
-        RoadTurbulenceType.Pothole | RoadTurbulenceType.WaterLeakage,
     ];
 
     public async Task<SeedResult> RunAsync(bool withAnomalies = true, bool withTurbulences = true)
@@ -56,27 +51,16 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         var images = BuildImages(rng);
         var hexagonMap = await CreateHexagonsAsync(images);
 
+        db.Images.AddRange(images);
+        await db.SaveChangesAsync();
+
         List<RoadTurbulence> turbulences = [];
         if (withTurbulences)
         {
-            // Save turbulences first so their PKs are available for image linking
-            turbulences = BuildTurbulences(hexagonMap, rng);
+            turbulences = BuildTurbulences(images, rng);
             db.RoadTurbulences.AddRange(turbulences);
             await db.SaveChangesAsync();
-
-            // Link each image to one of the turbulences for its hexagon
-            var turbulencesByHexId = turbulences
-                .GroupBy(t => t.HexagonId!.Value)
-                .ToDictionary(g => g.Key, g => g.ToList());
-            foreach (var image in images.Where(i => i.HexagonId != null))
-            {
-                if (turbulencesByHexId.TryGetValue(image.HexagonId!.Value, out var hexTurbulences))
-                    image.RoadTurbulenceId = hexTurbulences[rng.Next(hexTurbulences.Count)].Id;
-            }
         }
-
-        db.Images.AddRange(images);
-        await db.SaveChangesAsync();
 
         List<RoadVisualAnomaly> anomalies = [];
         if (withAnomalies)
@@ -220,12 +204,11 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         return anomalies;
     }
 
-    private static List<RoadTurbulence> BuildTurbulences(Dictionary<string, Hexagon> hexagonMap, Random rng)
+    private static List<RoadTurbulence> BuildTurbulences(List<Image> images, Random rng)
     {
         var turbulences = new List<RoadTurbulence>();
-        int hexIdx = 0;
 
-        foreach (var hexagon in hexagonMap.Values)
+        for (int i = 0; i < images.Count; i++)
         {
             if (rng.Next(30) != 0) continue;
             int count = rng.Next(1, 3);
@@ -233,13 +216,12 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
             {
                 turbulences.Add(new RoadTurbulence
                 {
-                    HexagonId          = hexagon.Id,
-                    Index              = 1 + ((hexIdx + k) % 8),
-                    RoadTurbulenceType = TurbulenceTypes[(hexIdx + k) % TurbulenceTypes.Length],
+                    ImageId            = images[i].Id,
+                    Index              = 1 + ((i + k) % 8),
+                    RoadTurbulenceType = TurbulenceTypes[(i + k) % TurbulenceTypes.Length],
                     DateCreated        = DateTime.UtcNow.AddDays(-rng.Next(0, 60))
                 });
             }
-            hexIdx++;
         }
 
         return turbulences;

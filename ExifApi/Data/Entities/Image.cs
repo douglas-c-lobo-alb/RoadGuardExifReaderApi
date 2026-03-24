@@ -37,12 +37,11 @@ public class Image
     public DateTime? DateTaken { get; set; }
     public int? AgentId { get; set; }
     public Agent? Agent { get; set; }
-    public int? RoadTurbulenceId { get; set; }
-    public RoadTurbulence? RoadTurbulence { get; set;}
     public JsonDocument? Notes { get; set; }
     public int? HexagonId { get; set; }
     public Hexagon? Hexagon { get; set; }
     public ICollection<RoadVisualAnomaly> Anomalies { get; set; } = [];
+    public ICollection<RoadTurbulence> Turbulences { get; set; } = [];
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     public DateTime LastModifiedDate { get; set; } = DateTime.UtcNow;
 }

@@ -2,23 +2,15 @@ using System.Text.Json.Serialization;
 
 namespace ExifApi.Data.Entities;
 
-[Flags]
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum RoadTurbulenceType
 {
     None = 0,
-    Pothole = 1 << 0,
-    Speedbump = 1 << 1,
-    LongitudinalCrack = 1 << 2,
-    TransverseCrack = 1 << 3,
-    Depression = 1 << 4,
-    AbruptSwerving = 1 << 5,
-    WaterLeakage = 1 << 6,
-    All = Pothole
-        | Speedbump
-        | LongitudinalCrack
-        | TransverseCrack
-        | Depression
-        | AbruptSwerving
-        | WaterLeakage
+    Pothole = 1,
+    Speedbump = 2,
+    LongitudinalCrack = 3,
+    TransverseCrack = 4,
+    Depression = 5,
+    AbruptSwerving = 6,
+    WaterLeakage = 7,
 }

@@ -11,8 +11,8 @@ public class RoadTurbulence
     [Range(0, 10)]
     public int Index { get; set; } = 0;
     public RoadTurbulenceType RoadTurbulenceType { get; set; } = RoadTurbulenceType.None;
-    public int? HexagonId { get; set; }
-    public Hexagon? Hexagon { get; set;}
+    public int? ImageId { get; set; }
+    public Image? Image { get; set; }
     [Required]
     public DateTime DateCreated { get; set; }
 }
