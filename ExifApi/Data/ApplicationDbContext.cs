@@ -42,7 +42,7 @@ public class ApplicationDbContext : DbContext
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Image>()
-            .Property(i => i.Notes)
+            .Property(i => i.AnomalyNotes)
             .HasConversion(
                 v => v == null ? null : v.RootElement.GetRawText(),
                 v => v == null ? null : JsonDocument.Parse(v, default))

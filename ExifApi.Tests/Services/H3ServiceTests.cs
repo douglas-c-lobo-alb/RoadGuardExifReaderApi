@@ -609,7 +609,7 @@ public class H3ServiceTests : IDisposable
             Latitude = lat,
             Longitude = lon,
             DateTaken = dateTaken,
-            Notes = anomalyNotes is null ? null : JsonDocument.Parse(JsonSerializer.Serialize(anomalyNotes)),
+            AnomalyNotes = anomalyNotes is null ? null : JsonDocument.Parse(JsonSerializer.Serialize(anomalyNotes)),
             HexagonId = hexagon.Id
         });
         _context.SaveChanges();
@@ -629,7 +629,7 @@ public class H3ServiceTests : IDisposable
             Latitude = lat,
             Longitude = lon,
             DateTaken = DateTime.UtcNow,
-            Notes = null,
+            AnomalyNotes = null,
             HexagonId = hexagon.Id
         });
         _context.SaveChanges();

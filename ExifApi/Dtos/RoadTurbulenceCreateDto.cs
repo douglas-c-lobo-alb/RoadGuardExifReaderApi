@@ -3,7 +3,7 @@ using ExifApi.Data.Entities;
 
 namespace ExifApi.Dtos;
 
-public class CreateRoadTurbulenceDto
+public class RoadTurbulenceCreateDto
 {
     [Required]
     [Range(0, 10)]

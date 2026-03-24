@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace ExifApi.Dtos;
 
-public class CreateAgentDto
+public class AgentCreateDto
 {
     [Required]
     public string Name { get; set; } = string.Empty;

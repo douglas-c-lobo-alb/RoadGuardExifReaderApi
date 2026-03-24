@@ -33,7 +33,7 @@ public static class AgentEndpoints
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 
-    private static async Task<IResult> Create(CreateAgentDto dto, AgentService agentService)
+    private static async Task<IResult> Create(AgentCreateDto dto, AgentService agentService)
     {
         var result = await agentService.CreateAsync(dto);
         return Results.Created($"/api/agents/{result.Id}", result);

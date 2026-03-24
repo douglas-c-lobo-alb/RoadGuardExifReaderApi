@@ -3,7 +3,7 @@ using ExifApi.Data.Entities;
 
 namespace ExifApi.Dtos;
 
-public class UpdateRoadVisualAnomalyDto
+public class RoadVisualAnomalyUpdateDto
 {
     public AnomalyType AnomalyType { get; set; }
     public decimal Confidence { get; set; }

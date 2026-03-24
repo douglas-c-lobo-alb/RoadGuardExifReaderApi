@@ -91,7 +91,7 @@ public class AgentEndpointsTests : IDisposable
     [Fact]
     public async Task Create_ValidDto_Returns201AndDto()
     {
-        var dto = new CreateAgentDto { Name = "NewAgent" };
+        var dto = new AgentCreateDto { Name = "NewAgent" };
 
         var response = await _client.PostAsJsonAsync("api/agents/", dto);
 

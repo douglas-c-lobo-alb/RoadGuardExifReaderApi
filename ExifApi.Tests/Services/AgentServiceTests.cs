@@ -79,7 +79,7 @@ public class AgentServiceTests : IDisposable
     [Fact]
     public async Task CreateAsync_ValidDto_ReturnsDto()
     {
-        var dto = new CreateAgentDto { Name = "BetaAgent" };
+        var dto = new AgentCreateDto { Name = "BetaAgent" };
 
         var result = await _service.CreateAsync(dto);
 

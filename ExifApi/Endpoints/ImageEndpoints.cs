@@ -52,7 +52,7 @@ public static class ImageEndpoints
         return Results.Created($"/api/images/{result.Id}", result);
     }
 
-    private static async Task<IResult> Update(int id, UpdateImageDto dto, ImageService imageService)
+    private static async Task<IResult> Update(int id, ImageUpdateDto dto, ImageService imageService)
     {
         var result = await imageService.UpdateAsync(id, dto);
         if (result is null)

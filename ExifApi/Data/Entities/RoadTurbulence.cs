@@ -14,5 +14,5 @@ public class RoadTurbulence
     public int? ImageId { get; set; }
     public Image? Image { get; set; }
     [Required]
-    public DateTime DateCreated { get; set; }
+    public DateTime CreatedDate { get; set; }
 }

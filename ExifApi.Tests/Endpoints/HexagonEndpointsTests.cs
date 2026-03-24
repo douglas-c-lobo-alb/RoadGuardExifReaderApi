@@ -65,7 +65,7 @@ public class HexagonEndpointsTests : IDisposable
     public async Task Create_NonExistentImage_Returns400()
     {
         // ImageId 99999 does not exist — service returns null → 400
-        var dto = new CreateHexagonDto { ImageId = 99999, H3Index = ValidH3Index };
+        var dto = new HexagonCreateDto { ImageId = 99999, H3Index = ValidH3Index };
 
         var response = await _client.PostAsJsonAsync("api/hexagons/", dto);
 
@@ -81,7 +81,7 @@ public class HexagonEndpointsTests : IDisposable
         ctx.Images.Add(img);
         await ctx.SaveChangesAsync();
 
-        var dto = new CreateHexagonDto { ImageId = img.Id, H3Index = ValidH3Index };
+        var dto = new HexagonCreateDto { ImageId = img.Id, H3Index = ValidH3Index };
         var response = await _client.PostAsJsonAsync("api/hexagons/", dto);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -95,7 +95,7 @@ public class HexagonEndpointsTests : IDisposable
         ctx.Images.Add(img);
         await ctx.SaveChangesAsync();
 
-        var dto = new CreateHexagonDto { ImageId = img.Id, H3Index = ValidH3Index };
+        var dto = new HexagonCreateDto { ImageId = img.Id, H3Index = ValidH3Index };
         var response = await _client.PostAsJsonAsync("api/hexagons/", dto);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -112,7 +112,7 @@ public class HexagonEndpointsTests : IDisposable
     [Fact]
     public async Task Update_NotFound_Returns404()
     {
-        var dto = new UpdateHexagonDto { H3Index = ValidH3Index };
+        var dto = new HexagonUpdateDto { H3Index = ValidH3Index };
 
         var response = await _client.PutAsJsonAsync("api/hexagons/99999", dto);
 
@@ -128,7 +128,7 @@ public class HexagonEndpointsTests : IDisposable
         await ctx.SaveChangesAsync();
 
         // Update with the same valid index — just verifies round-trip
-        var dto = new UpdateHexagonDto { H3Index = ValidH3Index };
+        var dto = new HexagonUpdateDto { H3Index = ValidH3Index };
         var response = await _client.PutAsJsonAsync($"api/hexagons/{hex.Id}", dto);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

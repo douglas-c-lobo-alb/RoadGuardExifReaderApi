@@ -91,7 +91,7 @@ public class H3Service
         _logger.LogInformation("GenerateHexagons: saved hexagons for {Count} images", images.Count);
     }
 
-    public async Task<List<ViewHexagonDto>> GetHexagonsByViewportAsync(
+    public async Task<List<HexagonViewDto>> GetHexagonsByViewportAsync(
         double latMin,
         double latMax,
         double lonMin,
@@ -131,25 +131,25 @@ public class H3Service
         {
             return images
                 .GroupBy(i => i.Hexagon!.H3Index)
-                .Select(g => new ViewHexagonDto
+                .Select(g => new HexagonViewDto
                 {
                     H3Index = g.Key,
                     Resolution = resolution,
-                    Images = g.Select(i => new ViewImageDto
+                    Images = g.Select(i => new ImageViewDto
                     {
                         Id = i.Id,
                         FilePath = i.FilePath,
                         DateTaken = i.DateTaken,
-                        AnomalyNotes = i.Notes,
+                        AnomalyNotes = i.AnomalyNotes,
                         Turbulence = i.Turbulences.Max(t => (int?)t.Index)
                     }).ToList(),
                     RoadTurbulences = g.SelectMany(i => i.Turbulences)
-                        .Select(t => new ViewTurbulenceDto
+                        .Select(t => new RoadTurbulenceViewDto
                         {
                             Id = t.Id,
                             Index = t.Index,
                             RoadTurbulenceType = t.RoadTurbulenceType,
-                            DateCreated = t.DateCreated
+                            CreatedDate = t.CreatedDate
                         }).ToList()
                 }).ToList();
         }
@@ -163,25 +163,25 @@ public class H3Service
                 return new { ParentIndex = H3Net.H3ToString(parent), Image = i };
             })
             .GroupBy(x => x.ParentIndex)
-            .Select(g => new ViewHexagonDto
+            .Select(g => new HexagonViewDto
             {
                 H3Index = g.Key,
                 Resolution = resolution,
-                Images = g.Select(x => new ViewImageDto
+                Images = g.Select(x => new ImageViewDto
                 {
                     Id = x.Image.Id,
                     FilePath = x.Image.FilePath,
                     DateTaken = x.Image.DateTaken,
-                    AnomalyNotes = x.Image.Notes,
+                    AnomalyNotes = x.Image.AnomalyNotes,
                     Turbulence = x.Image.Turbulences.Max(t => (int?)t.Index)
                 }).ToList(),
                 RoadTurbulences = g.SelectMany(x => x.Image.Turbulences)
-                    .Select(t => new ViewTurbulenceDto
+                    .Select(t => new RoadTurbulenceViewDto
                     {
                         Id = t.Id,
                         Index = t.Index,
                         RoadTurbulenceType = t.RoadTurbulenceType,
-                        DateCreated = t.DateCreated
+                        CreatedDate = t.CreatedDate
                     }).ToList()
             })
             .ToList();
@@ -270,7 +270,7 @@ public class H3Service
         return dto;
     }
 
-    public async Task<HexagonDto?> CreateHexagonAsync(CreateHexagonDto dto)
+    public async Task<HexagonDto?> CreateHexagonAsync(HexagonCreateDto dto)
     {
         var image = await _context.Images
             .Include(i => i.Hexagon)
@@ -301,7 +301,7 @@ public class H3Service
         }
         else if (dto.Latitude.HasValue && dto.Longitude.HasValue && dto.Resolution.HasValue)
         {
-            var h3Raw = H3Net.LatLngToCell(dto.Latitude.Value, dto.Longitude.Value, dto.Resolution.Value);
+            var h3Raw = H3Net.LatLngToCell((double)dto.Latitude.Value, (double)dto.Longitude.Value, dto.Resolution.Value);
             if (h3Raw == 0)
             {
                 _logger.LogWarning("CreateHexagon: H3 conversion failed for lat={Lat}, lon={Lon}", dto.Latitude, dto.Longitude);
@@ -329,7 +329,7 @@ public class H3Service
         return ToDtoFromEntity(hexagon);
     }
 
-    public async Task<HexagonDto?> UpdateHexagonAsync(int id, UpdateHexagonDto dto)
+    public async Task<HexagonDto?> UpdateHexagonAsync(int id, HexagonUpdateDto dto)
     {
         var hexagon = await _context.Hexagons.FindAsync(id);
         if (hexagon is null)

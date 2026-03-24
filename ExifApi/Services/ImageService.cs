@@ -101,7 +101,7 @@ public class ImageService
         return image is null ? null : ToDto(image);
     }
 
-    public async Task<ImageDto?> UpdateAsync(int id, UpdateImageDto dto)
+    public async Task<ImageDto?> UpdateAsync(int id, ImageUpdateDto dto)
     {
         var image = await _context.Images
             .Include(i => i.Hexagon)
@@ -117,7 +117,7 @@ public class ImageService
         image.Longitude = dto.Longitude;
         image.Altitude = dto.Altitude;
         image.Heading = dto.Heading;
-        image.Notes = dto.AnomalyNotes;
+        image.AnomalyNotes = dto.AnomalyNotes;
         image.LastModifiedDate = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -152,7 +152,7 @@ public class ImageService
         Altitude = image.Altitude,
         Heading = image.Heading,
         Turbulence = image.Turbulences.Max(t => (int?)t.Index),
-        AnomalyNotes = image.Notes,
+        AnomalyNotes = image.AnomalyNotes,
         AnomalyCount = image.Anomalies.Count,
         AgentId = image.AgentId,
         Hexagon = image.Hexagon is null ? null : new HexagonDto

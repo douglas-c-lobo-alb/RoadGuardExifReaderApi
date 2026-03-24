@@ -3,7 +3,7 @@ using ExifApi.Data.Entities;
 
 namespace ExifApi.Dtos;
 
-public class CreateRoadVisualAnomalyDto
+public class RoadVisualAnomalyCreateDto
 {
     public int ImageId { get; set; }
     public AnomalyType AnomalyType { get; set; } = AnomalyType.None;

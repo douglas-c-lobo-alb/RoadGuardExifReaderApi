@@ -30,7 +30,7 @@ public class AgentService
         return agent is null ? null : ToDto(agent);
     }
 
-    public async Task<AgentDto> CreateAsync(CreateAgentDto dto)
+    public async Task<AgentDto> CreateAsync(AgentCreateDto dto)
     {
         var agent = new Agent
         {

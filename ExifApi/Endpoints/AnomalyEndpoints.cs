@@ -35,7 +35,7 @@ public static class AnomalyEndpoints
             .WithName("DeleteAnomaly");
     }
 
-    private static async Task<IResult> Create(CreateRoadVisualAnomalyDto dto, RoadVisualAnomalyService svc)
+    private static async Task<IResult> Create(RoadVisualAnomalyCreateDto dto, RoadVisualAnomalyService svc)
     {
         var result = await svc.CreateAsync(dto);
         return result is null
@@ -52,7 +52,7 @@ public static class AnomalyEndpoints
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 
-    private static async Task<IResult> Update(int id, UpdateRoadVisualAnomalyDto dto, RoadVisualAnomalyService svc)
+    private static async Task<IResult> Update(int id, RoadVisualAnomalyUpdateDto dto, RoadVisualAnomalyService svc)
     {
         var result = await svc.UpdateAsync(id, dto);
         return result is null ? Results.NotFound() : Results.Ok(result);

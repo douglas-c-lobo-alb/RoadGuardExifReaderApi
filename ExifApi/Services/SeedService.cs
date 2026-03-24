@@ -121,7 +121,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
                 CameraMake       = meta.CameraMake,
                 CameraModel      = meta.CameraModel,
                 Heading          = meta.Heading ?? Math.Round((decimal)(rng.NextDouble() * 360), 2),
-                Notes            = BuildImageNotes(rng, i),
+                AnomalyNotes     = BuildImageNotes(rng, i),
                 DateTaken        = meta.DateTaken ?? DateTime.UtcNow.AddDays(-rng.Next(1, 365)),
                 CreatedDate      = DateTime.UtcNow,
                 LastModifiedDate = DateTime.UtcNow
@@ -219,7 +219,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
                     ImageId            = images[i].Id,
                     Index              = 1 + ((i + k) % 8),
                     RoadTurbulenceType = TurbulenceTypes[(i + k) % TurbulenceTypes.Length],
-                    DateCreated        = DateTime.UtcNow.AddDays(-rng.Next(0, 60))
+                    CreatedDate        = DateTime.UtcNow.AddDays(-rng.Next(0, 60))
                 });
             }
         }

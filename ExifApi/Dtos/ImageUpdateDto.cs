@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace ExifApi.Dtos;
 
-public class UpdateImageDto
+public class ImageUpdateDto
 {
     public string? CameraMake { get; set; }
     public string? CameraModel { get; set; }

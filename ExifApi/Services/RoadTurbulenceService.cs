@@ -19,7 +19,7 @@ public class RoadTurbulenceService
     public async Task<List<RoadTurbulenceDto>> GetAllAsync()
     {
         var records = await _context.RoadTurbulences
-            .OrderByDescending(r => r.DateCreated)
+            .OrderByDescending(r => r.CreatedDate)
             .ToListAsync();
         return records.Select(ToDto).ToList();
     }
@@ -37,7 +37,7 @@ public class RoadTurbulenceService
             .Include(t => t.Image)
             .ThenInclude(i => i!.Hexagon)
             .Where(t => t.Image != null && t.Image.Hexagon != null && t.Image.Hexagon.H3Index == h3Index)
-            .OrderByDescending(r => r.DateCreated)
+            .OrderByDescending(r => r.CreatedDate)
             .ToListAsync();
         return records.Select(ToDto).ToList();
     }
@@ -45,14 +45,14 @@ public class RoadTurbulenceService
     /// <summary>
     /// Inserts one or more turbulence records atomically (single transaction).
     /// </summary>
-    public async Task<List<RoadTurbulenceDto>> CreateAsync(IEnumerable<CreateRoadTurbulenceDto> dtos)
+    public async Task<List<RoadTurbulenceDto>> CreateAsync(IEnumerable<RoadTurbulenceCreateDto> dtos)
     {
         var entities = dtos.Select(dto => new RoadTurbulence
         {
             Index = dto.Index,
             RoadTurbulenceType = dto.RoadTurbulenceType,
             ImageId = dto.ImageId,
-            DateCreated = DateTime.UtcNow
+            CreatedDate = DateTime.UtcNow
         }).ToList();
 
         _context.RoadTurbulences.AddRange(entities);
@@ -63,7 +63,7 @@ public class RoadTurbulenceService
         return entities.Select(ToDto).ToList();
     }
 
-    public async Task<RoadTurbulenceDto?> UpdateAsync(int id, CreateRoadTurbulenceDto dto)
+    public async Task<RoadTurbulenceDto?> UpdateAsync(int id, RoadTurbulenceCreateDto dto)
     {
         var record = await _context.RoadTurbulences
             .FirstOrDefaultAsync(r => r.Id == id);
@@ -96,6 +96,6 @@ public class RoadTurbulenceService
         Index = r.Index,
         RoadTurbulenceType = r.RoadTurbulenceType,
         ImageId = r.ImageId,
-        DateCreated = r.DateCreated,
+        CreatedDate = r.CreatedDate,
     };
 }

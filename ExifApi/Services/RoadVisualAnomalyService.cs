@@ -33,7 +33,7 @@ public class RoadVisualAnomalyService
         return record is null ? null : ToDto(record);
     }
 
-    public async Task<RoadVisualAnomalyDto?> CreateAsync(CreateRoadVisualAnomalyDto dto)
+    public async Task<RoadVisualAnomalyDto?> CreateAsync(RoadVisualAnomalyCreateDto dto)
     {
         var imageExists = await _context.Images.AnyAsync(i => i.Id == dto.ImageId);
         if (!imageExists) return null;
@@ -60,7 +60,7 @@ public class RoadVisualAnomalyService
         return ToDto(entity);
     }
 
-    public async Task<RoadVisualAnomalyDto?> UpdateAsync(int id, UpdateRoadVisualAnomalyDto dto)
+    public async Task<RoadVisualAnomalyDto?> UpdateAsync(int id, RoadVisualAnomalyUpdateDto dto)
     {
         var record = await _context.RoadVisualAnomalies
             .Include(r => r.Image)
