@@ -242,15 +242,9 @@ public class H3Service
 
     public async Task<HexagonDto?> GetHexagonByIdAsync(int id)
     {
-        var hexagonTask = _context.Hexagons.FindAsync(id).AsTask();
-        var imageTask = _context.Images.FirstOrDefaultAsync(i => i.HexagonId == id);
-        await Task.WhenAll(hexagonTask, imageTask);
-
-        var hexagon = hexagonTask.Result;
+        var hexagon = await _context.Hexagons.FindAsync(id);
         if (hexagon is null) return null;
-        var dto = ToDtoFromEntity(hexagon);
-        dto.ImageId = imageTask.Result?.Id;
-        return dto;
+        return ToDtoFromEntity(hexagon);
     }
 
     public async Task<HexagonDto?> CreateHexagonAsync(HexagonCreateDto dto)
