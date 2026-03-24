@@ -15,5 +15,8 @@ public class Hexagon
     public int Resolution => string.IsNullOrEmpty(H3Index)
         ? -1
         : H3Net.GetResolution(H3Net.StringToH3(H3Index));
+    public ICollection<RoadTurbulence> Turbulences { get; set; } = [];
+    public ICollection<RoadVisualAnomaly> Anomalies { get; set; } = [];
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+    public DateTime LastModifiedDate { get; set; } = DateTime.UtcNow;
 }
