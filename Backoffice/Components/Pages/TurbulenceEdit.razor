@@ -106,7 +106,7 @@ else
         {
             var turbulenceType = selectedTypes.Any()
                 ? selectedTypes.Aggregate((a, b) => a | b)
-                : RoadTurbulenceType.None;
+                : RoadTurbulenceType.Pothole;
 
             var payload = new { Index = index, RoadTurbulenceType = turbulenceType, HexagonId = hexagonId };
 

@@ -28,8 +28,7 @@
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="Index" Title="Index" Width="100px" />
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="RoadTurbulenceType" Title="Type">
             <Template Context="t">
-                @if (t.RoadTurbulenceType == RoadTurbulenceType.None) { <span class="text-muted">None</span> }
-                else { @t.RoadTurbulenceType.ToString() }
+                @t.RoadTurbulenceType.ToString()
             </Template>
         </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="HexagonId" Title="Hexagon" Width="120px">

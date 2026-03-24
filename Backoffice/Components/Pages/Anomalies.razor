@@ -32,8 +32,7 @@
         </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="AnomalyRow" Property="AnomalyType" Title="Type">
             <Template Context="t">
-                @if (t.AnomalyType == AnomalyType.None) { <span class="text-muted">None</span> }
-                else { @t.AnomalyType.ToString() }
+                @t.AnomalyType.ToString()
             </Template>
         </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="AnomalyRow" Property="Confidence" Title="Confidence" Width="120px"

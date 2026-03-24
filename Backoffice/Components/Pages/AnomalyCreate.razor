@@ -132,7 +132,7 @@
         {
             var anomalyType = selectedAnomalyTypes.Any()
                 ? selectedAnomalyTypes.Aggregate((a, b) => a | b)
-                : AnomalyType.None;
+                : AnomalyType.Pothole;
 
             var payload = new
             {
