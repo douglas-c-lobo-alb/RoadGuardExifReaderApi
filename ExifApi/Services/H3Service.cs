@@ -141,7 +141,7 @@ public class H3Service
                         DateTaken = i.DateTaken,
                         Metadata = i.Metadata,
                     }).ToList(),
-                    RoadTurbulences = []
+                    Turbulences = []
                 }).ToList();
         }
 
@@ -165,7 +165,7 @@ public class H3Service
                     DateTaken = x.Image.DateTaken,
                     Metadata = x.Image.Metadata,
                 }).ToList(),
-                RoadTurbulences = []
+                Turbulences = []
             })
             .ToList();
     }

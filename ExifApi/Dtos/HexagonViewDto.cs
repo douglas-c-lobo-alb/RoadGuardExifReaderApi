@@ -9,5 +9,6 @@ public class HexagonViewDto
     public double Lat => string.IsNullOrEmpty(H3Index) ? 0 : H3Net.CellToLatLng(H3Net.StringToH3(H3Index)).LatWGS84;
     public double Lon => string.IsNullOrEmpty(H3Index) ? 0 : H3Net.CellToLatLng(H3Net.StringToH3(H3Index)).LngWGS84;
     public List<ImageViewDto> Images { get; set; } = [];
-    public List<RoadTurbulenceViewDto> RoadTurbulences { get; set;} = [];
+    public List<RoadTurbulenceViewDto> Turbulences { get; set;} = [];
+    public List<RoadVisualAnomalyViewDto> Anomalies { get; set; } = [];
 }
