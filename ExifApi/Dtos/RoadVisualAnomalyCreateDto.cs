@@ -5,10 +5,13 @@ namespace ExifApi.Dtos;
 
 public class RoadVisualAnomalyCreateDto
 {
-    public int ImageId { get; set; }
-    public AnomalyType AnomalyType { get; set; }
+    public int? HexagonId { get; set; }
+    public int? ImageId { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    public AnomalyType Kind { get; set; }
     public decimal Confidence { get; set; }
-    public JsonDocument? Notes { get; set; }
+    public JsonDocument? Metadata { get; set; }
     public int BoxX1 { get; set; }
     public int BoxY1 { get; set; }
     public int BoxX2 { get; set; }

@@ -10,7 +10,7 @@ public class RoadTurbulence
     public int Id { get; set; }
     public int HexagonId { get; set; }
     public Hexagon? Hexagon { get; set; }
-    public int AgentId { get; set; }
+    public int? AgentId { get; set; }
     public Agent? Agent { get; set; }
     [Required]
     [Range(0, 10)]
@@ -19,4 +19,5 @@ public class RoadTurbulence
     public JsonDocument? Metadata { get; set; }
     [Required]
     public DateTime CreatedDate { get; set; }
+    public DateTime LastModifiedDate { get; set; }
 }

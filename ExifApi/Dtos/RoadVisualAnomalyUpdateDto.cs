@@ -5,9 +5,9 @@ namespace ExifApi.Dtos;
 
 public class RoadVisualAnomalyUpdateDto
 {
-    public AnomalyType AnomalyType { get; set; }
+    public AnomalyType Kind { get; set; }
     public decimal Confidence { get; set; }
-    public JsonDocument? Notes { get; set; }
+    public JsonDocument? Metadata { get; set; }
     public int BoxX1 { get; set; }
     public int BoxY1 { get; set; }
     public int BoxX2 { get; set; }
