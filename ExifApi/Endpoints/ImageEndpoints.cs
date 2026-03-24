@@ -1,5 +1,6 @@
 using ExifApi.Dtos;
 using ExifApi.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ExifApi.Endpoints;
 
@@ -41,7 +42,7 @@ public static class ImageEndpoints
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 
-    private static async Task<IResult> Upload(IFormFile file, int? agentId, ImageService imageService)
+    private static async Task<IResult> Upload(IFormFile file, [FromForm] int? agentId, ImageService imageService)
     {
         var result = await imageService.RegisterImageAsync(file, agentId);
         if (result is null)
