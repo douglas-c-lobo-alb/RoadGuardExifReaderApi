@@ -9,17 +9,20 @@ public class RoadVisualAnomalyService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<RoadVisualAnomalyService> _logger;
+    private readonly int _anomalyResolution;
 
-    public RoadVisualAnomalyService(ApplicationDbContext context, ILogger<RoadVisualAnomalyService> logger)
+    public RoadVisualAnomalyService(ApplicationDbContext context, ILogger<RoadVisualAnomalyService> logger, IConfiguration configuration)
     {
         _context = context;
         _logger = logger;
+        _anomalyResolution = configuration.GetValue<int>("H3:AnomalyResolution");
     }
 
     public async Task<List<RoadVisualAnomalyDto>> GetAllAsync()
     {
         var records = await _context.RoadVisualAnomalies
             .Include(r => r.Image)
+            .Include(r => r.Hexagon)
             .OrderByDescending(r => r.CreatedDate)
             .ToListAsync();
         return records.Select(ToDto).ToList();
@@ -29,6 +32,7 @@ public class RoadVisualAnomalyService
     {
         var record = await _context.RoadVisualAnomalies
             .Include(r => r.Image)
+            .Include(r => r.Hexagon)
             .FirstOrDefaultAsync(r => r.Id == id);
         return record is null ? null : ToDto(record);
     }
@@ -45,7 +49,7 @@ public class RoadVisualAnomalyService
 
         if (hexagonId is null && dto.Latitude.HasValue && dto.Longitude.HasValue)
         {
-            var h3Raw = H3Standard.H3Net.LatLngToCell((double)dto.Latitude.Value, (double)dto.Longitude.Value, 13);
+            var h3Raw = H3Standard.H3Net.LatLngToCell((double)dto.Latitude.Value, (double)dto.Longitude.Value, _anomalyResolution);
             var h3Index = H3Standard.H3Net.H3ToString(h3Raw);
             var hex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3Index);
             if (hex is null)
