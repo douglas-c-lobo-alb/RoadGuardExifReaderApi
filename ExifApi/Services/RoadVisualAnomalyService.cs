@@ -35,15 +35,37 @@ public class RoadVisualAnomalyService
 
     public async Task<RoadVisualAnomalyDto?> CreateAsync(RoadVisualAnomalyCreateDto dto)
     {
-        var imageExists = await _context.Images.AnyAsync(i => i.Id == dto.ImageId);
-        if (!imageExists) return null;
+        int? hexagonId = dto.HexagonId;
+
+        if (hexagonId is null && dto.ImageId.HasValue)
+        {
+            var image = await _context.Images.FirstOrDefaultAsync(i => i.Id == dto.ImageId.Value);
+            hexagonId = image?.HexagonId;
+        }
+
+        if (hexagonId is null && dto.Latitude.HasValue && dto.Longitude.HasValue)
+        {
+            var h3Raw = H3Standard.H3Net.LatLngToCell((double)dto.Latitude.Value, (double)dto.Longitude.Value, 13);
+            var h3Index = H3Standard.H3Net.H3ToString(h3Raw);
+            var hex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3Index);
+            if (hex is null)
+            {
+                hex = new Hexagon { H3Index = h3Index };
+                _context.Hexagons.Add(hex);
+                await _context.SaveChangesAsync();
+            }
+            hexagonId = hex.Id;
+        }
+
+        if (hexagonId is null) return null;
 
         var entity = new RoadVisualAnomaly
         {
+            HexagonId = hexagonId.Value,
             ImageId = dto.ImageId,
-            AnomalyType = dto.AnomalyType,
+            Kind = dto.Kind,
             Confidence = dto.Confidence,
-            Notes = dto.Notes,
+            Metadata = dto.Metadata,
             BoxX1 = dto.BoxX1,
             BoxY1 = dto.BoxY1,
             BoxX2 = dto.BoxX2,
@@ -67,9 +89,9 @@ public class RoadVisualAnomalyService
             .FirstOrDefaultAsync(r => r.Id == id);
         if (record is null) return null;
 
-        record.AnomalyType = dto.AnomalyType;
+        record.Kind = dto.Kind;
         record.Confidence = dto.Confidence;
-        record.Notes = dto.Notes;
+        record.Metadata = dto.Metadata;
         record.BoxX1 = dto.BoxX1;
         record.BoxY1 = dto.BoxY1;
         record.BoxX2 = dto.BoxX2;
@@ -79,42 +101,6 @@ public class RoadVisualAnomalyService
 
         await _context.SaveChangesAsync();
         _logger.LogInformation("Updated road visual anomaly id={Id}", id);
-        return ToDto(record);
-    }
-
-    public async Task<RoadVisualAnomalyDto?> UpvoteAsync(int id)
-    {
-        var record = await _context.RoadVisualAnomalies
-            .Include(r => r.Image)
-            .FirstOrDefaultAsync(r => r.Id == id);
-        if (record is null) return null;
-
-        if (!record.AlreadyVoted)
-            record.AlreadyVoted = true;
-
-        record.UpVote++;
-        record.LastModifiedDate = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-        _logger.LogInformation("Upvoted road visual anomaly id={Id}", id);
-        return ToDto(record);
-    }
-
-    public async Task<RoadVisualAnomalyDto?> DownvoteAsync(int id)
-    {
-        var record = await _context.RoadVisualAnomalies
-            .Include(r => r.Image)
-            .FirstOrDefaultAsync(r => r.Id == id);
-        if (record is null) return null;
-
-        if (!record.AlreadyVoted)
-            record.AlreadyVoted = true;
-
-        record.DownVote++;
-        record.LastModifiedDate = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-        _logger.LogInformation("Downvoted road visual anomaly id={Id}", id);
         return ToDto(record);
     }
 
@@ -132,12 +118,10 @@ public class RoadVisualAnomalyService
     private static RoadVisualAnomalyDto ToDto(RoadVisualAnomaly r) => new()
     {
         Id = r.Id,
-        AnomalyType = r.AnomalyType,
+        HexagonId = r.HexagonId,
+        Kind = r.Kind,
         Confidence = r.Confidence,
-        Notes = r.Notes,
-        AlreadyVoted = r.AlreadyVoted,
-        UpVote = r.UpVote,
-        DownVote = r.DownVote,
+        Metadata = r.Metadata,
         Image = r.Image is null ? null : new ImageDto
         {
             Id = r.Image.Id,

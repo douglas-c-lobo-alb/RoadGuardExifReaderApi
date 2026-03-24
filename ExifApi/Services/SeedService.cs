@@ -189,10 +189,12 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
             {
                 int x1 = 50 + (i % 8) * 100;
                 int y1 = 50 + (j % 4) * 120;
+                if (images[i].HexagonId is null) continue;
                 anomalies.Add(new RoadVisualAnomaly
                 {
+                    HexagonId        = images[i].HexagonId!.Value,
                     ImageId          = images[i].Id,
-                    AnomalyType      = AnomalyTypes[(i * 3 + j) % AnomalyTypes.Length],
+                    Kind             = AnomalyTypes[(i * 3 + j) % AnomalyTypes.Length],
                     Confidence       = Math.Round((decimal)(0.60 + rng.NextDouble() * 0.39), 2),
                     BoxX1 = x1, BoxY1 = y1, BoxX2 = x1 + 200, BoxY2 = y1 + 150,
                     CreatedDate      = DateTime.UtcNow,
@@ -214,12 +216,14 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
             int count = rng.Next(1, 3);
             for (int k = 0; k < count; k++)
             {
+                if (images[i].HexagonId is null) continue;
                 turbulences.Add(new RoadTurbulence
                 {
-                    ImageId            = images[i].Id,
+                    HexagonId          = images[i].HexagonId!.Value,
                     Index              = 1 + ((i + k) % 8),
-                    RoadTurbulenceType = TurbulenceTypes[(i + k) % TurbulenceTypes.Length],
-                    CreatedDate        = DateTime.UtcNow.AddDays(-rng.Next(0, 60))
+                    Kind               = TurbulenceTypes[(i + k) % TurbulenceTypes.Length],
+                    CreatedDate        = DateTime.UtcNow.AddDays(-rng.Next(0, 60)),
+                    LastModifiedDate   = DateTime.UtcNow
                 });
             }
         }

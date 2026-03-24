@@ -637,8 +637,9 @@ public class H3ServiceTests : IDisposable
         foreach (var anomaly in anomalies)
             _context.RoadVisualAnomalies.Add(new RoadVisualAnomaly
             {
+                HexagonId = hexagon.Id,
                 ImageId = id,
-                AnomalyType = anomaly,
+                Kind = anomaly,
                 BoxX1 = 156,
                 BoxY1 = 143,
                 BoxX2 = 210,
@@ -647,7 +648,7 @@ public class H3ServiceTests : IDisposable
                 CreatedDate = DateTime.UtcNow,
                 LastModifiedDate = DateTime.UtcNow,
                 ResolvedAt = null,
-                Notes = JsonDocument.Parse(@"{}")
+                Metadata = JsonDocument.Parse(@"{}")
             });
         _context.SaveChanges();
     }

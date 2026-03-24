@@ -106,7 +106,6 @@ public class H3Service
         var images = await _context.Images
             .Include(i => i.Hexagon)
             .Include(i => i.Anomalies)
-            .Include(i => i.Turbulences)
             .Where(i => startDate == null || DateOnly.FromDateTime((DateTime)i.DateTaken!) >= startDate)
             .Where(i => endDate == null || DateOnly.FromDateTime((DateTime)i.DateTaken!) <= endDate)
             .Where(i => i.Hexagon != null
@@ -119,9 +118,9 @@ public class H3Service
         if (anomalies is not null && anomalies.Any())
             images = viewFilterType switch
             {
-                ViewFilterType.Or => images.Where(i => i.Anomalies.Any(a => anomalies.Contains(a.AnomalyType))).ToList(),
-                ViewFilterType.And => images.Where(i => anomalies.All(type => i.Anomalies.Any(a => a.AnomalyType == type))).ToList(),
-                ViewFilterType.Not => images.Where(i => !i.Anomalies.Any(a => anomalies.Contains(a.AnomalyType))).ToList(),
+                ViewFilterType.Or => images.Where(i => i.Anomalies.Any(a => anomalies.Contains(a.Kind))).ToList(),
+                ViewFilterType.And => images.Where(i => anomalies.All(type => i.Anomalies.Any(a => a.Kind == type))).ToList(),
+                ViewFilterType.Not => images.Where(i => !i.Anomalies.Any(a => anomalies.Contains(a.Kind))).ToList(),
                 _ => images
             };
 
@@ -141,16 +140,8 @@ public class H3Service
                         FilePath = i.FilePath,
                         DateTaken = i.DateTaken,
                         Metadata = i.Metadata,
-                        Turbulence = i.Turbulences.Max(t => (int?)t.Index)
                     }).ToList(),
-                    RoadTurbulences = g.SelectMany(i => i.Turbulences)
-                        .Select(t => new RoadTurbulenceViewDto
-                        {
-                            Id = t.Id,
-                            Index = t.Index,
-                            RoadTurbulenceType = t.RoadTurbulenceType,
-                            CreatedDate = t.CreatedDate
-                        }).ToList()
+                    RoadTurbulences = []
                 }).ToList();
         }
 
@@ -173,16 +164,8 @@ public class H3Service
                     FilePath = x.Image.FilePath,
                     DateTaken = x.Image.DateTaken,
                     Metadata = x.Image.Metadata,
-                    Turbulence = x.Image.Turbulences.Max(t => (int?)t.Index)
                 }).ToList(),
-                RoadTurbulences = g.SelectMany(x => x.Image.Turbulences)
-                    .Select(t => new RoadTurbulenceViewDto
-                    {
-                        Id = t.Id,
-                        Index = t.Index,
-                        RoadTurbulenceType = t.RoadTurbulenceType,
-                        CreatedDate = t.CreatedDate
-                    }).ToList()
+                RoadTurbulences = []
             })
             .ToList();
     }
