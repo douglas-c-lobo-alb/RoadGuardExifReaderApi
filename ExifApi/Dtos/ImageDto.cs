@@ -15,7 +15,7 @@ public class ImageDto
     public double? Altitude { get; set; }
     public decimal? Heading { get; set; }
     public int? Turbulence { get; set; }
-    public JsonDocument? AnomalyNotes { get; set; }
+    public JsonDocument? Metadata { get; set; }
     public int AnomalyCount { get; set; }
     public int? AgentId { get; set; }
     public HexagonDto? Hexagon { get; set; }

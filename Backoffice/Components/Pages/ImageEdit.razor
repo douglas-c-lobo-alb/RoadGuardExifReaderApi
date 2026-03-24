@@ -128,7 +128,7 @@ else
             longitude  = img.Longitude;
             altitude   = img.Altitude;
             heading    = img.Heading;
-            anomalyNotes = img.AnomalyNotes?.RootElement.GetRawText();
+            anomalyNotes = img.Metadata?.RootElement.GetRawText();
         }
         catch (Exception ex)
         {
@@ -163,7 +163,7 @@ else
                 Longitude   = longitude,
                 Altitude    = altitude,
                 Heading     = heading,
-                AnomalyNotes = notesDoc
+                Metadata = notesDoc
             };
             var client = HttpClientFactory.CreateClient("ExifApi");
             var response = await client.PutAsJsonAsync($"api/images/{Id}", payload);
@@ -192,5 +192,5 @@ else
     private record ImageRow(int Id, string FileName, string FilePath,
         string? CameraMake, string? CameraModel, DateTime? DateTaken,
         decimal? Latitude, decimal? Longitude, double? Altitude, decimal? Heading,
-        JsonDocument? AnomalyNotes, HexagonRow? Hexagon);
+        JsonDocument? Metadata, HexagonRow? Hexagon);
 }

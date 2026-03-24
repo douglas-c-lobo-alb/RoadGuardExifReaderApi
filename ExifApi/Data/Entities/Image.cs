@@ -37,7 +37,7 @@ public class Image
     public DateTime? DateTaken { get; set; }
     public int? AgentId { get; set; }
     public Agent? Agent { get; set; }
-    public JsonDocument? AnomalyNotes { get; set; }
+    public JsonDocument? Metadata { get; set; }
     public int? HexagonId { get; set; }
     public Hexagon? Hexagon { get; set; }
     public ICollection<RoadVisualAnomaly> Anomalies { get; set; } = [];

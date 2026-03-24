@@ -305,7 +305,7 @@ public class H3ServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetHexagonsByViewportAsync_AnomalyNotes_ArePopulatedInImageDto()
+    public async Task GetHexagonsByViewportAsync_Metadata_IsPopulatedInImageDto()
     {
         SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
             anomalyNotes: "crack on panel 3");
@@ -313,7 +313,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
         var image = Assert.Single(result[0].Images);
-        Assert.Equal("crack on panel 3", image.AnomalyNotes?.RootElement.GetString());
+        Assert.Equal("crack on panel 3", image.Metadata?.RootElement.GetString());
     }
 
     // -------------------------------------------------------------------------
@@ -609,7 +609,7 @@ public class H3ServiceTests : IDisposable
             Latitude = lat,
             Longitude = lon,
             DateTaken = dateTaken,
-            AnomalyNotes = anomalyNotes is null ? null : JsonDocument.Parse(JsonSerializer.Serialize(anomalyNotes)),
+            Metadata = anomalyNotes is null ? null : JsonDocument.Parse(JsonSerializer.Serialize(anomalyNotes)),
             HexagonId = hexagon.Id
         });
         _context.SaveChanges();
@@ -629,7 +629,7 @@ public class H3ServiceTests : IDisposable
             Latitude = lat,
             Longitude = lon,
             DateTaken = DateTime.UtcNow,
-            AnomalyNotes = null,
+            Metadata = null,
             HexagonId = hexagon.Id
         });
         _context.SaveChanges();

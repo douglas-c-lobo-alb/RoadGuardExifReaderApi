@@ -117,7 +117,7 @@ public class ImageService
         image.Longitude = dto.Longitude;
         image.Altitude = dto.Altitude;
         image.Heading = dto.Heading;
-        image.AnomalyNotes = dto.AnomalyNotes;
+        image.Metadata = dto.Metadata;
         image.LastModifiedDate = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -152,7 +152,7 @@ public class ImageService
         Altitude = image.Altitude,
         Heading = image.Heading,
         Turbulence = image.Turbulences.Max(t => (int?)t.Index),
-        AnomalyNotes = image.AnomalyNotes,
+        Metadata = image.Metadata,
         AnomalyCount = image.Anomalies.Count,
         AgentId = image.AgentId,
         Hexagon = image.Hexagon is null ? null : new HexagonDto
