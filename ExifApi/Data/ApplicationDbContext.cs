@@ -98,5 +98,12 @@ public class ApplicationDbContext : DbContext
                 v => v == null ? null : v.RootElement.GetRawText(),
                 v => v == null ? null : JsonDocument.Parse(v, default))
             .HasColumnType("TEXT");
+
+        modelBuilder.Entity<Vote>()
+            .Property(v => v.Metadata)
+            .HasConversion(
+                v => v == null ? null : v.RootElement.GetRawText(),
+                v => v == null ? null : JsonDocument.Parse(v, default))
+            .HasColumnType("TEXT");
     }
 }
