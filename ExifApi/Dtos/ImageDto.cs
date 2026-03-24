@@ -14,7 +14,6 @@ public class ImageDto
     public decimal? Longitude { get; set; }
     public double? Altitude { get; set; }
     public decimal? Heading { get; set; }
-    public int? Turbulence { get; set; }
     public JsonDocument? Metadata { get; set; }
     public int AnomalyCount { get; set; }
     public int? AgentId { get; set; }
