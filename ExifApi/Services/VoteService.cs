@@ -127,7 +127,7 @@ a.Kind == group.Key.Kind);
         context.Votes.RemoveRange(votes);
         await context.SaveChangesAsync();
 
-        logger.LogInformation("Compute: {Created} created, {Reopened} reopened, { Deleted} votes deleted", created, reopened, votes.Count);
+        logger.LogInformation("Compute: {Created} created, {Reopened} reopened, {Deleted} votes deleted", created, reopened, votes.Count);
 
         return new ComputeResultDto(created, reopened, votes.Count);
     }

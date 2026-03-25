@@ -52,6 +52,7 @@ public class RoadVisualAnomalyService
                 else if (image.Latitude.HasValue && image.Longitude.HasValue)
                 {
                     var h3Raw = H3Net.LatLngToCell((double)image.Latitude.Value, (double)image.Longitude.Value, _anomalyResolution);
+                    if (h3Raw == 0) return null;
                     var h3Index = H3Net.H3ToString(h3Raw);
                     var hex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3Index);
                     if (hex is null)
@@ -68,6 +69,7 @@ public class RoadVisualAnomalyService
         if (hexagonId is null && dto.Latitude.HasValue && dto.Longitude.HasValue)
         {
             var h3Raw = H3Standard.H3Net.LatLngToCell((double)dto.Latitude.Value, (double)dto.Longitude.Value, _anomalyResolution);
+            if (h3Raw == 0) return null;
             var h3Index = H3Standard.H3Net.H3ToString(h3Raw);
             var hex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3Index);
             if (hex is null)
