@@ -232,7 +232,8 @@ public class H3ServiceTests : IDisposable
     {
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
-        Assert.Empty(result);
+        Assert.Empty(result.ImageHexagons);
+        Assert.Empty(result.AnomalyHexagons);
     }
 
     [Fact]
@@ -242,12 +243,15 @@ public class H3ServiceTests : IDisposable
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
-        // Viewport returns res-15 entries — one per image hex
-        Assert.Single(result);
-        Assert.Equal(KnownH3Index, result[0].H3Index);
-        Assert.Equal(15, result[0].Resolution);
-        Assert.Single(result[0].Images);
-        Assert.Equal(1, result[0].Images[0].Id);
+        // ImageHexagons: one res-15 entry per image hex
+        Assert.Single(result.ImageHexagons);
+        Assert.Equal(KnownH3Index, result.ImageHexagons[0].H3Index);
+        Assert.Equal(15, result.ImageHexagons[0].Resolution);
+        Assert.Single(result.ImageHexagons[0].Images);
+        Assert.Equal(1, result.ImageHexagons[0].Images[0].Id);
+        // AnomalyHexagons: one res-13 entry per parent hex
+        Assert.Single(result.AnomalyHexagons);
+        Assert.Equal(13, result.AnomalyHexagons[0].Resolution);
     }
 
     [Fact]
@@ -258,24 +262,26 @@ public class H3ServiceTests : IDisposable
         // Bounds somewhere in the North Sea — no images there
         var result = await _service.GetHexagonsByViewportAsync(55.0, 56.0, 2.0, 4.0);
 
-        Assert.Empty(result);
+        Assert.Empty(result.ImageHexagons);
+        Assert.Empty(result.AnomalyHexagons);
     }
 
     [Fact]
-    public async Task GetHexagonsByViewportAsync_ReturnsAnomalyResolutionOnResults()
+    public async Task GetHexagonsByViewportAsync_ReturnsCorrectResolutionsInBothSections()
     {
         SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index);
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
-        Assert.NotEmpty(result);
-        Assert.All(result, h => Assert.Equal(15, h.Resolution));
+        Assert.NotEmpty(result.ImageHexagons);
+        Assert.All(result.ImageHexagons, h => Assert.Equal(15, h.Resolution));
+        Assert.NotEmpty(result.AnomalyHexagons);
+        Assert.All(result.AnomalyHexagons, h => Assert.Equal(13, h.Resolution));
     }
 
     [Fact]
-    public async Task GetHexagonsByViewportAsync_TwoCellsInSameParent_ReturnsTwoSeparateRes15Entries()
+    public async Task GetHexagonsByViewportAsync_TwoCellsInDifferentParents_ReturnsTwoImageHexesTwoAnomalyHexes()
     {
-        // Both res-15 cells are nearby in Portimão — they share the same res-13 parent
         const string cell1 = "8f39100e1a500e6";
         const string cell2 = "8f39100e1a502f1";
 
@@ -284,10 +290,25 @@ public class H3ServiceTests : IDisposable
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
-        // Each res-15 hex gets its own entry; anomalies/turbulences from shared res-13 parent appear on both
-        Assert.Equal(2, result.Count);
-        Assert.Contains(result, h => h.H3Index == cell1 && h.Images.Any(i => i.Id == 1));
-        Assert.Contains(result, h => h.H3Index == cell2 && h.Images.Any(i => i.Id == 2));
+        Assert.Equal(2, result.ImageHexagons.Count);
+        Assert.Contains(result.ImageHexagons, h => h.H3Index == cell1 && h.Images.Any(i => i.Id == 1));
+        Assert.Contains(result.ImageHexagons, h => h.H3Index == cell2 && h.Images.Any(i => i.Id == 2));
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_TwoCellsInSameParent_OneAnomalyHex()
+    {
+        // These two res-15 cells share the same res-13 parent (verified from DB)
+        const string cell1 = "8f39100e1a0d4c5";
+        const string cell2 = "8f39100e1a0d4cc";
+
+        SeedImageWithHexagon(id: 1, lat: 37.1001m, lon: -8.6842m, h3Index: cell1);
+        SeedImageWithHexagon(id: 2, lat: 37.1001m, lon: -8.6841m, h3Index: cell2);
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
+
+        Assert.Equal(2, result.ImageHexagons.Count);
+        Assert.Single(result.AnomalyHexagons); // one shared res-13 parent
     }
 
     [Fact]
@@ -298,9 +319,28 @@ public class H3ServiceTests : IDisposable
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
-        var image = Assert.Single(result[0].Images);
+        var image = Assert.Single(result.ImageHexagons[0].Images);
         Assert.Equal("/images/test_1.jpg", image.FilePath);
         Assert.Equal(new DateTime(2026, 2, 25), image.DateTaken);
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_WithAnomaly_AnomalyAppearsOnceInAnomalyHexagons()
+    {
+        // Two res-15 hexes sharing a res-13 parent; one anomaly on that parent
+        const string cell1 = "8f39100e1a0d4c5";
+        const string cell2 = "8f39100e1a0d4cc";
+        SeedImageWithHexagon(id: 1, lat: 37.1001m, lon: -8.6842m, h3Index: cell1);
+        SeedImageWithHexagon(id: 2, lat: 37.1001m, lon: -8.6841m, h3Index: cell2);
+        SeedImageWithAnomaly(id: 3, lat: 37.1001m, lon: -8.6842m, anomalies: [AnomalyType.Pothole]);
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
+
+        // Anomaly appears exactly once in AnomalyHexagons — not duplicated per ImageHexagon
+        Assert.Equal(3, result.ImageHexagons.Sum(h => h.Images.Count)); // 3 images, no anomaly data here
+        var anomalyHexesWithAnomalies = result.AnomalyHexagons.Where(h => h.Anomalies.Count != 0).ToList();
+        Assert.Single(anomalyHexesWithAnomalies);
+        Assert.Equal(1, anomalyHexesWithAnomalies[0].Anomalies.Count);
     }
 
 
@@ -317,7 +357,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             startDate: new DateOnly(2025, 7, 1));
 
-        Assert.Empty(result);
+        Assert.Empty(result.ImageHexagons);
     }
 
     [Fact]
@@ -329,7 +369,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             startDate: new DateOnly(2025, 6, 1));
 
-        Assert.Single(result);
+        Assert.Single(result.ImageHexagons);
     }
 
     [Fact]
@@ -341,7 +381,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             endDate: new DateOnly(2025, 3, 1));
 
-        Assert.Empty(result);
+        Assert.Empty(result.ImageHexagons);
     }
 
     [Fact]
@@ -354,7 +394,7 @@ public class H3ServiceTests : IDisposable
             startDate: new DateOnly(2025, 1, 1),
             endDate: new DateOnly(2025, 12, 31));
 
-        Assert.Single(result);
+        Assert.Single(result.ImageHexagons);
     }
 
     [Fact]
@@ -367,7 +407,7 @@ public class H3ServiceTests : IDisposable
             startDate: new DateOnly(2025, 1, 1),
             endDate: new DateOnly(2025, 12, 31));
 
-        Assert.Empty(result);
+        Assert.Empty(result.ImageHexagons);
     }
 
     [Fact]
@@ -381,7 +421,7 @@ public class H3ServiceTests : IDisposable
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
-        Assert.Equal(2, result.SelectMany(h => h.Images).Count());
+        Assert.Equal(2, result.ImageHexagons.SelectMany(h => h.Images).Count());
     }
 
     [Fact]
@@ -393,7 +433,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             startDate: new DateOnly(2025, 1, 1));
 
-        Assert.Empty(result);
+        Assert.Empty(result.ImageHexagons);
     }
 
     // -------------------------------------------------------------------------
@@ -409,7 +449,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             anomalies: [AnomalyType.Pothole]);
 
-        Assert.Single(result);
+        Assert.Single(result.ImageHexagons);
     }
 
     [Fact]
@@ -421,7 +461,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             anomalies: [AnomalyType.Pothole]);
 
-        Assert.Empty(result);
+        Assert.Empty(result.ImageHexagons);
     }
 
     [Fact]
@@ -432,7 +472,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             anomalies: [AnomalyType.Pothole]);
 
-        Assert.Empty(result);
+        Assert.Empty(result.ImageHexagons);
     }
 
     [Fact]
@@ -446,7 +486,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             anomalies: [AnomalyType.Pothole, AnomalyType.Crack]);
 
-        Assert.Equal(2, result.SelectMany(h => h.Images).Count());
+        Assert.Equal(2, result.ImageHexagons.SelectMany(h => h.Images).Count());
     }
 
     [Fact]
@@ -458,7 +498,7 @@ public class H3ServiceTests : IDisposable
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
-        Assert.Equal(2, result.SelectMany(h => h.Images).Count());
+        Assert.Equal(2, result.ImageHexagons.SelectMany(h => h.Images).Count());
     }
 
     [Fact]
@@ -472,7 +512,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             anomalies: [AnomalyType.Pothole], viewFilterType: H3Service.ViewFilterType.Or);
 
-        Assert.Single(result.SelectMany(h => h.Images));
+        Assert.Single(result.ImageHexagons.SelectMany(h => h.Images));
     }
 
     [Fact]
@@ -488,7 +528,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             anomalies: [AnomalyType.Pothole], viewFilterType: H3Service.ViewFilterType.Or);
 
-        Assert.Equal(2, result.SelectMany(h => h.Images).Count());
+        Assert.Equal(2, result.ImageHexagons.SelectMany(h => h.Images).Count());
     }
 
     [Fact]
@@ -502,7 +542,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             anomalies: [AnomalyType.Pothole, AnomalyType.Crack], viewFilterType: H3Service.ViewFilterType.And);
 
-        Assert.Single(result.SelectMany(h => h.Images));
+        Assert.Single(result.ImageHexagons.SelectMany(h => h.Images));
     }
 
     [Fact]
@@ -518,7 +558,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             anomalies: [AnomalyType.Pothole, AnomalyType.Crack], viewFilterType: H3Service.ViewFilterType.And);
 
-        Assert.Equal(2, result.SelectMany(h => h.Images).Count());
+        Assert.Equal(2, result.ImageHexagons.SelectMany(h => h.Images).Count());
     }
 
     [Fact]
@@ -532,7 +572,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             anomalies: [AnomalyType.Pothole], viewFilterType: H3Service.ViewFilterType.Not);
 
-        Assert.Single(result.SelectMany(h => h.Images));
+        Assert.Single(result.ImageHexagons.SelectMany(h => h.Images));
     }
 
     [Fact]
@@ -548,7 +588,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66,
             anomalies: [AnomalyType.Pothole, AnomalyType.Crack], viewFilterType: H3Service.ViewFilterType.Not);
 
-        Assert.Single(result.SelectMany(h => h.Images));
+        Assert.Single(result.ImageHexagons.SelectMany(h => h.Images));
     }
 
     [Fact]
