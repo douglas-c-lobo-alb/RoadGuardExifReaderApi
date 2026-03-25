@@ -11,6 +11,7 @@ namespace ExifApi.Services;
 public class H3Service
 {
     private readonly int _appResolution;
+    private readonly int _anomalyResolution;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<H3Service> _logger;
 
@@ -19,6 +20,7 @@ public class H3Service
         _context = context;
         _logger = logger;
         _appResolution = configuration.GetValue<int>("H3:DefaultResolution", 15);
+        _anomalyResolution = configuration.GetValue<int>("H3:AnomalyResolution", 13);
     }
 
     public HexagonDto? LatLngToCell(double lat, double lon, int resolution)
@@ -99,13 +101,10 @@ public class H3Service
         ViewFilterType viewFilterType = ViewFilterType.Or,
         List<AnomalyType>? anomalies = null,
         DateOnly? startDate = null,
-        DateOnly? endDate = null,
-        int resolution = 15)
+        DateOnly? endDate = null)
     {
-        // TODO: later try to implement this as a syntatic sugarred LINQ query
         var images = await _context.Images
             .Include(i => i.Hexagon)
-            .Include(i => i.Anomalies)
             .Where(i => startDate == null || DateOnly.FromDateTime((DateTime)i.DateTaken!) >= startDate)
             .Where(i => endDate == null || DateOnly.FromDateTime((DateTime)i.DateTaken!) <= endDate)
             .Where(i => i.Hexagon != null
@@ -115,59 +114,92 @@ public class H3Service
                 && i.Longitude <= (decimal)lonMax)
             .ToListAsync();
 
+        var parentIndices = images
+            .Where(i => i.Hexagon != null)
+            .Select(i => H3Net.H3ToString(
+                H3Net.CellToParent(H3Net.StringToH3(i.Hexagon!.H3Index), _anomalyResolution)))
+            .Distinct()
+            .ToList();
+
+        var anomalyHexagons = await _context.Hexagons
+            .Include(h => h.Anomalies)
+            .Include(h => h.Turbulences)
+            .Where(h => parentIndices.Contains(h.H3Index))
+            .ToListAsync();
+
+        var anomalyHexSet = anomalyHexagons.Select(h => h.H3Index).ToHashSet();
+
         if (anomalies is not null && anomalies.Any())
-            images = viewFilterType switch
+            anomalyHexagons = viewFilterType switch
             {
-                ViewFilterType.Or => images.Where(i => i.Anomalies.Any(a => anomalies.Contains(a.Kind))).ToList(),
-                ViewFilterType.And => images.Where(i => anomalies.All(type => i.Anomalies.Any(a => a.Kind == type))).ToList(),
-                ViewFilterType.Not => images.Where(i => !i.Anomalies.Any(a => anomalies.Contains(a.Kind))).ToList(),
-                _ => images
+                ViewFilterType.Or => anomalyHexagons.Where(h => h.Anomalies.Any(a => anomalies.Contains(a.Kind))).ToList(),
+                ViewFilterType.And => anomalyHexagons.Where(h => anomalies.All(type => h.Anomalies.Any(a => a.Kind == type))).ToList(),
+                ViewFilterType.Not => anomalyHexagons.Where(h => !h.Anomalies.Any(a => anomalies.Contains(a.Kind))).ToList(),
+                _ => anomalyHexagons
             };
 
         _logger.LogDebug("viewFilterType is {ViewFilterType}", viewFilterType);
 
-        if (resolution == 15)
+        // When filtering by anomaly, only return parent hexes that passed the filter.
+        // For Not, also include parent hexes with no anomaly entries in the DB at all.
+        IEnumerable<string> outputIndices;
+        if (anomalies is not null && anomalies.Any())
         {
-            return images
-                .GroupBy(i => i.Hexagon!.H3Index)
-                .Select(g => new HexagonViewDto
-                {
-                    H3Index = g.Key,
-                    Resolution = resolution,
-                    Images = g.Select(i => new ImageViewDto
-                    {
-                        Id = i.Id,
-                        FilePath = i.FilePath,
-                        DateTaken = i.DateTaken,
-                        Metadata = i.Metadata,
-                    }).ToList(),
-                    Turbulences = []
-                }).ToList();
+            var filtered = anomalyHexagons.Select(h => h.H3Index).ToHashSet();
+            if (viewFilterType == ViewFilterType.Not)
+            {
+                var noAnomalyParents = parentIndices.Where(p => !anomalyHexSet.Contains(p));
+                outputIndices = filtered.Union(noAnomalyParents);
+            }
+            else
+            {
+                outputIndices = filtered;
+            }
+        }
+        else
+        {
+            outputIndices = parentIndices;
         }
 
-        // Roll up to the requested resolution, then group and deduplicate
-        return images
-            .Select(i =>
+        return outputIndices.Select(parentIdx =>
+        {
+            var imagesInHex = images
+                .Where(i => i.Hexagon != null &&
+                    H3Net.H3ToString(H3Net.CellToParent(
+                        H3Net.StringToH3(i.Hexagon!.H3Index), _anomalyResolution)) == parentIdx)
+                .ToList();
+            var hex = anomalyHexagons.FirstOrDefault(h => h.H3Index == parentIdx);
+            return new HexagonViewDto
             {
-                var raw = H3Net.StringToH3(i.Hexagon!.H3Index);
-                var parent = H3Net.CellToParent(raw, resolution);
-                return new { ParentIndex = H3Net.H3ToString(parent), Image = i };
-            })
-            .GroupBy(x => x.ParentIndex)
-            .Select(g => new HexagonViewDto
-            {
-                H3Index = g.Key,
-                Resolution = resolution,
-                Images = g.Select(x => new ImageViewDto
+                H3Index = parentIdx,
+                Resolution = _anomalyResolution,
+                Images = imagesInHex.Select(i => new ImageViewDto
                 {
-                    Id = x.Image.Id,
-                    FilePath = x.Image.FilePath,
-                    DateTaken = x.Image.DateTaken,
-                    Metadata = x.Image.Metadata,
+                    Id = i.Id,
+                    FilePath = i.FilePath,
+                    DateTaken = i.DateTaken,
+                    Metadata = i.Metadata,
                 }).ToList(),
-                Turbulences = []
-            })
-            .ToList();
+                Anomalies = hex?.Anomalies.Select(a => new RoadVisualAnomalyViewDto
+                {
+                    Id = a.Id,
+                    Kind = a.Kind,
+                    Confidence = a.Confidence,
+                    BoxX1 = a.BoxX1,
+                    BoxY1 = a.BoxY1,
+                    BoxX2 = a.BoxX2,
+                    BoxY2 = a.BoxY2,
+                    ResolvedAt = a.ResolvedAt
+                }).ToList() ?? [],
+                Turbulences = hex?.Turbulences.Select(t => new RoadTurbulenceViewDto
+                {
+                    Id = t.Id,
+                    Index = t.Index,
+                    Kind = t.Kind,
+                    CreatedDate = t.CreatedDate
+                }).ToList() ?? []
+            };
+        }).ToList();
     }
 
     public async Task<List<ImageInfoDto>> GetHexagonImagesMetadata(string h3Index)
@@ -224,10 +256,7 @@ public class H3Service
             {
                 Hexagon = h,
                 ImageCount = _context.Images.Count(i => i.HexagonId == h.Id),
-                AnomalyCount = _context.Images
-                    .Where(i => i.HexagonId == h.Id)
-                    .SelectMany(i => i.Anomalies)
-                    .Count()
+                AnomalyCount = _context.RoadVisualAnomalies.Count(a => a.HexagonId == h.Id)
             })
             .ToListAsync();
 
