@@ -12,8 +12,7 @@ public static class H3Endpoints
     public static void MapH3Endpoints(this RouteGroupBuilder api)
     {
         RouteGroupBuilder group = api.MapGroup("/h3")
-            .WithName("H3")
-            .WithOpenApi();
+            .WithName("H3");
 
         group.MapGet("/cell", GetCell)
             .WithName("GetH3Cell")

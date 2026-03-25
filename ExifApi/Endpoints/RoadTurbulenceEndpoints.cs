@@ -8,8 +8,7 @@ public static class RoadTurbulenceEndpoints
     public static void MapRoadTurbulenceEndpoints(this RouteGroupBuilder api)
     {
         RouteGroupBuilder group = api.MapGroup("/turbulences")
-            .WithName("Turbulence")
-            .WithOpenApi();
+            .WithName("Turbulence");
 
         group.MapGet("/", GetAll)
             .WithName("GetAllTurbulence")

@@ -8,8 +8,7 @@ public static class MetadataEndpoints
     public static void MapMetadataEndpoints(this RouteGroupBuilder api)
     {
         RouteGroupBuilder group = api.MapGroup("/metadata")
-            .WithName("Metadata")
-            .WithOpenApi();
+            .WithName("Metadata");
         group.MapGet("/", GetMetadataAll)
             .WithName("GetAllMetadata")
             .WithDescription("Retrieves all images metadata");

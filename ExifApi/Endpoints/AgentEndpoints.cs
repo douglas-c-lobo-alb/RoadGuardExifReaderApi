@@ -8,8 +8,7 @@ public static class AgentEndpoints
     public static void MapAgentEndpoints(this RouteGroupBuilder api)
     {
         var group = api.MapGroup("/agents")
-            .WithName("Agents")
-            .WithOpenApi();
+            .WithName("Agents");
 
         group.MapGet("/", GetAll)
             .WithName("GetAllAgents");

@@ -8,8 +8,7 @@ public static class VoteEndpoints
     public static void MapVoteEndpoints(this RouteGroupBuilder api)
     {
         var group = api.MapGroup("/votes")
-            .WithName("Votes")
-            .WithOpenApi();
+            .WithName("Votes");
 
         group.MapGet("/anomaly", GetAll)
             .WithName("GetAllVotes");

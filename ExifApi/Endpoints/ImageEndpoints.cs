@@ -9,8 +9,7 @@ public static class ImageEndpoints
     public static void MapImageEndpoints(this RouteGroupBuilder api)
     {
         var group = api.MapGroup("/images")
-            .WithName("Images")
-            .WithOpenApi();
+            .WithName("Images");
 
         group.MapGet("/", GetAll)
             .WithName("GetAllImages")

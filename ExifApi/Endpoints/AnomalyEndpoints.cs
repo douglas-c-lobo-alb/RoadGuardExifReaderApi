@@ -8,8 +8,7 @@ public static class AnomalyEndpoints
     public static void MapAnomalyEndpoints(this RouteGroupBuilder api)
     {
         RouteGroupBuilder group = api.MapGroup("/anomalies")
-            .WithName("Anomalies")
-            .WithOpenApi();
+            .WithName("Anomalies");
 
         group.MapGet("/", GetAll)
             .WithName("GetAllAnomalies")

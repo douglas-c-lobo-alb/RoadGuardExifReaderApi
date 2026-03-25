@@ -8,8 +8,7 @@ public static class HexagonEndpoints
     public static void MapHexagonEndpoints(this RouteGroupBuilder api)
     {
         var group = api.MapGroup("/hexagons")
-            .WithName("Hexagons")
-            .WithOpenApi();
+            .WithName("Hexagons");
 
         group.MapGet("/", GetAll)
             .WithName("GetAllHexagons")
