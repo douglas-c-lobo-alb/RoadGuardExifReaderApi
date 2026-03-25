@@ -178,7 +178,6 @@ public class H3Service
                     Id = i.Id,
                     FilePath = i.FilePath,
                     DateTaken = i.DateTaken,
-                    Metadata = i.Metadata,
                 }).ToList(),
                 Anomalies = hex?.Anomalies.Select(a => new RoadVisualAnomalyViewDto
                 {
