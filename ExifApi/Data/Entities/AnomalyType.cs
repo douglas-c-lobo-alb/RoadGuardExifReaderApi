@@ -7,10 +7,10 @@ public enum AnomalyType
 {
     None,
     Pothole,
-    Crack,
+    RoadCrack,
     MissingRoadSign,
     WaterLeakage,
-    AnimalCorpse,
+    RoadObstruction,
     MissingCrosswalk,
     DeterioratedMarkings
 }

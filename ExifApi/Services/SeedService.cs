@@ -22,8 +22,8 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
 
     private static readonly AnomalyType[] AnomalyTypes =
     [
-        AnomalyType.Pothole, AnomalyType.Crack, AnomalyType.MissingRoadSign,
-        AnomalyType.WaterLeakage, AnomalyType.AnimalCorpse
+        AnomalyType.Pothole, AnomalyType.RoadCrack, AnomalyType.MissingRoadSign,
+        AnomalyType.WaterLeakage, AnomalyType.RoadObstruction
     ];
 
     private static readonly string[] NoteSeverities = ["low", "medium", "high"];

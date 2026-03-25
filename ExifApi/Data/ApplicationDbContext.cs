@@ -71,6 +71,10 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(v => v.ImageId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        modelBuilder.Entity<Hexagon>()
+            .HasIndex(h => h.H3Index)
+            .IsUnique();
+
         modelBuilder.Entity<Image>()
             .Property(i => i.Metadata)
             .HasConversion(

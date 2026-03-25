@@ -57,7 +57,7 @@ public class VoteEndpointsTests : IDisposable
         {
             Latitude = 37.0997m,
             Longitude = -8.6827m,
-            Kind = AnomalyType.Crack,
+            Kind = AnomalyType.RoadCrack,
             Confidence = 0.8m,
             BoxX1 = 5, BoxY1 = 5, BoxX2 = 50, BoxY2 = 50
         };
@@ -68,7 +68,7 @@ public class VoteEndpointsTests : IDisposable
         var body = await response.Content.ReadFromJsonAsync<VoteDto>(ExifApiFactory.JsonOptions);
         Assert.NotNull(body);
         Assert.True(body.HexagonId > 0);
-        Assert.Equal(AnomalyType.Crack, body.Kind);
+        Assert.Equal(AnomalyType.RoadCrack, body.Kind);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class VoteEndpointsTests : IDisposable
         await ctx.SaveChangesAsync();
         ctx.Votes.AddRange(
             new Vote { HexagonId = hex.Id, Kind = AnomalyType.Pothole, CreatedDate = DateTime.UtcNow, LastModifiedDate = DateTime.UtcNow },
-            new Vote { HexagonId = hex.Id, Kind = AnomalyType.Crack, CreatedDate = DateTime.UtcNow, LastModifiedDate = DateTime.UtcNow });
+            new Vote { HexagonId = hex.Id, Kind = AnomalyType.RoadCrack, CreatedDate = DateTime.UtcNow, LastModifiedDate = DateTime.UtcNow });
         await ctx.SaveChangesAsync();
 
         var response = await _client.GetAsync("api/votes/anomaly");
