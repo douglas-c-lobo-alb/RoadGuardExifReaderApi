@@ -3,6 +3,7 @@ using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Dtos;
 using H3Standard;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
 
@@ -19,7 +20,7 @@ public class H3Service
     {
         _context = context;
         _logger = logger;
-        _appResolution = configuration.GetValue<int>("H3:DefaultResolution", 15);
+        _appResolution = configuration.GetValue<int>("H3:DefaultResolution", 13);
         _anomalyResolution = configuration.GetValue<int>("H3:AnomalyResolution", 13);
     }
 
@@ -144,6 +145,9 @@ public class H3Service
             .ToListAsync();
 
         var anomalyHexSet = anomalyHexagons.Select(h => h.H3Index).ToHashSet();
+
+        if (Enum.IsDefined(typeof(ViewFilterType), viewFilterType) is not true)
+            viewFilterType = ViewFilterType.Or;
 
         if (anomalies is not null && anomalies.Any())
             anomalyHexagons = viewFilterType switch

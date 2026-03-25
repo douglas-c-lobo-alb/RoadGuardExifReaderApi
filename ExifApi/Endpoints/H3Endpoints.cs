@@ -32,7 +32,7 @@ public static class H3Endpoints
 
         group.MapPost("/generate", GenerateHexagons)
             .WithName("GenerateHexagons")
-            .WithDescription("Generates H3 cells at res 15 for all images missing one");
+            .WithDescription("Generates H3 cells at res 13 for all images missing one");
 
         group.MapGet("/view", GetViewport)
             .WithName("GetH3Viewport")
@@ -59,7 +59,7 @@ public static class H3Endpoints
     {
         var result = h3Service.LatLngToCell(lat, lon, resolution);
         return result is null
-            ? Results.BadRequest("H3 conversion failed — check lat, lon and resolution (0-15)")
+            ? Results.BadRequest("H3 conversion failed — check lat, lon and resolution (0-13)")
             : Results.Ok(result);
     }
 
@@ -89,7 +89,7 @@ public static class H3Endpoints
         string lonMin,
         string lonMax,
         H3Service h3Service,
-        H3Service.ViewFilterType viewFilterType = H3Service.ViewFilterType.Or,
+        string? viewFilterType = null,
         [FromQuery] AnomalyType[]? anomalies = null,
         DateOnly? startDate = null,
         DateOnly? endDate = null,
@@ -110,12 +110,20 @@ public static class H3Endpoints
             return Results.BadRequest("lonMin must be less than lonMax");
         if (startDate > endDate)
             return Results.BadRequest($"startDate ({startDate}) must be before endDate ({endDate})");
-        if  (!Enum.GetNames(typeof(H3Service.ViewFilterType)).ToList().Contains(viewFilterType.ToString()))
-            return Results.BadRequest($"invalid filter type, allowed ones: {Enum.GetNames(typeof(H3Service.ViewFilterType)).ToList()}");
+
+        H3Service.ViewFilterType filterType;
+        if (viewFilterType is null)
+        {
+            filterType = H3Service.ViewFilterType.Or;
+        }
+        else if (!Enum.TryParse<H3Service.ViewFilterType>(viewFilterType, ignoreCase: true, out filterType))
+        {
+            return Results.BadRequest($"Invalid viewFilterType '{viewFilterType}'. Allowed: {string.Join(", ", Enum.GetNames<H3Service.ViewFilterType>())}");
+        }
 
         var result = await h3Service.GetHexagonsByViewportAsync(
             latMinD, latMaxD, lonMinD, lonMaxD,
-            viewFilterType, anomalies?.ToList(), startDate, endDate, resolution);
+            filterType, anomalies?.ToList(), startDate, endDate, resolution);
         return Results.Ok(result);
     }
 

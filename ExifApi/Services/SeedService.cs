@@ -134,36 +134,36 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         return images;
     }
 
-    private async Task<(Dictionary<string, Hexagon> res15Map, int[] anomalyHexIds)> CreateHexagonsAsync(List<Image> images)
+    private async Task<(Dictionary<string, Hexagon> appHexMap, int[] anomalyHexIds)> CreateHexagonsAsync(List<Image> images)
     {
-        var res15Map = new Dictionary<string, Hexagon>();
+        var appHexMap = new Dictionary<string, Hexagon>();
         var anomalyMap = new Dictionary<string, Hexagon>();
 
-        // Pre-compute res-15 and res-13 H3 indices for each image in one pass.
-        // res-13 is derived via CellToParent — identical to what GetHexagonsByViewportAsync does.
-        var res15Indices = new string?[images.Count];
+        // Pre-compute app-resolution and anomaly-resolution H3 indices for each image in one pass.
+        // Anomaly index is derived via CellToParent — identical to what GetHexagonsByViewportAsync does.
+        var appIndices = new string?[images.Count];
         var anomalyIndices = new string?[images.Count];
         for (int i = 0; i < images.Count; i++)
         {
-            var raw15 = H3Net.LatLngToCell((double)images[i].Latitude!.Value, (double)images[i].Longitude!.Value, 15);
-            if (raw15 == 0) continue;
-            var raw13 = H3Net.CellToParent(raw15, _anomalyResolution);
+            var rawApp = H3Net.LatLngToCell((double)images[i].Latitude!.Value, (double)images[i].Longitude!.Value, 13);
+            if (rawApp == 0) continue;
+            var raw13 = H3Net.CellToParent(rawApp, _anomalyResolution);
             if (raw13 == 0) continue;
-            res15Indices[i] = H3Net.H3ToString(raw15);
+            appIndices[i] = H3Net.H3ToString(rawApp);
             anomalyIndices[i] = H3Net.H3ToString(raw13);
         }
 
-        // Create unique res-15 hexagons
+        // Create unique app-resolution hexagons
         for (int i = 0; i < images.Count; i++)
         {
-            var idx = res15Indices[i];
-            if (idx is null || res15Map.ContainsKey(idx)) continue;
+            var idx = appIndices[i];
+            if (idx is null || appHexMap.ContainsKey(idx)) continue;
             var hex = new Hexagon { H3Index = idx, CreatedDate = DateTime.UtcNow };
-            res15Map[idx] = hex;
+            appHexMap[idx] = hex;
             db.Hexagons.Add(hex);
         }
 
-        // Create unique res-13 (anomaly) hexagons
+        // Create unique anomaly hexagons
         for (int i = 0; i < images.Count; i++)
         {
             var idx = anomalyIndices[i];
@@ -176,18 +176,18 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         // Save so PKs are assigned
         await db.SaveChangesAsync();
 
-        // Link images to their res-15 hexagon and build anomalyHexIds in one pass
+        // Link images to their app-resolution hexagon and build anomalyHexIds in one pass
         var anomalyHexIds = new int[images.Count];
         for (int i = 0; i < images.Count; i++)
         {
-            if (res15Indices[i] is not null && res15Map.TryGetValue(res15Indices[i]!, out var res15Hex))
-                images[i].HexagonId = res15Hex.Id;
+            if (appIndices[i] is not null && appHexMap.TryGetValue(appIndices[i]!, out var appHex))
+                images[i].HexagonId = appHex.Id;
 
             if (anomalyIndices[i] is not null && anomalyMap.TryGetValue(anomalyIndices[i]!, out var anomalyHex))
                 anomalyHexIds[i] = anomalyHex.Id;
         }
 
-        return (res15Map, anomalyHexIds);
+        return (appHexMap, anomalyHexIds);
     }
 
     private static JsonDocument BuildImageNotes(Random rng, int i) =>

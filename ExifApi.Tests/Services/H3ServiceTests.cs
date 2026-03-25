@@ -19,6 +19,8 @@ public class H3ServiceTests : IDisposable
 {
     // Known cell computed from lat=37.09973, lon=-8.68272 at res 15
     private const string KnownH3Index = "8f39100e1a500e2"; // res 15
+    // res-13 parent of KnownH3Index (resolution nibble f→d, last 6 bits set to 111111)
+    private const string KnownH3IndexRes13 = "8d39100e1a500ff"; // res 13
     private const double KnownLat = 37.09973;
     private const double KnownLon = -8.68272;
 
@@ -38,7 +40,7 @@ public class H3ServiceTests : IDisposable
         _context = new ApplicationDbContext(options);
         _context.Database.EnsureCreated();
 
-        var config = new ConfigurationBuilder().Build(); // uses default H3 resolution (15)
+        var config = new ConfigurationBuilder().Build(); // uses default H3 resolution (13)
         _service = new H3Service(_context, NullLogger<H3Service>.Instance, config);
     }
 
@@ -243,10 +245,10 @@ public class H3ServiceTests : IDisposable
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
-        // ImageHexagons: one res-15 entry per image hex
+        // ImageHexagons: one res-13 entry per image hex
         Assert.Single(result.ImageHexagons);
-        Assert.Equal(KnownH3Index, result.ImageHexagons[0].H3Index);
-        Assert.Equal(15, result.ImageHexagons[0].Resolution);
+        Assert.Equal(KnownH3IndexRes13, result.ImageHexagons[0].H3Index);
+        Assert.Equal(13, result.ImageHexagons[0].Resolution);
         Assert.Single(result.ImageHexagons[0].Images);
         Assert.Equal(1, result.ImageHexagons[0].Images[0].Id);
         // AnomalyHexagons: one res-13 entry per parent hex
@@ -274,7 +276,7 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
         Assert.NotEmpty(result.ImageHexagons);
-        Assert.All(result.ImageHexagons, h => Assert.Equal(15, h.Resolution));
+        Assert.All(result.ImageHexagons, h => Assert.Equal(13, h.Resolution));
         Assert.NotEmpty(result.AnomalyHexagons);
         Assert.All(result.AnomalyHexagons, h => Assert.Equal(13, h.Resolution));
     }
@@ -291,14 +293,15 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
         Assert.Equal(2, result.ImageHexagons.Count);
-        Assert.Contains(result.ImageHexagons, h => h.H3Index == cell1 && h.Images.Any(i => i.Id == 1));
-        Assert.Contains(result.ImageHexagons, h => h.H3Index == cell2 && h.Images.Any(i => i.Id == 2));
+        Assert.Contains(result.ImageHexagons, h => h.H3Index == "8d39100e1a500ff" && h.Images.Any(i => i.Id == 1));
+        Assert.Contains(result.ImageHexagons, h => h.H3Index == "8d39100e1a502ff" && h.Images.Any(i => i.Id == 2));
     }
 
     [Fact]
     public async Task GetHexagonsByViewportAsync_TwoCellsInSameParent_OneAnomalyHex()
     {
         // These two res-15 cells share the same res-13 parent (verified from DB)
+        // At res-13 they collapse into one image group
         const string cell1 = "8f39100e1a0d4c5";
         const string cell2 = "8f39100e1a0d4cc";
 
@@ -307,12 +310,12 @@ public class H3ServiceTests : IDisposable
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
-        Assert.Equal(2, result.ImageHexagons.Count);
-        Assert.Single(result.AnomalyHexagons); // one shared res-13 parent
+        Assert.Equal(1, result.ImageHexagons.Count); // both cells collapse to same res-13 group
+        Assert.Single(result.AnomalyHexagons);
     }
 
     [Fact]
-    public async Task GetHexagonsByViewportAsync_Resolution15_ImageInfoIsPopulated()
+    public async Task GetHexagonsByViewportAsync_Resolution13_ImageInfoIsPopulated()
     {
         SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index,
             dateTaken: new DateTime(2026, 2, 25));
@@ -674,8 +677,8 @@ public class H3ServiceTests : IDisposable
     {
         var random = new Random();
 
-        // Derive the res-15 image hexagon from lat/lon (mirrors what GenerateHexagonsAsync does)
-        var imgH3Raw = H3Net.LatLngToCell((double)lat, (double)lon, 15);
+        // Derive the res-13 image hexagon from lat/lon (mirrors what GenerateHexagonsAsync does)
+        var imgH3Raw = H3Net.LatLngToCell((double)lat, (double)lon, 13);
         var imgH3Index = H3Net.H3ToString(imgH3Raw);
 
         // Anomalies live on the res-13 parent hex
