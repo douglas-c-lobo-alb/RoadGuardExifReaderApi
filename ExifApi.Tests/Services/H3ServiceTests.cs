@@ -242,11 +242,10 @@ public class H3ServiceTests : IDisposable
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
-        // Viewport groups images at anomaly resolution (res-13), not the image's res-15 hex
-        var expectedParent = H3Net.H3ToString(H3Net.CellToParent(H3Net.StringToH3(KnownH3Index), 13));
+        // Viewport returns res-15 entries — one per image hex
         Assert.Single(result);
-        Assert.Equal(expectedParent, result[0].H3Index);
-        Assert.Equal(13, result[0].Resolution);
+        Assert.Equal(KnownH3Index, result[0].H3Index);
+        Assert.Equal(15, result[0].Resolution);
         Assert.Single(result[0].Images);
         Assert.Equal(1, result[0].Images[0].Id);
     }
@@ -270,11 +269,11 @@ public class H3ServiceTests : IDisposable
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
         Assert.NotEmpty(result);
-        Assert.All(result, h => Assert.Equal(13, h.Resolution));
+        Assert.All(result, h => Assert.Equal(15, h.Resolution));
     }
 
     [Fact]
-    public async Task GetHexagonsByViewportAsync_TwoCellsInSameParent_DeduplicatesAtAnomalyResolution()
+    public async Task GetHexagonsByViewportAsync_TwoCellsInSameParent_ReturnsTwoSeparateRes15Entries()
     {
         // Both res-15 cells are nearby in Portimão — they share the same res-13 parent
         const string cell1 = "8f39100e1a500e6";
@@ -285,10 +284,10 @@ public class H3ServiceTests : IDisposable
 
         var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66);
 
-        // Both images grouped under the same res-13 parent
-        var allImages = result.SelectMany(h => h.Images).ToList();
-        Assert.Contains(allImages, img => img.Id == 1);
-        Assert.Contains(allImages, img => img.Id == 2);
+        // Each res-15 hex gets its own entry; anomalies/turbulences from shared res-13 parent appear on both
+        Assert.Equal(2, result.Count);
+        Assert.Contains(result, h => h.H3Index == cell1 && h.Images.Any(i => i.Id == 1));
+        Assert.Contains(result, h => h.H3Index == cell2 && h.Images.Any(i => i.Id == 2));
     }
 
     [Fact]

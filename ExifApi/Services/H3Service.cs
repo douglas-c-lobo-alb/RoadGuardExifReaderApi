@@ -161,44 +161,46 @@ public class H3Service
             outputIndices = parentIndices;
         }
 
-        return outputIndices.Select(parentIdx =>
-        {
-            var imagesInHex = images
-                .Where(i => i.Hexagon != null &&
-                    H3Net.H3ToString(H3Net.CellToParent(
-                        H3Net.StringToH3(i.Hexagon!.H3Index), _anomalyResolution)) == parentIdx)
-                .ToList();
-            var hex = anomalyHexagons.FirstOrDefault(h => h.H3Index == parentIdx);
-            return new HexagonViewDto
+        var outputParentSet = outputIndices.ToHashSet();
+        var anomalyHexByIndex = anomalyHexagons.ToDictionary(h => h.H3Index);
+
+        var imageWithParent = images
+            .Where(i => i.Hexagon != null)
+            .Select(i => (
+                Image: i,
+                ParentIdx: H3Net.H3ToString(H3Net.CellToParent(H3Net.StringToH3(i.Hexagon!.H3Index), _anomalyResolution))
+            ))
+            .Where(x => outputParentSet.Contains(x.ParentIdx))
+            .ToList();
+
+        return imageWithParent
+            .GroupBy(x => x.Image.Hexagon!.H3Index)
+            .Select(group =>
             {
-                H3Index = parentIdx,
-                Resolution = _anomalyResolution,
-                Images = imagesInHex.Select(i => new ImageViewDto
+                var parentIdx = group.First().ParentIdx;
+                anomalyHexByIndex.TryGetValue(parentIdx, out var hex);
+                return new HexagonViewDto
                 {
-                    Id = i.Id,
-                    FilePath = i.FilePath,
-                    DateTaken = i.DateTaken,
-                }).ToList(),
-                Anomalies = hex?.Anomalies.Select(a => new RoadVisualAnomalyViewDto
-                {
-                    Id = a.Id,
-                    Kind = a.Kind,
-                    Confidence = a.Confidence,
-                    BoxX1 = a.BoxX1,
-                    BoxY1 = a.BoxY1,
-                    BoxX2 = a.BoxX2,
-                    BoxY2 = a.BoxY2,
-                    ResolvedAt = a.ResolvedAt
-                }).ToList() ?? [],
-                Turbulences = hex?.Turbulences.Select(t => new RoadTurbulenceViewDto
-                {
-                    Id = t.Id,
-                    Index = t.Index,
-                    Kind = t.Kind,
-                    CreatedDate = t.CreatedDate
-                }).ToList() ?? []
-            };
-        }).ToList();
+                    H3Index = group.Key,
+                    Resolution = _appResolution,
+                    Images = group.Select(x => new ImageViewDto
+                    {
+                        Id = x.Image.Id,
+                        FilePath = x.Image.FilePath,
+                        DateTaken = x.Image.DateTaken,
+                    }).ToList(),
+                    Anomalies = hex?.Anomalies.Select(a => new RoadVisualAnomalyViewDto
+                    {
+                        Id = a.Id, Kind = a.Kind, Confidence = a.Confidence,
+                        BoxX1 = a.BoxX1, BoxY1 = a.BoxY1, BoxX2 = a.BoxX2, BoxY2 = a.BoxY2,
+                        ResolvedAt = a.ResolvedAt
+                    }).ToList() ?? [],
+                    Turbulences = hex?.Turbulences.Select(t => new RoadTurbulenceViewDto
+                    {
+                        Id = t.Id, Index = t.Index, Kind = t.Kind, CreatedDate = t.CreatedDate
+                    }).ToList() ?? []
+                };
+            }).ToList();
     }
 
     public async Task<List<ImageInfoDto>> GetHexagonImagesMetadata(string h3Index)
