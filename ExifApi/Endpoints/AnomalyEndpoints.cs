@@ -8,8 +8,7 @@ public static class AnomalyEndpoints
     public static void MapAnomalyEndpoints(this RouteGroupBuilder api)
     {
         RouteGroupBuilder group = api.MapGroup("/anomalies")
-            .WithName("Anomalies")
-            .WithOpenApi();
+            .WithName("Anomalies");
 
         group.MapGet("/", GetAll)
             .WithName("GetAllAnomalies")
@@ -25,12 +24,6 @@ public static class AnomalyEndpoints
         group.MapPut("/{id:int}", Update)
             .WithName("UpdateAnomaly");
 
-        group.MapPost("/{id:int}/upvote", Upvote)
-            .WithName("UpvoteAnomaly");
-
-        group.MapPost("/{id:int}/downvote", Downvote)
-            .WithName("DownvoteAnomaly");
-
         group.MapDelete("/{id:int}", Delete)
             .WithName("DeleteAnomaly");
     }
@@ -39,7 +32,7 @@ public static class AnomalyEndpoints
     {
         var result = await svc.CreateAsync(dto);
         return result is null
-            ? Results.NotFound($"Image {dto.ImageId} not found")
+            ? Results.BadRequest("Must provide HexagonId, ImageId, or Latitude+Longitude")
             : Results.Created($"/api/anomalies/{result.Id}", result);
     }
 
@@ -55,18 +48,6 @@ public static class AnomalyEndpoints
     private static async Task<IResult> Update(int id, RoadVisualAnomalyUpdateDto dto, RoadVisualAnomalyService svc)
     {
         var result = await svc.UpdateAsync(id, dto);
-        return result is null ? Results.NotFound() : Results.Ok(result);
-    }
-
-    private static async Task<IResult> Upvote(int id, RoadVisualAnomalyService svc)
-    {
-        var result = await svc.UpvoteAsync(id);
-        return result is null ? Results.NotFound() : Results.Ok(result);
-    }
-
-    private static async Task<IResult> Downvote(int id, RoadVisualAnomalyService svc)
-    {
-        var result = await svc.DownvoteAsync(id);
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 

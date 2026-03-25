@@ -30,18 +30,13 @@
         <RadzenDataGridColumn TItem="AnomalyRow" Property="ImageFileName" Title="Image">
             <Template Context="t">@(t.ImageFileName ?? "—")</Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="AnomalyRow" Property="AnomalyType" Title="Type">
+        <RadzenDataGridColumn TItem="AnomalyRow" Property="Kind" Title="Type">
             <Template Context="t">
-                @t.AnomalyType.ToString()
+                @t.Kind.ToString()
             </Template>
         </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="AnomalyRow" Property="Confidence" Title="Confidence" Width="120px"
                               FormatString="{0:P1}" />
-        <RadzenDataGridColumn TItem="AnomalyRow" Property="UpVote" Title="Up" Width="60px" />
-        <RadzenDataGridColumn TItem="AnomalyRow" Property="DownVote" Title="Down" Width="70px" />
-        <RadzenDataGridColumn TItem="AnomalyRow" Property="AlreadyVoted" Title="Voted" Width="80px">
-            <Template Context="t">@(t.AlreadyVoted ? "Yes" : "No")</Template>
-        </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="AnomalyRow" Property="ResolvedAt" Title="Resolved"
                               Width="160px" FormatString="{0:yyyy-MM-dd HH:mm}" />
         <RadzenDataGridColumn TItem="AnomalyRow" Property="CreatedDate" Title="Date Created"
@@ -50,14 +45,6 @@
             <Template Context="t">
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center"
                              JustifyContent="JustifyContent.End" Gap="4px">
-                    @if (t.AlreadyVoted)
-                    {
-                        <RadzenBadge Text="Voted" BadgeStyle="BadgeStyle.Info" IsPill="true" />
-                    }
-                    <RadzenButton Icon="thumb_up" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
-                                  Click="@(() => Upvote(t))" />
-                    <RadzenButton Icon="thumb_down" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Small"
-                                  Click="@(() => Downvote(t))" />
                     <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
                                   Click="@(() => NavigationManager.NavigateTo($"/anomalies/{t.Id}/edit"))" />
                     <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
@@ -82,13 +69,10 @@
             var dtos = await client.GetFromJsonAsync<List<RoadVisualAnomalyDto>>("api/anomalies/") ?? [];
             anomalies = dtos.Select(d => new AnomalyRow(
                 d.Id,
-                d.Image?.Id,
-                d.Image?.FileName,
-                d.AnomalyType,
+                d.ImageId,
+                d.ImageFileName,
+                d.Kind,
                 d.Confidence,
-                d.AlreadyVoted,
-                d.UpVote,
-                d.DownVote,
                 d.ResolvedAt,
                 d.CreatedDate
             )).ToList();
@@ -96,40 +80,6 @@
         catch (Exception ex)
         {
             NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
-        }
-    }
-
-    private async Task Upvote(AnomalyRow t)
-    {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("ExifApi");
-            var response = await client.PostAsync($"api/anomalies/{t.Id}/upvote", null);
-            if (response.IsSuccessStatusCode)
-                await Load();
-            else
-                NotificationService.Notify(NotificationSeverity.Error, "Upvote failed", $"Status {(int)response.StatusCode}", 5000);
-        }
-        catch (Exception ex)
-        {
-            NotificationService.Notify(NotificationSeverity.Error, "Upvote failed", ex.Message, 5000);
-        }
-    }
-
-    private async Task Downvote(AnomalyRow t)
-    {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("ExifApi");
-            var response = await client.PostAsync($"api/anomalies/{t.Id}/downvote", null);
-            if (response.IsSuccessStatusCode)
-                await Load();
-            else
-                NotificationService.Notify(NotificationSeverity.Error, "Downvote failed", $"Status {(int)response.StatusCode}", 5000);
-        }
-        catch (Exception ex)
-        {
-            NotificationService.Notify(NotificationSeverity.Error, "Downvote failed", ex.Message, 5000);
         }
     }
 
@@ -160,11 +110,8 @@
         int Id,
         int? ImageId,
         string? ImageFileName,
-        AnomalyType AnomalyType,
+        AnomalyType Kind,
         decimal Confidence,
-        bool AlreadyVoted,
-        int UpVote,
-        int DownVote,
         DateTime? ResolvedAt,
         DateTime CreatedDate);
 }

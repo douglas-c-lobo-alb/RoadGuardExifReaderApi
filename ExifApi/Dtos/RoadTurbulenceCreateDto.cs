@@ -10,7 +10,8 @@ public class RoadTurbulenceCreateDto
     public int Index { get; set; }
 
     [Required]
-    public RoadTurbulenceType RoadTurbulenceType { get; set; }
+    public RoadTurbulenceType Kind { get; set; }
 
-    public int? ImageId { get; set; }
+    public int HexagonId { get; set; }
+    public int? AgentId { get; set; }
 }

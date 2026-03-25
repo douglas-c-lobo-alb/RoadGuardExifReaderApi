@@ -9,8 +9,7 @@ public static class IntrospectiveEndpoints
     {
         RouteGroupBuilder group = api.MapGroup("/introspection")
             .WithName("Introspection")
-            .WithDescription("Used to get code-first data")
-            .WithOpenApi();
+            .WithDescription("Used to get code-first data");
         group.MapGet("/anomalies", GetAnomalyTypes)
         .WithName("GetAnomalies")
         .WithDescription("Retrieves the list of available anomaly types");

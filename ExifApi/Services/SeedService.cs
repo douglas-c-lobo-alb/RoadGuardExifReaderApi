@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ExifApi.Data;
 using ExifApi.Data.Entities;
+using H3Standard;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +16,7 @@ public record SeedResult(
 
 public class SeedService(ApplicationDbContext db, ExifService exifService, H3Service h3Service, IWebHostEnvironment env, IConfiguration configuration)
 {
+    private readonly int _anomalyResolution = configuration.GetValue<int>("H3:AnomalyResolution", 13);
     private const double DefaultLat = 48.8566;
     private const double DefaultLon = 2.3522;
 
@@ -49,7 +51,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
 
         var rng = new Random(42);
         var images = BuildImages(rng);
-        var hexagonMap = await CreateHexagonsAsync(images);
+        var (hexagonMap, anomalyHexIds) = await CreateHexagonsAsync(images);
 
         db.Images.AddRange(images);
         await db.SaveChangesAsync();
@@ -57,7 +59,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         List<RoadTurbulence> turbulences = [];
         if (withTurbulences)
         {
-            turbulences = BuildTurbulences(images, rng);
+            turbulences = BuildTurbulences(images, anomalyHexIds, rng);
             db.RoadTurbulences.AddRange(turbulences);
             await db.SaveChangesAsync();
         }
@@ -65,7 +67,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         List<RoadVisualAnomaly> anomalies = [];
         if (withAnomalies)
         {
-            anomalies = BuildAnomalies(images, rng);
+            anomalies = BuildAnomalies(images, anomalyHexIds, rng);
             db.RoadVisualAnomalies.AddRange(anomalies);
             await db.SaveChangesAsync();
         }
@@ -76,6 +78,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
     public async Task ClearDatabaseAsync()
     {
         // Order respects FK constraints: dependents first
+        await db.Votes.ExecuteDeleteAsync();
         await db.RoadVisualAnomalies.ExecuteDeleteAsync();
         await db.RoadTurbulences.ExecuteDeleteAsync();
         await db.Images.ExecuteDeleteAsync();
@@ -84,7 +87,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         // Reset auto-increment counters so next inserts start from ID 1
         await db.Database.ExecuteSqlRawAsync("""
             DELETE FROM sqlite_sequence
-            WHERE name IN ('RoadVisualAnomalies', 'Images', 'RoadTurbulences', 'Hexagons');
+            WHERE name IN ('Votes', 'RoadVisualAnomalies', 'Images', 'RoadTurbulences', 'Hexagons');
             """);
     }
 
@@ -131,41 +134,60 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         return images;
     }
 
-    private async Task<Dictionary<string, Hexagon>> CreateHexagonsAsync(List<Image> images)
+    private async Task<(Dictionary<string, Hexagon> res15Map, int[] anomalyHexIds)> CreateHexagonsAsync(List<Image> images)
     {
-        var hexagonMap = new Dictionary<string, Hexagon>();
+        var res15Map = new Dictionary<string, Hexagon>();
+        var anomalyMap = new Dictionary<string, Hexagon>();
 
-        // Build unique hexagons from image coordinates
-        foreach (var image in images)
+        // Pre-compute res-15 and res-13 H3 indices for each image in one pass.
+        // res-13 is derived via CellToParent — identical to what GetHexagonsByViewportAsync does.
+        var res15Indices = new string?[images.Count];
+        var anomalyIndices = new string?[images.Count];
+        for (int i = 0; i < images.Count; i++)
         {
-            var dto = h3Service.LatLngToCell(
-                (double)image.Latitude!.Value,
-                (double)image.Longitude!.Value,
-                resolution: 15);
-
-            if (dto is null || hexagonMap.ContainsKey(dto.H3Index)) continue;
-
-            var hexagon = new Hexagon { H3Index = dto.H3Index, CreatedDate = DateTime.UtcNow };
-            hexagonMap[dto.H3Index] = hexagon;
-            db.Hexagons.Add(hexagon);
+            var raw15 = H3Net.LatLngToCell((double)images[i].Latitude!.Value, (double)images[i].Longitude!.Value, 15);
+            if (raw15 == 0) continue;
+            var raw13 = H3Net.CellToParent(raw15, _anomalyResolution);
+            if (raw13 == 0) continue;
+            res15Indices[i] = H3Net.H3ToString(raw15);
+            anomalyIndices[i] = H3Net.H3ToString(raw13);
         }
 
-        // Save first so PKs are assigned before we link images
+        // Create unique res-15 hexagons
+        for (int i = 0; i < images.Count; i++)
+        {
+            var idx = res15Indices[i];
+            if (idx is null || res15Map.ContainsKey(idx)) continue;
+            var hex = new Hexagon { H3Index = idx, CreatedDate = DateTime.UtcNow };
+            res15Map[idx] = hex;
+            db.Hexagons.Add(hex);
+        }
+
+        // Create unique res-13 (anomaly) hexagons
+        for (int i = 0; i < images.Count; i++)
+        {
+            var idx = anomalyIndices[i];
+            if (idx is null || anomalyMap.ContainsKey(idx)) continue;
+            var hex = new Hexagon { H3Index = idx, CreatedDate = DateTime.UtcNow };
+            anomalyMap[idx] = hex;
+            db.Hexagons.Add(hex);
+        }
+
+        // Save so PKs are assigned
         await db.SaveChangesAsync();
 
-        // Link images via FK only — avoids EF tracking images through navigation properties
-        foreach (var image in images)
+        // Link images to their res-15 hexagon and build anomalyHexIds in one pass
+        var anomalyHexIds = new int[images.Count];
+        for (int i = 0; i < images.Count; i++)
         {
-            var dto = h3Service.LatLngToCell(
-                (double)image.Latitude!.Value,
-                (double)image.Longitude!.Value,
-                resolution: 15);
+            if (res15Indices[i] is not null && res15Map.TryGetValue(res15Indices[i]!, out var res15Hex))
+                images[i].HexagonId = res15Hex.Id;
 
-            if (dto is not null && hexagonMap.TryGetValue(dto.H3Index, out var hexagon))
-                image.HexagonId = hexagon.Id;
+            if (anomalyIndices[i] is not null && anomalyMap.TryGetValue(anomalyIndices[i]!, out var anomalyHex))
+                anomalyHexIds[i] = anomalyHex.Id;
         }
 
-        return hexagonMap;
+        return (res15Map, anomalyHexIds);
     }
 
     private static JsonDocument BuildImageNotes(Random rng, int i) =>
@@ -177,13 +199,14 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         }
         """);
 
-    private static List<RoadVisualAnomaly> BuildAnomalies(List<Image> images, Random rng)
+    private static List<RoadVisualAnomaly> BuildAnomalies(List<Image> images, int[] anomalyHexIds, Random rng)
     {
         var anomalies = new List<RoadVisualAnomaly>();
 
         for (int i = 0; i < images.Count; i++)
         {
             if (rng.Next(30) != 0) continue;
+            if (anomalyHexIds[i] == 0) continue;
             int count = rng.Next(1, 4);
             for (int j = 0; j < count; j++)
             {
@@ -191,8 +214,9 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
                 int y1 = 50 + (j % 4) * 120;
                 anomalies.Add(new RoadVisualAnomaly
                 {
+                    HexagonId        = anomalyHexIds[i],
                     ImageId          = images[i].Id,
-                    AnomalyType      = AnomalyTypes[(i * 3 + j) % AnomalyTypes.Length],
+                    Kind             = AnomalyTypes[(i * 3 + j) % AnomalyTypes.Length],
                     Confidence       = Math.Round((decimal)(0.60 + rng.NextDouble() * 0.39), 2),
                     BoxX1 = x1, BoxY1 = y1, BoxX2 = x1 + 200, BoxY2 = y1 + 150,
                     CreatedDate      = DateTime.UtcNow,
@@ -204,22 +228,24 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         return anomalies;
     }
 
-    private static List<RoadTurbulence> BuildTurbulences(List<Image> images, Random rng)
+    private static List<RoadTurbulence> BuildTurbulences(List<Image> images, int[] anomalyHexIds, Random rng)
     {
         var turbulences = new List<RoadTurbulence>();
 
         for (int i = 0; i < images.Count; i++)
         {
             if (rng.Next(30) != 0) continue;
+            if (anomalyHexIds[i] == 0) continue;
             int count = rng.Next(1, 3);
             for (int k = 0; k < count; k++)
             {
                 turbulences.Add(new RoadTurbulence
                 {
-                    ImageId            = images[i].Id,
+                    HexagonId          = anomalyHexIds[i],
                     Index              = 1 + ((i + k) % 8),
-                    RoadTurbulenceType = TurbulenceTypes[(i + k) % TurbulenceTypes.Length],
-                    CreatedDate        = DateTime.UtcNow.AddDays(-rng.Next(0, 60))
+                    Kind               = TurbulenceTypes[(i + k) % TurbulenceTypes.Length],
+                    CreatedDate        = DateTime.UtcNow.AddDays(-rng.Next(0, 60)),
+                    LastModifiedDate   = DateTime.UtcNow
                 });
             }
         }

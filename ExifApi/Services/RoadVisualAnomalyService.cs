@@ -1,6 +1,7 @@
 using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Dtos;
+using H3Standard;
 using Microsoft.EntityFrameworkCore;
 
 namespace ExifApi.Services;
@@ -9,11 +10,13 @@ public class RoadVisualAnomalyService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<RoadVisualAnomalyService> _logger;
+    private readonly int _anomalyResolution;
 
-    public RoadVisualAnomalyService(ApplicationDbContext context, ILogger<RoadVisualAnomalyService> logger)
+    public RoadVisualAnomalyService(ApplicationDbContext context, ILogger<RoadVisualAnomalyService> logger, IConfiguration configuration)
     {
         _context = context;
         _logger = logger;
+        _anomalyResolution = configuration.GetValue<int>("H3:AnomalyResolution", 13);
     }
 
     public async Task<List<RoadVisualAnomalyDto>> GetAllAsync()
@@ -35,15 +38,61 @@ public class RoadVisualAnomalyService
 
     public async Task<RoadVisualAnomalyDto?> CreateAsync(RoadVisualAnomalyCreateDto dto)
     {
-        var imageExists = await _context.Images.AnyAsync(i => i.Id == dto.ImageId);
-        if (!imageExists) return null;
+        int? hexagonId = dto.HexagonId;
+
+        if (hexagonId is null && dto.ImageId.HasValue)
+        {
+            var image = await _context.Images.FirstOrDefaultAsync(i => i.Id == dto.ImageId.Value);
+            if (image is not null)
+            {
+                if (image.HexagonId.HasValue)
+                {
+                    hexagonId = image.HexagonId;
+                }
+                else if (image.Latitude.HasValue && image.Longitude.HasValue)
+                {
+                    var h3Raw = H3Net.LatLngToCell((double)image.Latitude.Value, (double)image.Longitude.Value, _anomalyResolution);
+                    if (h3Raw == 0) return null;
+                    var h3Index = H3Net.H3ToString(h3Raw);
+                    var hex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3Index);
+                    if (hex is null)
+                    {
+                        hex = new Hexagon { H3Index = h3Index };
+                        _context.Hexagons.Add(hex);
+                        await _context.SaveChangesAsync();
+                    }
+                    hexagonId = hex.Id;
+                }
+            }
+        }
+
+        if (hexagonId is null && dto.Latitude.HasValue && dto.Longitude.HasValue)
+        {
+            var h3Raw = H3Standard.H3Net.LatLngToCell((double)dto.Latitude.Value, (double)dto.Longitude.Value, _anomalyResolution);
+            if (h3Raw == 0) return null;
+            var h3Index = H3Standard.H3Net.H3ToString(h3Raw);
+            var hex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3Index);
+            if (hex is null)
+            {
+                hex = new Hexagon { H3Index = h3Index };
+                _context.Hexagons.Add(hex);
+                await _context.SaveChangesAsync();
+            }
+            hexagonId = hex.Id;
+        }
+
+        if (hexagonId is null) return null;
+
+        // Promote to anomaly resolution if the resolved hex is finer than _anomalyResolution
+        hexagonId = await PromoteToAnomalyResolutionAsync(hexagonId.Value);
 
         var entity = new RoadVisualAnomaly
         {
+            HexagonId = hexagonId.Value,
             ImageId = dto.ImageId,
-            AnomalyType = dto.AnomalyType,
+            Kind = dto.Kind,
             Confidence = dto.Confidence,
-            Notes = dto.Notes,
+            Metadata = dto.Metadata,
             BoxX1 = dto.BoxX1,
             BoxY1 = dto.BoxY1,
             BoxX2 = dto.BoxX2,
@@ -56,7 +105,7 @@ public class RoadVisualAnomalyService
         await _context.SaveChangesAsync();
         _logger.LogInformation("Created road visual anomaly id={Id} for image id={ImageId}", entity.Id, dto.ImageId);
 
-        await _context.Entry(entity).Reference(r => r.Image).LoadAsync();
+        await _context.Entry(entity).Reference(r => r.Image).LoadAsync(); // needed for ImageFileName in response
         return ToDto(entity);
     }
 
@@ -67,9 +116,9 @@ public class RoadVisualAnomalyService
             .FirstOrDefaultAsync(r => r.Id == id);
         if (record is null) return null;
 
-        record.AnomalyType = dto.AnomalyType;
+        record.Kind = dto.Kind;
         record.Confidence = dto.Confidence;
-        record.Notes = dto.Notes;
+        record.Metadata = dto.Metadata;
         record.BoxX1 = dto.BoxX1;
         record.BoxY1 = dto.BoxY1;
         record.BoxX2 = dto.BoxX2;
@@ -79,42 +128,6 @@ public class RoadVisualAnomalyService
 
         await _context.SaveChangesAsync();
         _logger.LogInformation("Updated road visual anomaly id={Id}", id);
-        return ToDto(record);
-    }
-
-    public async Task<RoadVisualAnomalyDto?> UpvoteAsync(int id)
-    {
-        var record = await _context.RoadVisualAnomalies
-            .Include(r => r.Image)
-            .FirstOrDefaultAsync(r => r.Id == id);
-        if (record is null) return null;
-
-        if (!record.AlreadyVoted)
-            record.AlreadyVoted = true;
-
-        record.UpVote++;
-        record.LastModifiedDate = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-        _logger.LogInformation("Upvoted road visual anomaly id={Id}", id);
-        return ToDto(record);
-    }
-
-    public async Task<RoadVisualAnomalyDto?> DownvoteAsync(int id)
-    {
-        var record = await _context.RoadVisualAnomalies
-            .Include(r => r.Image)
-            .FirstOrDefaultAsync(r => r.Id == id);
-        if (record is null) return null;
-
-        if (!record.AlreadyVoted)
-            record.AlreadyVoted = true;
-
-        record.DownVote++;
-        record.LastModifiedDate = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-        _logger.LogInformation("Downvoted road visual anomaly id={Id}", id);
         return ToDto(record);
     }
 
@@ -129,23 +142,37 @@ public class RoadVisualAnomalyService
         return true;
     }
 
+    private async Task<int> PromoteToAnomalyResolutionAsync(int hexagonId)
+    {
+        var hex = await _context.Hexagons.FindAsync(hexagonId);
+        if (hex is null) return hexagonId;
+
+        var h3Raw = H3Net.StringToH3(hex.H3Index);
+        if (H3Net.GetResolution(h3Raw) <= _anomalyResolution) return hexagonId;
+
+        var parentRaw = H3Net.CellToParent(h3Raw, _anomalyResolution);
+        if (parentRaw == 0) return hexagonId;
+
+        var parentIndex = H3Net.H3ToString(parentRaw);
+        var parentHex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == parentIndex);
+        if (parentHex is null)
+        {
+            parentHex = new Hexagon { H3Index = parentIndex };
+            _context.Hexagons.Add(parentHex);
+            await _context.SaveChangesAsync();
+        }
+        return parentHex.Id;
+    }
+
     private static RoadVisualAnomalyDto ToDto(RoadVisualAnomaly r) => new()
     {
         Id = r.Id,
-        AnomalyType = r.AnomalyType,
+        HexagonId = r.HexagonId,
+        ImageId = r.ImageId,
+        ImageFileName = r.Image?.FileName,
+        Kind = r.Kind,
         Confidence = r.Confidence,
-        Notes = r.Notes,
-        AlreadyVoted = r.AlreadyVoted,
-        UpVote = r.UpVote,
-        DownVote = r.DownVote,
-        Image = r.Image is null ? null : new ImageDto
-        {
-            Id = r.Image.Id,
-            FileName = r.Image.FileName,
-            FilePath = r.Image.FilePath,
-            CameraMake = r.Image.CameraMake,
-            CameraModel = r.Image.CameraModel,
-        },
+        Metadata = r.Metadata,
         BoxX1 = r.BoxX1,
         BoxY1 = r.BoxY1,
         BoxX2 = r.BoxX2,

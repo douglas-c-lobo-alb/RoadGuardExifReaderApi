@@ -5,8 +5,7 @@ public static class StatusEndpoints
     public static void MapStatusEndpoints(this RouteGroupBuilder api, IConfiguration configuration)
     {
         RouteGroupBuilder group = api.MapGroup("/status")
-            .WithName("Status")
-            .WithOpenApi();
+            .WithName("Status");
         group.MapGet("/", () => Results.Ok(new
         {
             app = "RoadGuard ExifApi",

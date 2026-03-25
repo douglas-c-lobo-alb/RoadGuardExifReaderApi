@@ -26,17 +26,15 @@ public class RoadTurbulenceService
 
     public async Task<RoadTurbulenceDto?> GetByIdAsync(int id)
     {
-        var record = await _context.RoadTurbulences
+        RoadTurbulence? record = await _context.RoadTurbulences
             .FirstOrDefaultAsync(r => r.Id == id);
         return record is null ? null : ToDto(record);
     }
 
     public async Task<List<RoadTurbulenceDto>> GetByH3IndexAsync(string h3Index)
     {
-        var records = await _context.RoadTurbulences
-            .Include(t => t.Image)
-            .ThenInclude(i => i!.Hexagon)
-            .Where(t => t.Image != null && t.Image.Hexagon != null && t.Image.Hexagon.H3Index == h3Index)
+        List<RoadTurbulence>? records = await _context.RoadTurbulences
+            .Where(t => t.Hexagon != null && t.Hexagon.H3Index == h3Index)
             .OrderByDescending(r => r.CreatedDate)
             .ToListAsync();
         return records.Select(ToDto).ToList();
@@ -50,9 +48,11 @@ public class RoadTurbulenceService
         var entities = dtos.Select(dto => new RoadTurbulence
         {
             Index = dto.Index,
-            RoadTurbulenceType = dto.RoadTurbulenceType,
-            ImageId = dto.ImageId,
-            CreatedDate = DateTime.UtcNow
+            Kind = dto.Kind,
+            HexagonId = dto.HexagonId,
+            AgentId = dto.AgentId,
+            CreatedDate = DateTime.UtcNow,
+            LastModifiedDate = DateTime.UtcNow
         }).ToList();
 
         _context.RoadTurbulences.AddRange(entities);
@@ -70,8 +70,10 @@ public class RoadTurbulenceService
         if (record is null) return null;
 
         record.Index = dto.Index;
-        record.RoadTurbulenceType = dto.RoadTurbulenceType;
-        record.ImageId = dto.ImageId;
+        record.Kind = dto.Kind;
+        if (dto.HexagonId != 0) record.HexagonId = dto.HexagonId;
+        record.AgentId = dto.AgentId;
+        record.LastModifiedDate = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
         _logger.LogInformation("Updated road turbulence id={Id}", id);
@@ -94,8 +96,10 @@ public class RoadTurbulenceService
     {
         Id = r.Id,
         Index = r.Index,
-        RoadTurbulenceType = r.RoadTurbulenceType,
-        ImageId = r.ImageId,
+        Kind = r.Kind,
+        HexagonId = r.HexagonId,
+        AgentId = r.AgentId,
         CreatedDate = r.CreatedDate,
+        LastModifiedDate = r.LastModifiedDate,
     };
 }
