@@ -29,7 +29,7 @@
                                   TextAlign="TextAlign.End">
                 <Template Context="a">
                     <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="me-1"
-                                  C:lick="@(() => NavigationManager.NavigateTo($"/agents/{a.Id}/edit"))" />
+                                  Click="@(() => NavigationManager.NavigateTo($"/agents/{a.Id}/edit"))" />
                     <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
                                   Click="@(() => ConfirmDelete(a))" />
                 </Template>
