@@ -4,37 +4,42 @@
 
 <RadzenPanelMenu>
     <RadzenPanelMenuItem Text="Dashboard" Icon="dashboard" Path="" Match="NavLinkMatch.All" />
-    <RadzenPanelMenuItem @key="@("images-" + IsActive("images"))" Text="Images" Icon="image" Path="images" Expanded="@IsActive("images")">
+    <RadzenPanelMenuItem @key="@("images-" + IsActive("images"))" Text="Images" Icon="image" Path="images"
+                         Expanded="@IsActive("images")">
         <ChildContent>
             <RadzenPanelMenuItem Text="Upload" Icon="upload" Path="images/upload" />
             <RadzenPanelMenuItem Text="Edit" Icon="edit" Path="images" Match="NavLinkMatch.All" />
         </ChildContent>
     </RadzenPanelMenuItem>
-    <RadzenPanelMenuItem @key="@("hexagons-" + IsActive("hexagons"))" Text="Hexagons" Icon="hexagon" Path="hexagons" Expanded="@IsActive("hexagons")">
+    <RadzenPanelMenuItem @key="@("hexagons-" + IsActive("hexagons"))" Text="Hexagons" Icon="hexagon" Path="hexagons"
+                         Expanded="@IsActive("hexagons")">
         <ChildContent>
             <RadzenPanelMenuItem Text="Create" Icon="add" Path="hexagons/create" />
             <RadzenPanelMenuItem Text="Edit" Icon="edit" Path="hexagons" Match="NavLinkMatch.All" />
         </ChildContent>
     </RadzenPanelMenuItem>
-    <RadzenPanelMenuItem @key="@("turbulences-" + IsActive("turbulences"))" Text="Turbulences" Icon="speed" Path="turbulences" Expanded="@IsActive("turbulences")">
+    <RadzenPanelMenuItem @key="@("turbulences-" + IsActive("turbulences"))" Text="Turbulences" Icon="speed"
+                         Path="turbulences" Expanded="@IsActive("turbulences")">
         <ChildContent>
             <RadzenPanelMenuItem Text="Create" Icon="add" Path="turbulences/create" />
             <RadzenPanelMenuItem Text="Edit" Icon="edit" Path="turbulences" Match="NavLinkMatch.All" />
         </ChildContent>
     </RadzenPanelMenuItem>
-    <RadzenPanelMenuItem @key="@("agents-" + IsActive("agents"))" Text="Agents" Icon="smart_toy" Path="agents" Expanded="@IsActive("agents")">
+    <RadzenPanelMenuItem @key="@("agents-" + IsActive("agents"))" Text="Agents" Icon="smart_toy" Path="agents"
+                         Expanded="@IsActive("agents")">
         <ChildContent>
             <RadzenPanelMenuItem Text="Create" Icon="add" Path="agents/create" />
             <RadzenPanelMenuItem Text="Edit" Icon="edit" Path="agents" Match="NavLinkMatch.All" />
         </ChildContent>
     </RadzenPanelMenuItem>
-    <RadzenPanelMenuItem Text="Seeding" Icon="grass" Path="seeding" />
-    <RadzenPanelMenuItem @key="@("anomalies-" + IsActive("anomalies"))" Text="Anomalies" Icon="warning" Path="anomalies" Expanded="@IsActive("anomalies")">
+    <RadzenPanelMenuItem @key="@("anomalies-" + IsActive("anomalies"))" Text="Anomalies" Icon="warning" Path="anomalies"
+                         Expanded="@IsActive("anomalies")">
         <ChildContent>
             <RadzenPanelMenuItem Text="Create" Icon="add" Path="anomalies/create" />
             <RadzenPanelMenuItem Text="Edit" Icon="edit" Path="anomalies" Match="NavLinkMatch.All" />
         </ChildContent>
     </RadzenPanelMenuItem>
+    <RadzenPanelMenuItem Text="Seeding" Icon="grass" Path="seeding" />
 </RadzenPanelMenu>
 
 @code {
@@ -50,7 +55,8 @@
     {
         var uri = NavigationManager.Uri;
         return uri.Contains($"/{section}/create", StringComparison.OrdinalIgnoreCase)
-            || uri.Contains($"/{section}/", StringComparison.OrdinalIgnoreCase) && uri.Contains("/edit", StringComparison.OrdinalIgnoreCase);
+            || uri.Contains($"/{section}/", StringComparison.OrdinalIgnoreCase) && uri.Contains("/edit",
+StringComparison.OrdinalIgnoreCase);
     }
 
     public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
