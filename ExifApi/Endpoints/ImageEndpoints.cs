@@ -1,6 +1,6 @@
 using ExifApi.Dtos;
 using ExifApi.Services;
-using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ExifApi.Endpoints;
 
@@ -8,44 +8,20 @@ public static class ImageEndpoints
 {
     public static void MapImageEndpoints(this RouteGroupBuilder api)
     {
-        RouteGroupBuilder group = api.MapGroup("/images")
-            .WithName("Images")
-            .WithOpenApi();
+        var group = api.MapGroup("/images")
+            .WithName("Images");
 
         group.MapGet("/", GetAll)
             .WithName("GetAllImages")
-            .WithDescription("[Backoffice usage only intented] Returns all registered images with their hexagon");
+            .WithDescription("[Backoffice usage only intended] Returns all registered images with their hexagon");
 
         group.MapGet("/{id:int}", GetById)
             .WithName("GetImageById");
 
         group.MapPost("/", Upload)
             .WithName("UploadImage")
-            .WithDescription("[Backoffice usage only intented] Uploads an image, extracts EXIF metadata and registers it in the database")
-            .DisableAntiforgery()
-            .WithOpenApi(op =>
-            {
-                op.RequestBody = new OpenApiRequestBody
-                {
-                    Required = true,
-                    Content =
-                    {
-                        ["multipart/form-data"] = new OpenApiMediaType
-                        {
-                            Schema = new OpenApiSchema
-                            {
-                                Type = "object",
-                                Properties =
-                                {
-                                    ["file"] = new OpenApiSchema { Type = "string", Format = "binary" }
-                                },
-                                Required = { "file" }
-                            }
-                        }
-                    }
-                };
-                return op;
-            });
+            .WithDescription("[Backoffice usage only intended] Uploads an image, extracts EXIF metadata and registers it in the database")
+            .DisableAntiforgery();
 
         group.MapPut("/{id:int}", Update)
             .WithName("UpdateImage")
@@ -53,7 +29,7 @@ public static class ImageEndpoints
 
         group.MapDelete("/{id:int}", Delete)
             .WithName("DeleteImage")
-            .WithDescription("[Backoffice usage only intented] Deletes an image");
+            .WithDescription("[Backoffice usage only intended] Deletes an image");
     }
 
     private static async Task<IResult> GetAll(ImageService imageService)
@@ -65,15 +41,18 @@ public static class ImageEndpoints
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 
-    private static async Task<IResult> Upload(IFormFile file, ImageService imageService)
+    private static async Task<IResult> Upload(IFormFile file, [FromForm] int? agentId, ImageService imageService)
     {
-        var result = await imageService.RegisterImageAsync(file);
-        return result is null
-            ? Results.BadRequest("Failed to register image")
-            : Results.Created($"/api/images/{result.Id}", result);
+        var result = await imageService.RegisterImageAsync(file, agentId);
+        if (result is null)
+            return agentId.HasValue
+                ? Results.BadRequest($"Agent with id={agentId} not found")
+                : Results.BadRequest("Failed to register image");
+
+        return Results.Created($"/api/images/{result.Id}", result);
     }
 
-    private static async Task<IResult> Update(int id, UpdateImageDto dto, ImageService imageService)
+    private static async Task<IResult> Update(int id, ImageUpdateDto dto, ImageService imageService)
     {
         var result = await imageService.UpdateAsync(id, dto);
         if (result is null)

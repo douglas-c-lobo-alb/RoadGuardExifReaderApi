@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace ExifApi.Dtos;
 
-public class UpdateImageDto
+public class ImageUpdateDto
 {
     public string? CameraMake { get; set; }
     public string? CameraModel { get; set; }
@@ -11,5 +11,5 @@ public class UpdateImageDto
     public decimal? Longitude { get; set; }
     public double? Altitude { get; set; }
     public decimal? Heading { get; set; }
-    public JsonDocument? AnomalyNotes { get; set; }
+    public JsonDocument? Metadata { get; set; }
 }

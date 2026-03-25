@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using ExifApi.Data.Entities;
 using ExifApi.Dtos;
+using Microsoft.EntityFrameworkCore;
 
 namespace ExifApi.Tests.Endpoints;
 
@@ -151,5 +152,56 @@ public class ImageEndpointsTests : IDisposable
         var response = await _client.DeleteAsync("api/images/99999");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /api/images/ — agentId form field
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Upload_WithValidAgentId_Returns201AndDtoWithAgentId()
+    {
+        using var ctx = _factory.CreateDbContext();
+        var agent = new Agent { Name = "Device-01" };
+        ctx.Agents.Add(agent);
+        await ctx.SaveChangesAsync();
+        int agentId = agent.Id;
+
+        var content = new MultipartFormDataContent();
+        content.Add(new ByteArrayContent(Encoding.UTF8.GetBytes("fake-jpeg")), "file", "agent_photo.jpg");
+        content.Add(new StringContent(agentId.ToString()), "agentId");
+
+        var response = await _client.PostAsync("api/images/", content);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var dto = await response.Content.ReadFromJsonAsync<ImageDto>();
+        Assert.NotNull(dto);
+        Assert.Equal(agentId, dto.AgentId);
+    }
+
+    [Fact]
+    public async Task Upload_WithInvalidAgentId_Returns400()
+    {
+        var content = new MultipartFormDataContent();
+        content.Add(new ByteArrayContent(Encoding.UTF8.GetBytes("fake-jpeg")), "file", "orphan_photo.jpg");
+        content.Add(new StringContent("99999"), "agentId");
+
+        var response = await _client.PostAsync("api/images/", content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Upload_WithoutAgentId_Returns201()
+    {
+        var content = new MultipartFormDataContent();
+        content.Add(new ByteArrayContent(Encoding.UTF8.GetBytes("fake-jpeg")), "file", "no_agent.jpg");
+
+        var response = await _client.PostAsync("api/images/", content);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var dto = await response.Content.ReadFromJsonAsync<ImageDto>();
+        Assert.NotNull(dto);
+        Assert.Null(dto.AgentId);
     }
 }

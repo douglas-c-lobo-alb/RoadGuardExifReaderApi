@@ -3,14 +3,15 @@ using ExifApi.Data.Entities;
 
 namespace ExifApi.Dtos;
 
-public class CreateRoadTurbulenceDto
+public class RoadTurbulenceCreateDto
 {
     [Required]
     [Range(0, 10)]
     public int Index { get; set; }
 
     [Required]
-    public RoadTurbulenceType RoadTurbulenceType { get; set; }
+    public RoadTurbulenceType Kind { get; set; }
 
-    public int? HexagonId { get; set; }
+    public int HexagonId { get; set; }
+    public int? AgentId { get; set; }
 }

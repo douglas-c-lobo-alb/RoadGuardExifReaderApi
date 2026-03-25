@@ -1,6 +1,6 @@
 namespace ExifApi.Dtos;
 
-public class UpdateHexagonDto
+public class HexagonUpdateDto
 {
     public int? ImageId { get; set; }
 

@@ -12,8 +12,7 @@ public static class H3Endpoints
     public static void MapH3Endpoints(this RouteGroupBuilder api)
     {
         RouteGroupBuilder group = api.MapGroup("/h3")
-            .WithName("H3")
-            .WithOpenApi();
+            .WithName("H3");
 
         group.MapGet("/cell", GetCell)
             .WithName("GetH3Cell")
@@ -90,11 +89,10 @@ public static class H3Endpoints
         string lonMin,
         string lonMax,
         H3Service h3Service,
-        H3Service.ViewFilterType viewFilterType = H3Service.ViewFilterType.Or, 
+        H3Service.ViewFilterType viewFilterType = H3Service.ViewFilterType.Or,
         [FromQuery] AnomalyType[]? anomalies = null,
         DateOnly? startDate = null,
-        DateOnly? endDate = null,
-        int resolution = 15)
+        DateOnly? endDate = null)
     {
         // ASP.NET Core joins duplicate query params with commas -- take the first value only
         static bool TryParseFirst(string raw, out double value) =>
@@ -109,8 +107,6 @@ public static class H3Endpoints
             return Results.BadRequest("latMin must be less than latMax");
         if (lonMinD >= lonMaxD)
             return Results.BadRequest("lonMin must be less than lonMax");
-        if (resolution < 0 || resolution > 15)
-            return Results.BadRequest("resolution must be between 0 and 15");
         if (startDate > endDate)
             return Results.BadRequest($"startDate ({startDate}) must be before endDate ({endDate})");
         if  (!Enum.GetNames(typeof(H3Service.ViewFilterType)).ToList().Contains(viewFilterType.ToString()))
@@ -124,8 +120,7 @@ public static class H3Endpoints
             viewFilterType,
             anomalies?.ToList(),
             startDate,
-            endDate,
-            resolution);
+            endDate);
         return Results.Ok(result);
     }
 

@@ -6,13 +6,12 @@ namespace ExifApi.Dtos;
 public class RoadVisualAnomalyDto
 {
     public int Id { get; set; }
-    public ImageDto? Image { get; set; }
-    public AnomalyType AnomalyType { get; set;}
-    public decimal Confidence {get;set;}
-    public JsonDocument? Notes {get;set;}
-    public bool AlreadyVoted { get;set;}
-    public int UpVote {get; set;}
-    public int DownVote {get; set;}
+    public int HexagonId { get; set; }
+    public int? ImageId { get; set; }
+    public string? ImageFileName { get; set; }
+    public AnomalyType Kind { get; set; }
+    public decimal Confidence { get; set; }
+    public JsonDocument? Metadata { get; set; }
     public int BoxX1 { get; set; }
     public int BoxY1 { get; set; }
     public int BoxX2 { get; set; }

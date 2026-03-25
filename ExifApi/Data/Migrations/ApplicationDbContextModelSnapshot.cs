@@ -15,7 +15,29 @@ namespace ExifApi.Data.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.13");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
+
+            modelBuilder.Entity("ExifApi.Data.Entities.Agent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Agents");
+                });
 
             modelBuilder.Entity("ExifApi.Data.Entities.Hexagon", b =>
                 {
@@ -30,6 +52,9 @@ namespace ExifApi.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime>("LastModifiedDate")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.ToTable("Hexagons");
@@ -39,6 +64,9 @@ namespace ExifApi.Data.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("AgentId")
                         .HasColumnType("INTEGER");
 
                     b.Property<double?>("Altitude")
@@ -81,17 +109,14 @@ namespace ExifApi.Data.Migrations
                         .HasPrecision(10, 6)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Notes")
+                    b.Property<string>("Metadata")
                         .HasColumnType("TEXT");
-
-                    b.Property<int?>("RoadTurbulenceId")
-                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("HexagonId");
+                    b.HasIndex("AgentId");
 
-                    b.HasIndex("RoadTurbulenceId");
+                    b.HasIndex("HexagonId");
 
                     b.ToTable("Images");
                 });
@@ -102,19 +127,30 @@ namespace ExifApi.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime>("DateCreated")
+                    b.Property<int?>("AgentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("HexagonId")
+                    b.Property<int>("HexagonId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Index")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("RoadTurbulenceType")
+                    b.Property<int>("Kind")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime>("LastModifiedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("AgentId");
 
                     b.HasIndex("HexagonId");
 
@@ -125,12 +161,6 @@ namespace ExifApi.Data.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("AlreadyVoted")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AnomalyType")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("BoxX1")
@@ -151,66 +181,174 @@ namespace ExifApi.Data.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("DownVote")
+                    b.Property<int>("HexagonId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("ImageId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("LastModifiedDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Notes")
+                    b.Property<string>("Metadata")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("ResolvedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("UpVote")
-                        .HasColumnType("INTEGER");
-
                     b.HasKey("Id");
+
+                    b.HasIndex("HexagonId");
 
                     b.HasIndex("ImageId");
 
                     b.ToTable("RoadVisualAnomalies");
                 });
 
+            modelBuilder.Entity("ExifApi.Data.Entities.Vote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("AgentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BoxX1")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BoxX2")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BoxY1")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BoxY2")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("Confidence")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("HexagonId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ImageId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("LastModifiedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentId");
+
+                    b.HasIndex("HexagonId");
+
+                    b.HasIndex("ImageId");
+
+                    b.ToTable("Votes");
+                });
+
             modelBuilder.Entity("ExifApi.Data.Entities.Image", b =>
                 {
+                    b.HasOne("ExifApi.Data.Entities.Agent", "Agent")
+                        .WithMany("Images")
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ExifApi.Data.Entities.Hexagon", "Hexagon")
                         .WithMany()
                         .HasForeignKey("HexagonId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("ExifApi.Data.Entities.RoadTurbulence", "RoadTurbulence")
-                        .WithMany()
-                        .HasForeignKey("RoadTurbulenceId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                    b.Navigation("Agent");
 
                     b.Navigation("Hexagon");
-
-                    b.Navigation("RoadTurbulence");
                 });
 
             modelBuilder.Entity("ExifApi.Data.Entities.RoadTurbulence", b =>
                 {
-                    b.HasOne("ExifApi.Data.Entities.Hexagon", "Hexagon")
+                    b.HasOne("ExifApi.Data.Entities.Agent", "Agent")
                         .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ExifApi.Data.Entities.Hexagon", "Hexagon")
+                        .WithMany("Turbulences")
                         .HasForeignKey("HexagonId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Agent");
 
                     b.Navigation("Hexagon");
                 });
 
             modelBuilder.Entity("ExifApi.Data.Entities.RoadVisualAnomaly", b =>
                 {
+                    b.HasOne("ExifApi.Data.Entities.Hexagon", "Hexagon")
+                        .WithMany("Anomalies")
+                        .HasForeignKey("HexagonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("ExifApi.Data.Entities.Image", "Image")
                         .WithMany("Anomalies")
                         .HasForeignKey("ImageId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Hexagon");
 
                     b.Navigation("Image");
+                });
+
+            modelBuilder.Entity("ExifApi.Data.Entities.Vote", b =>
+                {
+                    b.HasOne("ExifApi.Data.Entities.Agent", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ExifApi.Data.Entities.Hexagon", "Hexagon")
+                        .WithMany()
+                        .HasForeignKey("HexagonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ExifApi.Data.Entities.Image", "Image")
+                        .WithMany()
+                        .HasForeignKey("ImageId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Agent");
+
+                    b.Navigation("Hexagon");
+
+                    b.Navigation("Image");
+                });
+
+            modelBuilder.Entity("ExifApi.Data.Entities.Agent", b =>
+                {
+                    b.Navigation("Images");
+                });
+
+            modelBuilder.Entity("ExifApi.Data.Entities.Hexagon", b =>
+                {
+                    b.Navigation("Anomalies");
+
+                    b.Navigation("Turbulences");
                 });
 
             modelBuilder.Entity("ExifApi.Data.Entities.Image", b =>

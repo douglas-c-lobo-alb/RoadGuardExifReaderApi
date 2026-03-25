@@ -19,26 +19,23 @@ public class RoadTurbulenceService
     public async Task<List<RoadTurbulenceDto>> GetAllAsync()
     {
         var records = await _context.RoadTurbulences
-            .Include(r => r.Hexagon)
-            .OrderByDescending(r => r.DateCreated)
+            .OrderByDescending(r => r.CreatedDate)
             .ToListAsync();
         return records.Select(ToDto).ToList();
     }
 
     public async Task<RoadTurbulenceDto?> GetByIdAsync(int id)
     {
-        var record = await _context.RoadTurbulences
-            .Include(r => r.Hexagon)
+        RoadTurbulence? record = await _context.RoadTurbulences
             .FirstOrDefaultAsync(r => r.Id == id);
         return record is null ? null : ToDto(record);
     }
 
     public async Task<List<RoadTurbulenceDto>> GetByH3IndexAsync(string h3Index)
     {
-        var records = await _context.RoadTurbulences
-            .Include(r => r.Hexagon)
-            .Where(r => r.Hexagon != null && r.Hexagon.H3Index == h3Index)
-            .OrderByDescending(r => r.DateCreated)
+        List<RoadTurbulence>? records = await _context.RoadTurbulences
+            .Where(t => t.Hexagon != null && t.Hexagon.H3Index == h3Index)
+            .OrderByDescending(r => r.CreatedDate)
             .ToListAsync();
         return records.Select(ToDto).ToList();
     }
@@ -46,14 +43,16 @@ public class RoadTurbulenceService
     /// <summary>
     /// Inserts one or more turbulence records atomically (single transaction).
     /// </summary>
-    public async Task<List<RoadTurbulenceDto>> CreateAsync(IEnumerable<CreateRoadTurbulenceDto> dtos)
+    public async Task<List<RoadTurbulenceDto>> CreateAsync(IEnumerable<RoadTurbulenceCreateDto> dtos)
     {
         var entities = dtos.Select(dto => new RoadTurbulence
         {
             Index = dto.Index,
-            RoadTurbulenceType = dto.RoadTurbulenceType,
+            Kind = dto.Kind,
             HexagonId = dto.HexagonId,
-            DateCreated = DateTime.UtcNow
+            AgentId = dto.AgentId,
+            CreatedDate = DateTime.UtcNow,
+            LastModifiedDate = DateTime.UtcNow
         }).ToList();
 
         _context.RoadTurbulences.AddRange(entities);
@@ -61,32 +60,24 @@ public class RoadTurbulenceService
 
         _logger.LogInformation("Created {Count} road turbulence record(s)", entities.Count);
 
-        // Reload with Hexagon navigation
-        var ids = entities.Select(e => e.Id).ToHashSet();
-        var reloaded = await _context.RoadTurbulences
-            .Include(r => r.Hexagon)
-            .Where(r => ids.Contains(r.Id))
-            .ToListAsync();
-
-        return reloaded.Select(ToDto).ToList();
+        return entities.Select(ToDto).ToList();
     }
 
-    public async Task<RoadTurbulenceDto?> UpdateAsync(int id, CreateRoadTurbulenceDto dto)
+    public async Task<RoadTurbulenceDto?> UpdateAsync(int id, RoadTurbulenceCreateDto dto)
     {
         var record = await _context.RoadTurbulences
-            .Include(r => r.Hexagon)
             .FirstOrDefaultAsync(r => r.Id == id);
         if (record is null) return null;
 
         record.Index = dto.Index;
-        record.RoadTurbulenceType = dto.RoadTurbulenceType;
-        record.HexagonId = dto.HexagonId;
+        record.Kind = dto.Kind;
+        if (dto.HexagonId != 0) record.HexagonId = dto.HexagonId;
+        record.AgentId = dto.AgentId;
+        record.LastModifiedDate = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
         _logger.LogInformation("Updated road turbulence id={Id}", id);
 
-        // Reload to pick up any navigation changes
-        await _context.Entry(record).Reference(r => r.Hexagon).LoadAsync();
         return ToDto(record);
     }
 
@@ -105,14 +96,10 @@ public class RoadTurbulenceService
     {
         Id = r.Id,
         Index = r.Index,
-        RoadTurbulenceType = r.RoadTurbulenceType,
+        Kind = r.Kind,
         HexagonId = r.HexagonId,
-        DateCreated = r.DateCreated,
-        Hexagon = r.Hexagon is null ? null : new HexagonDto
-        {
-            Id = r.Hexagon.Id,
-            H3Index = r.Hexagon.H3Index,
-            Resolution = r.Hexagon.Resolution
-        }
+        AgentId = r.AgentId,
+        CreatedDate = r.CreatedDate,
+        LastModifiedDate = r.LastModifiedDate,
     };
 }

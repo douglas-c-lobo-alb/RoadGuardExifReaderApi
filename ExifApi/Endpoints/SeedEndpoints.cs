@@ -8,16 +8,13 @@ public static class SeedEndpoints
     {
         api.MapPost("/seed", SeedDatabase)
             .WithName("SeedDatabase")
-            .WithDescription("Clears the database and re-seeds it from wwwroot/images EXIF data with mock anomalies and turbulences")
-            .WithOpenApi();
+            .WithDescription("Clears the database and re-seeds it from wwwroot/images EXIF data with mock anomalies and turbulences");
         api.MapPost("/cleardatabase", ClearDatabase)
             .WithName("ClearDatabase")
-            .WithDescription("Clears the database")
-            .WithOpenApi();
+            .WithDescription("Clears the database");
         api.MapPost("/clearimages", ClearImages)
             .WithName("ClearImages")
-            .WithDescription("Deletes all files in the wwwroot/images folder")
-            .WithOpenApi();
+            .WithDescription("Deletes all files in the wwwroot/images folder");
     }
 
     private static async Task<IResult> SeedDatabase(

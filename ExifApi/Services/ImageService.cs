@@ -22,8 +22,18 @@ public class ImageService
         _imagesFolder = configuration.GetSection("Image:Path").Value ?? "images";
     }
 
-    public async Task<ImageDto?> RegisterImageAsync(IFormFile file)
+    public async Task<ImageDto?> RegisterImageAsync(IFormFile file, int? agentId = null)
     {
+        if (agentId.HasValue)
+        {
+            var agentExists = await _context.Agents.AnyAsync(a => a.Id == agentId.Value);
+            if (!agentExists)
+            {
+                _logger.LogWarning("Agent id={AgentId} not found", agentId.Value);
+                return null;
+            }
+        }
+
         var imagesPath = Path.Combine(_env.WebRootPath, _imagesFolder);
         Directory.CreateDirectory(imagesPath);
 
@@ -53,6 +63,7 @@ public class ImageService
         var image = new Image
         {
             FileName = fileName,
+            AgentId = agentId,
             CameraMake = metadata?.CameraMake,
             CameraModel = metadata?.CameraModel,
             DateTaken = metadata?.DateTaken,
@@ -88,7 +99,7 @@ public class ImageService
         return image is null ? null : ToDto(image);
     }
 
-    public async Task<ImageDto?> UpdateAsync(int id, UpdateImageDto dto)
+    public async Task<ImageDto?> UpdateAsync(int id, ImageUpdateDto dto)
     {
         var image = await _context.Images
             .Include(i => i.Hexagon)
@@ -103,7 +114,7 @@ public class ImageService
         image.Longitude = dto.Longitude;
         image.Altitude = dto.Altitude;
         image.Heading = dto.Heading;
-        image.Notes = dto.AnomalyNotes;
+        image.Metadata = dto.Metadata;
         image.LastModifiedDate = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -137,9 +148,9 @@ public class ImageService
         Longitude = image.Longitude,
         Altitude = image.Altitude,
         Heading = image.Heading,
-        Turbulence = image.RoadTurbulence?.Index,
-        AnomalyNotes = image.Notes,
+        Metadata = image.Metadata,
         AnomalyCount = image.Anomalies.Count,
+        AgentId = image.AgentId,
         Hexagon = image.Hexagon is null ? null : new HexagonDto
         {
             Id = image.Hexagon.Id,

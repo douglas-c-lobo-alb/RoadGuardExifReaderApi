@@ -23,8 +23,10 @@ builder.Services.AddScoped<ExifService>();
 builder.Services.AddScoped<RoadVisualAnomalyService>();
 builder.Services.AddScoped<H3Service>();
 builder.Services.AddScoped<ImageService>();
+builder.Services.AddScoped<AgentService>();
 builder.Services.AddScoped<RoadTurbulenceService>();
 builder.Services.AddScoped<SeedService>();
+builder.Services.AddScoped<VoteService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlite(
@@ -79,6 +81,7 @@ var api = app.MapGroup("/api");
 
 Image.SetConfiguration(app.Configuration);
 
+api.MapAgentEndpoints();
 api.MapStatusEndpoints(app.Configuration);
 api.MapMetadataEndpoints();
 api.MapH3Endpoints();
@@ -88,7 +91,7 @@ api.MapRoadTurbulenceEndpoints();
 api.MapAnomalyEndpoints();
 api.MapSeedEndpoints();
 api.MapIntrospectiveEndpoints();
-
+api.MapVoteEndpoints();
 
 app.Run();
 

@@ -8,8 +8,7 @@ public static class HexagonEndpoints
     public static void MapHexagonEndpoints(this RouteGroupBuilder api)
     {
         var group = api.MapGroup("/hexagons")
-            .WithName("Hexagons")
-            .WithOpenApi();
+            .WithName("Hexagons");
 
         group.MapGet("/", GetAll)
             .WithName("GetAllHexagons")
@@ -40,7 +39,7 @@ public static class HexagonEndpoints
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 
-    private static async Task<IResult> Create(CreateHexagonDto dto, H3Service h3Service)
+    private static async Task<IResult> Create(HexagonCreateDto dto, H3Service h3Service)
     {
         var result = await h3Service.CreateHexagonAsync(dto);
         return result is null
@@ -48,7 +47,7 @@ public static class HexagonEndpoints
             : Results.Created($"/api/hexagons/{result.Id}", result);
     }
 
-    private static async Task<IResult> Update(int id, UpdateHexagonDto dto, H3Service h3Service)
+    private static async Task<IResult> Update(int id, HexagonUpdateDto dto, H3Service h3Service)
     {
         var result = await h3Service.UpdateHexagonAsync(id, dto);
         if (result is null)
