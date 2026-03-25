@@ -271,20 +271,41 @@ public class H3Service
 
     public async Task<List<HexagonDto>> GetAllHexagonsAsync()
     {
-        var hexagons = await _context.Hexagons
-            .Select(h => new
-            {
-                Hexagon = h,
-                ImageCount = _context.Images.Count(i => i.HexagonId == h.Id),
-                AnomalyCount = _context.RoadVisualAnomalies.Count(a => a.HexagonId == h.Id)
-            })
+        var hexagons = await _context.Hexagons.ToListAsync();
+
+        // For each image, walk up the H3 hierarchy and accumulate counts at every ancestor.
+        // This lets coarser-resolution hexes (e.g. res-13) report the total image count
+        // across all their finer-resolution children that are stored in the DB.
+        var imageHexIndices = await _context.Images
+            .Where(i => i.HexagonId != null)
+            .Select(i => i.Hexagon!.H3Index)
             .ToListAsync();
 
-        return hexagons.Select(x =>
+        var ancestorCounts = new Dictionary<string, int>();
+        foreach (var h3Index in imageHexIndices)
         {
-            var dto = ToDtoFromEntity(x.Hexagon);
-            dto.ImageCount = x.ImageCount;
-            dto.AnomalyCount = x.AnomalyCount;
+            ancestorCounts[h3Index] = ancestorCounts.GetValueOrDefault(h3Index) + 1;
+            var raw = H3Net.StringToH3(h3Index);
+            var res = H3Net.GetResolution(raw);
+            for (int r = 0; r < res; r++)
+            {
+                var parentRaw = H3Net.CellToParent(raw, r);
+                if (parentRaw == 0) continue;
+                var parentIdx = H3Net.H3ToString(parentRaw);
+                ancestorCounts[parentIdx] = ancestorCounts.GetValueOrDefault(parentIdx) + 1;
+            }
+        }
+
+        var anomalyCounts = await _context.RoadVisualAnomalies
+            .GroupBy(a => a.HexagonId)
+            .Select(g => new { HexagonId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.HexagonId, x => x.Count);
+
+        return hexagons.Select(h =>
+        {
+            var dto = ToDtoFromEntity(h);
+            dto.ImageCount = ancestorCounts.GetValueOrDefault(h.H3Index, 0);
+            dto.AnomalyCount = anomalyCounts.GetValueOrDefault(h.Id, 0);
             return dto;
         }).ToList();
     }
