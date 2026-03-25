@@ -29,7 +29,7 @@
                                   TextAlign="TextAlign.End">
                 <Template Context="a">
                     <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="me-1"
-                                  Click="@(() => NavigationManager.NavigateTo($"/agents/{a.Id}/edit"))" />
+                                  C:lick="@(() => NavigationManager.NavigateTo($"/agents/{a.Id}/edit"))" />
                     <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
                                   Click="@(() => ConfirmDelete(a))" />
                 </Template>
@@ -56,14 +56,14 @@
         }
     }
 
-    private async Task ConfirmDelete(AgentRow t)
+    private async Task ConfirmDelete(AgentRow a)
     {
         var confirmed = await DialogService.Confirm(
-            $"Delete agent record #{t.Id}? This cannot be undone.",
+            $"Delete agent record #{a.Id}? This cannot be undone.",
             "Confirm Delete",
             new ConfirmOptions { OkButtonText = "Delete", CancelButtonText = "Cancel" });
         if (confirmed == true)
-            await Delete(t.Id);
+            await Delete(a.Id);
     }
 
     private async Task Delete(int id)

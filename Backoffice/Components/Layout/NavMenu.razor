@@ -4,6 +4,13 @@
 
 <RadzenPanelMenu>
     <RadzenPanelMenuItem Text="Dashboard" Icon="dashboard" Path="" Match="NavLinkMatch.All" />
+    <RadzenPanelMenuItem @key="@("agents-" + IsActive("agents"))" Text="Agents" Icon="delivery_truck_speed" Path="agents"
+                         Expanded="@IsActive("agents")">
+        <ChildContent>
+            <RadzenPanelMenuItem Text="Create" Icon="add" Path="agents/create" />
+            <RadzenPanelMenuItem Text="Edit" Icon="edit" Path="agents" Match="NavLinkMatch.All" />
+        </ChildContent>
+    </RadzenPanelMenuItem>
     <RadzenPanelMenuItem @key="@("images-" + IsActive("images"))" Text="Images" Icon="image" Path="images"
                          Expanded="@IsActive("images")">
         <ChildContent>
@@ -23,13 +30,6 @@
         <ChildContent>
             <RadzenPanelMenuItem Text="Create" Icon="add" Path="turbulences/create" />
             <RadzenPanelMenuItem Text="Edit" Icon="edit" Path="turbulences" Match="NavLinkMatch.All" />
-        </ChildContent>
-    </RadzenPanelMenuItem>
-    <RadzenPanelMenuItem @key="@("agents-" + IsActive("agents"))" Text="Agents" Icon="smart_toy" Path="agents"
-                         Expanded="@IsActive("agents")">
-        <ChildContent>
-            <RadzenPanelMenuItem Text="Create" Icon="add" Path="agents/create" />
-            <RadzenPanelMenuItem Text="Edit" Icon="edit" Path="agents" Match="NavLinkMatch.All" />
         </ChildContent>
     </RadzenPanelMenuItem>
     <RadzenPanelMenuItem @key="@("anomalies-" + IsActive("anomalies"))" Text="Anomalies" Icon="warning" Path="anomalies"
