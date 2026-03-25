@@ -46,9 +46,11 @@ public class RoadTurbulenceEndpointsTests : IDisposable
     public async Task GetAll_WithRecords_Returns200AndList()
     {
         using var ctx = _factory.CreateDbContext();
+        var hex = ctx.Hexagons.Add(new ExifApi.Data.Entities.Hexagon { H3Index = "8f39100e1a500e2" }).Entity;
+        await ctx.SaveChangesAsync();
         ctx.RoadTurbulences.AddRange(
-            new RoadTurbulence { Index = 3, Kind = RoadTurbulenceType.Pothole, CreatedDate = DateTime.UtcNow },
-            new RoadTurbulence { Index = 5, Kind = RoadTurbulenceType.Speedbump, CreatedDate = DateTime.UtcNow });
+            new RoadTurbulence { Index = 3, Kind = RoadTurbulenceType.Pothole, HexagonId = hex.Id, CreatedDate = DateTime.UtcNow },
+            new RoadTurbulence { Index = 5, Kind = RoadTurbulenceType.Speedbump, HexagonId = hex.Id, CreatedDate = DateTime.UtcNow });
         await ctx.SaveChangesAsync();
 
         var response = await _client.GetAsync("api/turbulences/");
@@ -67,10 +69,13 @@ public class RoadTurbulenceEndpointsTests : IDisposable
     public async Task GetById_ExistingRecord_Returns200WithDto()
     {
         using var ctx = _factory.CreateDbContext();
+        var hex = ctx.Hexagons.Add(new ExifApi.Data.Entities.Hexagon { H3Index = "8f39100e1a500e2" }).Entity;
+        await ctx.SaveChangesAsync();
         var record = new RoadTurbulence
         {
             Index = 7,
             Kind = RoadTurbulenceType.Depression,
+            HexagonId = hex.Id,
             CreatedDate = DateTime.UtcNow
         };
         ctx.RoadTurbulences.Add(record);
@@ -117,10 +122,14 @@ public class RoadTurbulenceEndpointsTests : IDisposable
     [Fact]
     public async Task Create_ValidRecords_Returns201AndList()
     {
+        using var ctx = _factory.CreateDbContext();
+        var hex = ctx.Hexagons.Add(new ExifApi.Data.Entities.Hexagon { H3Index = "8f39100e1a500e2" }).Entity;
+        await ctx.SaveChangesAsync();
+
         var dtos = new List<RoadTurbulenceCreateDto>
         {
-            new() { Index = 2, Kind = RoadTurbulenceType.Speedbump },
-            new() { Index = 4, Kind = RoadTurbulenceType.Pothole }
+            new() { Index = 2, Kind = RoadTurbulenceType.Speedbump, HexagonId = hex.Id },
+            new() { Index = 4, Kind = RoadTurbulenceType.Pothole, HexagonId = hex.Id }
         };
 
         var response = await _client.PostAsJsonAsync("api/turbulences/", dtos);
@@ -149,10 +158,13 @@ public class RoadTurbulenceEndpointsTests : IDisposable
     public async Task Update_ExistingRecord_Returns200WithUpdatedDto()
     {
         using var ctx = _factory.CreateDbContext();
+        var hex = ctx.Hexagons.Add(new ExifApi.Data.Entities.Hexagon { H3Index = "8f39100e1a500e2" }).Entity;
+        await ctx.SaveChangesAsync();
         var record = new RoadTurbulence
         {
             Index = 1,
             Kind = RoadTurbulenceType.Pothole,
+            HexagonId = hex.Id,
             CreatedDate = DateTime.UtcNow
         };
         ctx.RoadTurbulences.Add(record);
@@ -187,10 +199,13 @@ public class RoadTurbulenceEndpointsTests : IDisposable
     public async Task Delete_ExistingRecord_Returns204()
     {
         using var ctx = _factory.CreateDbContext();
+        var hex = ctx.Hexagons.Add(new ExifApi.Data.Entities.Hexagon { H3Index = "8f39100e1a500e2" }).Entity;
+        await ctx.SaveChangesAsync();
         var record = new RoadTurbulence
         {
             Index = 3,
             Kind = RoadTurbulenceType.Pothole,
+            HexagonId = hex.Id,
             CreatedDate = DateTime.UtcNow
         };
         ctx.RoadTurbulences.Add(record);
