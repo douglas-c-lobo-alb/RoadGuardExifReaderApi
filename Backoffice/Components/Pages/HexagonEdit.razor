@@ -96,7 +96,6 @@ else
             var hex = await client.GetFromJsonAsync<HexagonDto>($"api/hexagons/{Id}");
             if (hex is null) { NotificationService.Notify(NotificationSeverity.Error, "Not found", "Hexagon not found.", 5000); return; }
 
-            imageId    = hex.ImageId ?? 0;
             h3Index    = hex.H3Index;
             resolution = hex.Resolution;
             latitude   = hex.Lat;
