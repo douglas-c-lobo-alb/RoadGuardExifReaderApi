@@ -3,9 +3,10 @@ using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Dtos;
 using H3Standard;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
-using Microsoft.VisualBasic;
+
 namespace ExifApi.Services;
 
 public class H3Service
@@ -19,7 +20,7 @@ public class H3Service
     {
         _context = context;
         _logger = logger;
-        _appResolution = configuration.GetValue<int>("H3:DefaultResolution", 15);
+        _appResolution = configuration.GetValue<int>("H3:DefaultResolution", 13);
         _anomalyResolution = configuration.GetValue<int>("H3:AnomalyResolution", 13);
     }
 
@@ -101,8 +102,12 @@ public class H3Service
         ViewFilterType viewFilterType = ViewFilterType.Or,
         List<AnomalyType>? anomalies = null,
         DateOnly? startDate = null,
-        DateOnly? endDate = null)
+        DateOnly? endDate = null,
+        int? resolution = null)
     {
+        var effectiveImageRes = resolution ?? _appResolution;
+        var effectiveAnomalyRes = Math.Min(effectiveImageRes, _anomalyResolution);
+
         var images = await _context.Images
             .Include(i => i.Hexagon)
             .Where(i => startDate == null || DateOnly.FromDateTime((DateTime)i.DateTaken!) >= startDate)
@@ -121,14 +126,12 @@ public class H3Service
             .Distinct()
             .ToList();
 
-        // Load res-13 parent hexes for anomaly-kind filtering and anomaly output
         var anomalyHexagons = await _context.Hexagons
             .Include(h => h.Anomalies)
             .Include(h => h.Turbulences)
             .Where(h => parentIndices.Contains(h.H3Index))
             .ToListAsync();
 
-        // Also load direct image-level hexes that may carry anomalies (transitional: before full res-13 promotion)
         var imageHexIndices = images
             .Where(i => i.Hexagon != null)
             .Select(i => i.Hexagon!.H3Index)
@@ -143,6 +146,9 @@ public class H3Service
 
         var anomalyHexSet = anomalyHexagons.Select(h => h.H3Index).ToHashSet();
 
+        if (Enum.IsDefined(typeof(ViewFilterType), viewFilterType) is not true)
+            viewFilterType = ViewFilterType.Or;
+
         if (anomalies is not null && anomalies.Any())
             anomalyHexagons = viewFilterType switch
             {
@@ -154,8 +160,6 @@ public class H3Service
 
         _logger.LogDebug("viewFilterType is {ViewFilterType}", viewFilterType);
 
-        // When filtering by anomaly, only return parent hexes that passed the filter.
-        // For Not, also include parent hexes with no anomaly entries in the DB at all.
         IEnumerable<string> outputIndices;
         if (anomalies is not null && anomalies.Any())
         {
@@ -177,8 +181,6 @@ public class H3Service
 
         var outputParentSet = outputIndices.ToHashSet();
 
-        // Build anomaly/turbulence lookup by res-13 parent index, merging res-13 hex data
-        // and any direct-image-hex anomalies (transitional fallback for pre-promotion data)
         var parentAnomLookup = anomalyHexagons.ToDictionary(
             h => h.H3Index,
             h => (Anomalies: h.Anomalies.ToList(), Turbulences: h.Turbulences.ToList()));
@@ -199,18 +201,18 @@ public class H3Service
             .Where(i => i.Hexagon != null)
             .Select(i => (
                 Image: i,
-                ParentIdx: H3Net.H3ToString(H3Net.CellToParent(H3Net.StringToH3(i.Hexagon!.H3Index), _anomalyResolution))
+                ParentIdx: H3Net.H3ToString(H3Net.CellToParent(H3Net.StringToH3(i.Hexagon!.H3Index), _anomalyResolution)),
+                ImageGroupIdx: H3Net.H3ToString(H3Net.CellToParent(H3Net.StringToH3(i.Hexagon!.H3Index), effectiveImageRes))
             ))
             .Where(x => outputParentSet.Contains(x.ParentIdx))
             .ToList();
 
-        // res-15 entries: one per image hex, images only
         var imageHexList = imageWithParent
-            .GroupBy(x => x.Image.Hexagon!.H3Index)
+            .GroupBy(x => x.ImageGroupIdx)
             .Select(group => new HexagonViewDto
             {
                 H3Index = group.Key,
-                Resolution = _appResolution,
+                Resolution = effectiveImageRes,
                 Images = group.Select(x => new ImageViewDto
                 {
                     Id = x.Image.Id,
@@ -219,22 +221,28 @@ public class H3Service
                 }).ToList(),
             }).ToList();
 
-        // res-13 entries: one per parent hex, anomalies + turbulences only
         var anomalyHexList = outputParentSet
-            .Select(parentIdx =>
+            .GroupBy(parentIdx => H3Net.H3ToString(
+                H3Net.CellToParent(H3Net.StringToH3(parentIdx), effectiveAnomalyRes)))
+            .Select(group =>
             {
-                parentAnomLookup.TryGetValue(parentIdx, out var data);
+                var groupAnomalies = group
+                    .SelectMany(idx => parentAnomLookup.TryGetValue(idx, out var d) ? d.Anomalies : [])
+                    .DistinctBy(a => a.Id).ToList();
+                var groupTurbulences = group
+                    .SelectMany(idx => parentAnomLookup.TryGetValue(idx, out var d) ? d.Turbulences : [])
+                    .DistinctBy(t => t.Id).ToList();
                 return new AnomalyHexagonViewDto
                 {
-                    H3Index = parentIdx,
-                    Resolution = _anomalyResolution,
-                    Anomalies = (data.Anomalies ?? []).DistinctBy(a => a.Id).Select(a => new RoadVisualAnomalyViewDto
+                    H3Index = group.Key,
+                    Resolution = effectiveAnomalyRes,
+                    Anomalies = groupAnomalies.Select(a => new RoadVisualAnomalyViewDto
                     {
                         Id = a.Id, Kind = a.Kind, Confidence = a.Confidence,
                         BoxX1 = a.BoxX1, BoxY1 = a.BoxY1, BoxX2 = a.BoxX2, BoxY2 = a.BoxY2,
                         ResolvedAt = a.ResolvedAt
                     }).ToList(),
-                    Turbulences = (data.Turbulences ?? []).DistinctBy(t => t.Id).Select(t => new RoadTurbulenceViewDto
+                    Turbulences = groupTurbulences.Select(t => new RoadTurbulenceViewDto
                     {
                         Id = t.Id, Index = t.Index, Kind = t.Kind, CreatedDate = t.CreatedDate
                     }).ToList()
@@ -299,9 +307,6 @@ public class H3Service
     {
         var hexagons = await _context.Hexagons.ToListAsync();
 
-        // For each image, walk up the H3 hierarchy and accumulate counts at every ancestor.
-        // This lets coarser-resolution hexes (e.g. res-13) report the total image count
-        // across all their finer-resolution children that are stored in the DB.
         var imageHexIndices = await _context.Images
             .Where(i => i.HexagonId != null)
             .Select(i => i.Hexagon!.H3Index)
@@ -388,7 +393,6 @@ public class H3Service
             return null;
         }
 
-        // Reuse existing hexagon with same H3Index (spatial deduplication)
         var hexagon = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3IndexStr);
         if (hexagon is null)
         {
