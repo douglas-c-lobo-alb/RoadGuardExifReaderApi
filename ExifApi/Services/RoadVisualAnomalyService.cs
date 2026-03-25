@@ -22,7 +22,6 @@ public class RoadVisualAnomalyService
     {
         var records = await _context.RoadVisualAnomalies
             .Include(r => r.Image)
-            .Include(r => r.Hexagon)
             .OrderByDescending(r => r.CreatedDate)
             .ToListAsync();
         return records.Select(ToDto).ToList();
@@ -32,7 +31,6 @@ public class RoadVisualAnomalyService
     {
         var record = await _context.RoadVisualAnomalies
             .Include(r => r.Image)
-            .Include(r => r.Hexagon)
             .FirstOrDefaultAsync(r => r.Id == id);
         return record is null ? null : ToDto(record);
     }
@@ -82,7 +80,7 @@ public class RoadVisualAnomalyService
         await _context.SaveChangesAsync();
         _logger.LogInformation("Created road visual anomaly id={Id} for image id={ImageId}", entity.Id, dto.ImageId);
 
-        await _context.Entry(entity).Reference(r => r.Image).LoadAsync();
+        await _context.Entry(entity).Reference(r => r.Image).LoadAsync(); // needed for ImageFileName in response
         return ToDto(entity);
     }
 
@@ -123,17 +121,11 @@ public class RoadVisualAnomalyService
     {
         Id = r.Id,
         HexagonId = r.HexagonId,
+        ImageId = r.ImageId,
+        ImageFileName = r.Image?.FileName,
         Kind = r.Kind,
         Confidence = r.Confidence,
         Metadata = r.Metadata,
-        Image = r.Image is null ? null : new ImageDto
-        {
-            Id = r.Image.Id,
-            FileName = r.Image.FileName,
-            FilePath = r.Image.FilePath,
-            CameraMake = r.Image.CameraMake,
-            CameraModel = r.Image.CameraModel,
-        },
         BoxX1 = r.BoxX1,
         BoxY1 = r.BoxY1,
         BoxX2 = r.BoxX2,

@@ -69,8 +69,8 @@
             var dtos = await client.GetFromJsonAsync<List<RoadVisualAnomalyDto>>("api/anomalies/") ?? [];
             anomalies = dtos.Select(d => new AnomalyRow(
                 d.Id,
-                d.Image?.Id,
-                d.Image?.FileName,
+                d.ImageId,
+                d.ImageFileName,
                 d.Kind,
                 d.Confidence,
                 d.ResolvedAt,

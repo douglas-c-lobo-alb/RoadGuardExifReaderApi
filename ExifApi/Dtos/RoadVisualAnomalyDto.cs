@@ -7,7 +7,8 @@ public class RoadVisualAnomalyDto
 {
     public int Id { get; set; }
     public int HexagonId { get; set; }
-    public ImageDto? Image { get; set; }
+    public int? ImageId { get; set; }
+    public string? ImageFileName { get; set; }
     public AnomalyType Kind { get; set; }
     public decimal Confidence { get; set; }
     public JsonDocument? Metadata { get; set; }
