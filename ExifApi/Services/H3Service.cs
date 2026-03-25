@@ -80,7 +80,8 @@ public class H3Service
             }
 
             var h3Index = H3Net.H3ToString(h3Raw);
-            var hexagon = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3Index);
+            var hexagon = _context.Hexagons.Local.FirstOrDefault(h => h.H3Index == h3Index)
+                       ?? await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3Index);
             if (hexagon is null)
             {
                 hexagon = new Hexagon { H3Index = h3Index };
@@ -181,9 +182,11 @@ public class H3Service
 
         var outputParentSet = outputIndices.ToHashSet();
 
-        var parentAnomLookup = anomalyHexagons.ToDictionary(
-            h => h.H3Index,
-            h => (Anomalies: h.Anomalies.ToList(), Turbulences: h.Turbulences.ToList()));
+        var parentAnomLookup = anomalyHexagons
+            .GroupBy(h => h.H3Index)
+            .ToDictionary(
+                g => g.Key,
+                g => (Anomalies: g.SelectMany(h => h.Anomalies).ToList(), Turbulences: g.SelectMany(h => h.Turbulences).ToList()));
 
         foreach (var h in directImageHexes.Where(h => h.Anomalies.Count != 0 || h.Turbulences.Count != 0))
         {
