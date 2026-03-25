@@ -92,7 +92,8 @@ public static class H3Endpoints
         H3Service.ViewFilterType viewFilterType = H3Service.ViewFilterType.Or,
         [FromQuery] AnomalyType[]? anomalies = null,
         DateOnly? startDate = null,
-        DateOnly? endDate = null)
+        DateOnly? endDate = null,
+        int? resolution = null)
     {
         // ASP.NET Core joins duplicate query params with commas -- take the first value only
         static bool TryParseFirst(string raw, out double value) =>
@@ -113,14 +114,8 @@ public static class H3Endpoints
             return Results.BadRequest($"invalid filter type, allowed ones: {Enum.GetNames(typeof(H3Service.ViewFilterType)).ToList()}");
 
         var result = await h3Service.GetHexagonsByViewportAsync(
-            latMinD,
-            latMaxD,
-            lonMinD,
-            lonMaxD,
-            viewFilterType,
-            anomalies?.ToList(),
-            startDate,
-            endDate);
+            latMinD, latMaxD, lonMinD, lonMaxD,
+            viewFilterType, anomalies?.ToList(), startDate, endDate, resolution);
         return Results.Ok(result);
     }
 

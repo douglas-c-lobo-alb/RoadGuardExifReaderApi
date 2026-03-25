@@ -340,7 +340,7 @@ public class H3ServiceTests : IDisposable
         Assert.Equal(3, result.ImageHexagons.Sum(h => h.Images.Count)); // 3 images, no anomaly data here
         var anomalyHexesWithAnomalies = result.AnomalyHexagons.Where(h => h.Anomalies.Count != 0).ToList();
         Assert.Single(anomalyHexesWithAnomalies);
-        Assert.Equal(1, anomalyHexesWithAnomalies[0].Anomalies.Count);
+        Assert.Single(anomalyHexesWithAnomalies[0].Anomalies);
     }
 
 
@@ -589,6 +589,35 @@ public class H3ServiceTests : IDisposable
             anomalies: [AnomalyType.Pothole, AnomalyType.Crack], viewFilterType: H3Service.ViewFilterType.Not);
 
         Assert.Single(result.ImageHexagons.SelectMany(h => h.Images));
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_WithResolutionParam_ImageHexesAtRequestedResolution()
+    {
+        SeedImageWithHexagon(id: 1, lat: 37.0997m, lon: -8.6827m, h3Index: KnownH3Index);
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66, resolution: 14);
+
+        Assert.Single(result.ImageHexagons);
+        Assert.Equal(14, result.ImageHexagons[0].Resolution);
+        // anomaly resolution = min(14, 13) = 13
+        Assert.Single(result.AnomalyHexagons);
+        Assert.Equal(13, result.AnomalyHexagons[0].Resolution);
+    }
+
+    [Fact]
+    public async Task GetHexagonsByViewportAsync_LowResolutionParam_AnomalyHexesAtEffectiveRes()
+    {
+        SeedImageWithAnomaly(id: 1, lat: 37.0997m, lon: -8.6827m, anomalies: [AnomalyType.Pothole]);
+
+        var result = await _service.GetHexagonsByViewportAsync(37.09, 37.14, -8.69, -8.66, resolution: 10);
+
+        Assert.Single(result.ImageHexagons);
+        Assert.Equal(10, result.ImageHexagons[0].Resolution);
+        // anomaly resolution = min(10, 13) = 10
+        Assert.Single(result.AnomalyHexagons);
+        Assert.Equal(10, result.AnomalyHexagons[0].Resolution);
+        Assert.Single(result.AnomalyHexagons[0].Anomalies);
     }
 
     [Fact]

@@ -1,4 +1,3 @@
-using System;
 using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Dtos;
@@ -12,12 +11,10 @@ public class VoteService(
     IConfiguration config,
     ILogger<VoteService> logger)
 {
-    private readonly int _anomalyResolution =
-config.GetValue<int>("H3:AnomalyResolution", 13);
+    private readonly int _anomalyResolution = config.GetValue<int>("H3:AnomalyResolution", 13);
 
     public async Task<VoteDto?> CreateAsync(VoteCreateDto dto)
     {
-        // Resolve HexagonId
         int hexagonId;
         if (dto.HexagonId.HasValue)
         {
@@ -27,12 +24,8 @@ config.GetValue<int>("H3:AnomalyResolution", 13);
         {
             var h3Raw = H3Net.LatLngToCell((double)dto.Latitude.Value, (double)dto.Longitude.Value, _anomalyResolution);
             var h3Index = H3Net.H3ToString(h3Raw);
-            var hex = await context.Hexagons.FirstOrDefaultAsync(h => h.H3Index
-== h3Index)
-                      ?? context.Hexagons.Add(new Hexagon
-                      {
-                          H3Index = h3Index
-                      }).Entity;
+            var hex = await context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3Index)
+                      ?? context.Hexagons.Add(new Hexagon { H3Index = h3Index }).Entity;
             await context.SaveChangesAsync();
             hexagonId = hex.Id;
         }
@@ -59,8 +52,7 @@ config.GetValue<int>("H3:AnomalyResolution", 13);
     }
 
     public async Task<List<VoteDto>> GetAllAsync() =>
-        (await context.Votes.OrderByDescending(v =>
-v.CreatedDate).ToListAsync())
+        (await context.Votes.OrderByDescending(v => v.CreatedDate).ToListAsync())
         .Select(ToDto).ToList();
 
     public async Task<VoteDto?> GetByIdAsync(int id)
@@ -80,8 +72,7 @@ v.CreatedDate).ToListAsync())
 
     public async Task<ComputeResultDto> ComputeAsync()
     {
-        // Read thresholds from config: "Votes:Thresholds:Pothole" etc., fallback "Votes:Thresholds:Default"
-             var votes = await context.Votes.ToListAsync();
+        var votes = await context.Votes.ToListAsync();
         var grouped = votes.GroupBy(v => (v.HexagonId, v.Kind));
 
         int created = 0, reopened = 0;
@@ -92,11 +83,9 @@ v.CreatedDate).ToListAsync())
             if (group.Count() < threshold) continue;
 
             var existing = await context.RoadVisualAnomalies
-                .FirstOrDefaultAsync(a => a.HexagonId == group.Key.HexagonId &&
-a.Kind == group.Key.Kind);
+                .FirstOrDefaultAsync(a => a.HexagonId == group.Key.HexagonId && a.Kind == group.Key.Kind);
 
             if (existing is not null && existing.ResolvedAt is null) continue;
-            // active anomaly exists
 
             if (existing is not null)
             {
@@ -127,7 +116,8 @@ a.Kind == group.Key.Kind);
         context.Votes.RemoveRange(votes);
         await context.SaveChangesAsync();
 
-        logger.LogInformation("Compute: {Created} created, {Reopened} reopened, {Deleted} votes deleted", created, reopened, votes.Count);
+        logger.LogInformation("Compute: {Created} created, {Reopened} reopened, {Deleted} votes deleted",
+            created, reopened, votes.Count);
 
         return new ComputeResultDto(created, reopened, votes.Count);
     }
@@ -144,8 +134,7 @@ a.Kind == group.Key.Kind);
         Id = v.Id,
         HexagonId = v.HexagonId,
         AgentId = v.AgentId,
-        ImageId =
-v.ImageId,
+        ImageId = v.ImageId,
         Kind = v.Kind,
         Confidence = v.Confidence,
         BoxX1 = v.BoxX1,
@@ -156,4 +145,3 @@ v.ImageId,
         LastModifiedDate = v.LastModifiedDate
     };
 }
-

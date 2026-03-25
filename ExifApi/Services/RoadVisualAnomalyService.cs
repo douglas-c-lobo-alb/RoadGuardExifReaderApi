@@ -83,7 +83,6 @@ public class RoadVisualAnomalyService
 
         if (hexagonId is null) return null;
 
-        // Promote to anomaly resolution if the resolved hex is finer than _anomalyResolution
         hexagonId = await PromoteToAnomalyResolutionAsync(hexagonId.Value);
 
         var entity = new RoadVisualAnomaly
