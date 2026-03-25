@@ -121,10 +121,24 @@ public class H3Service
             .Distinct()
             .ToList();
 
+        var imageHexIndices = images
+            .Where(i => i.Hexagon != null)
+            .Select(i => i.Hexagon!.H3Index)
+            .Distinct()
+            .ToList();
+
+        // Load res-13 parent hexes (used for anomaly-kind filtering and output)
         var anomalyHexagons = await _context.Hexagons
             .Include(h => h.Anomalies)
             .Include(h => h.Turbulences)
             .Where(h => parentIndices.Contains(h.H3Index))
+            .ToListAsync();
+
+        // Also load direct image-level hexes that may carry anomalies (transitional: before full res-13 promotion)
+        var directImageHexes = await _context.Hexagons
+            .Include(h => h.Anomalies)
+            .Include(h => h.Turbulences)
+            .Where(h => imageHexIndices.Contains(h.H3Index) && !parentIndices.Contains(h.H3Index))
             .ToListAsync();
 
         var anomalyHexSet = anomalyHexagons.Select(h => h.H3Index).ToHashSet();
@@ -162,7 +176,9 @@ public class H3Service
         }
 
         var outputParentSet = outputIndices.ToHashSet();
-        var anomalyHexByIndex = anomalyHexagons.ToDictionary(h => h.H3Index);
+        var anomalyHexByIndex = anomalyHexagons
+            .Concat(directImageHexes)
+            .ToDictionary(h => h.H3Index);
 
         var imageWithParent = images
             .Where(i => i.Hexagon != null)
@@ -178,7 +194,10 @@ public class H3Service
             .Select(group =>
             {
                 var parentIdx = group.First().ParentIdx;
-                anomalyHexByIndex.TryGetValue(parentIdx, out var hex);
+                anomalyHexByIndex.TryGetValue(parentIdx, out var parentHex);
+                anomalyHexByIndex.TryGetValue(group.Key, out var directHex);
+                var allAnomalies = (parentHex?.Anomalies ?? []).Concat(directHex?.Anomalies ?? []).DistinctBy(a => a.Id).ToList();
+                var allTurbulences = (parentHex?.Turbulences ?? []).Concat(directHex?.Turbulences ?? []).DistinctBy(t => t.Id).ToList();
                 return new HexagonViewDto
                 {
                     H3Index = group.Key,
@@ -189,16 +208,16 @@ public class H3Service
                         FilePath = x.Image.FilePath,
                         DateTaken = x.Image.DateTaken,
                     }).ToList(),
-                    Anomalies = hex?.Anomalies.Select(a => new RoadVisualAnomalyViewDto
+                    Anomalies = allAnomalies.Select(a => new RoadVisualAnomalyViewDto
                     {
                         Id = a.Id, Kind = a.Kind, Confidence = a.Confidence,
                         BoxX1 = a.BoxX1, BoxY1 = a.BoxY1, BoxX2 = a.BoxX2, BoxY2 = a.BoxY2,
                         ResolvedAt = a.ResolvedAt
-                    }).ToList() ?? [],
-                    Turbulences = hex?.Turbulences.Select(t => new RoadTurbulenceViewDto
+                    }).ToList(),
+                    Turbulences = allTurbulences.Select(t => new RoadTurbulenceViewDto
                     {
                         Id = t.Id, Index = t.Index, Kind = t.Kind, CreatedDate = t.CreatedDate
-                    }).ToList() ?? []
+                    }).ToList()
                 };
             }).ToList();
     }
