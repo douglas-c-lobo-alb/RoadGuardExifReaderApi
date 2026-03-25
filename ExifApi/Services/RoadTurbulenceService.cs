@@ -71,7 +71,7 @@ public class RoadTurbulenceService
 
         record.Index = dto.Index;
         record.Kind = dto.Kind;
-        record.HexagonId = dto.HexagonId;
+        if (dto.HexagonId != 0) record.HexagonId = dto.HexagonId;
         record.AgentId = dto.AgentId;
         record.LastModifiedDate = DateTime.UtcNow;
 

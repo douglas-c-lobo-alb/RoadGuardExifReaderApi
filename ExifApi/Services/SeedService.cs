@@ -76,6 +76,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
     public async Task ClearDatabaseAsync()
     {
         // Order respects FK constraints: dependents first
+        await db.Votes.ExecuteDeleteAsync();
         await db.RoadVisualAnomalies.ExecuteDeleteAsync();
         await db.RoadTurbulences.ExecuteDeleteAsync();
         await db.Images.ExecuteDeleteAsync();
@@ -84,7 +85,7 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         // Reset auto-increment counters so next inserts start from ID 1
         await db.Database.ExecuteSqlRawAsync("""
             DELETE FROM sqlite_sequence
-            WHERE name IN ('RoadVisualAnomalies', 'Images', 'RoadTurbulences', 'Hexagons');
+            WHERE name IN ('Votes', 'RoadVisualAnomalies', 'Images', 'RoadTurbulences', 'Hexagons');
             """);
     }
 

@@ -23,10 +23,9 @@ config.GetValue<int>("H3:AnomalyResolution", 13);
         {
             hexagonId = dto.HexagonId.Value;
         }
-        else if (dto.Lat.HasValue && dto.Lon.HasValue)
+        else if (dto.Latitude.HasValue && dto.Longitude.HasValue)
         {
-            var h3Raw = H3Net.LatLngToCell((double)dto.Lat.Value,
-(double)dto.Lon.Value, _anomalyResolution);
+            var h3Raw = H3Net.LatLngToCell((double)dto.Latitude.Value, (double)dto.Longitude.Value, _anomalyResolution);
             var h3Index = H3Net.H3ToString(h3Raw);
             var hex = await context.Hexagons.FirstOrDefaultAsync(h => h.H3Index
 == h3Index)
@@ -45,11 +44,11 @@ config.GetValue<int>("H3:AnomalyResolution", 13);
             AgentId = dto.AgentId,
             ImageId = dto.ImageId,
             Kind = dto.Kind,
-            Confidence = dto.Confidence ?? 0,
-            BoxX1 = dto.BoxX1 ?? 0,
-            BoxY1 = dto.BoxY1 ?? 0,
-            BoxX2 = dto.BoxX2 ?? 0,
-            BoxY2 = dto.BoxY2 ?? 0,
+            Confidence = dto.Confidence,
+            BoxX1 = dto.BoxX1,
+            BoxY1 = dto.BoxY1,
+            BoxX2 = dto.BoxX2,
+            BoxY2 = dto.BoxY2,
             CreatedDate = DateTime.UtcNow,
             LastModifiedDate = DateTime.UtcNow
         };
@@ -113,7 +112,7 @@ a.Kind == group.Key.Kind);
                     HexagonId = group.Key.HexagonId,
                     ImageId = best.ImageId,
                     Kind = group.Key.Kind,
-                    Confidence = (decimal)group.Average(v => (double)v.Confidence),
+                    Confidence = (decimal)group.Average(v => (double)(v.Confidence ?? 0)),
                     BoxX1 = best.BoxX1,
                     BoxY1 = best.BoxY1,
                     BoxX2 = best.BoxX2,
@@ -144,7 +143,7 @@ a.Kind == group.Key.Kind);
     {
         Id = v.Id,
         HexagonId = v.HexagonId,
-        AgentId = v.AgentId ?? 0,
+        AgentId = v.AgentId,
         ImageId =
 v.ImageId,
         Kind = v.Kind,
