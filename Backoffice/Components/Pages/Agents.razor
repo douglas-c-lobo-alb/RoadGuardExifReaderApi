@@ -1,0 +1,83 @@
+@page "/agents"
+@using ExifApi.Data.Entities
+@inject IHttpClientFactory HttpClientFactory
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Agents</PageTitle>
+
+<h1>Agents</h1>
+
+<div class="mb-3">
+    <RadzenButton Text="New Agent" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                  Click="@(() => NavigationManager.NavigateTo("/agents/create"))" />
+</div>
+
+<div style="overflow-x:auto">
+    <RadzenDataGrid TItem="AgentRow" Data="@agents" IsLoading="@(agents is null)" AllowPaging="true" PageSize="20"
+                    AllowSorting="true" AllowFiltering="true" FilterMode="FilterMode.SimpleWithMenu"
+                    PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true" Density="Density.Compact"
+                    Style="min-width:600px">
+        <Columns>
+            <RadzenDataGridColumn TItem="AgentRow" Property="Id" Title="Id" Width="80px" />
+            <RadzenDataGridColumn TItem="AgentRow" Property="Name" Title="Name" Width="120px" />
+            <RadzenDataGridColumn TItem="AgentRow" Property="CreatedDate" Title="Date Created" Width="160px"
+                                  FormatString="{0:yyyy-MM-dd HH:mm}" />
+            <RadzenDataGridColumn TItem="AgentRow" Title="" Width="110px" Sortable="false" Filterable="false"
+                                  TextAlign="TextAlign.End">
+                <Template Context="a">
+                    <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="me-1"
+                                  Click="@(() => NavigationManager.NavigateTo($"/agents/{a.Id}/edit"))" />
+                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                  Click="@(() => ConfirmDelete(a))" />
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@code {
+    private List<AgentRow>? agents;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            agents = await client.GetFromJsonAsync<List<AgentRow>>("api/agents/") ?? [];
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
+        }
+    }
+
+    private async Task ConfirmDelete(AgentRow t)
+    {
+        var confirmed = await DialogService.Confirm(
+            $"Delete agent record #{t.Id}? This cannot be undone.",
+            "Confirm Delete",
+            new ConfirmOptions { OkButtonText = "Delete", CancelButtonText = "Cancel" });
+        if (confirmed == true)
+            await Delete(t.Id);
+    }
+
+    private async Task Delete(int id)
+    {
+        var client = HttpClientFactory.CreateClient("ExifApi");
+        var response = await client.DeleteAsync($"api/agents/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Deleted", "Agent record removed.", 3000);
+            await Load();
+        }
+        else
+            NotificationService.Notify(NotificationSeverity.Error, "Delete failed", $"Status {(int)response.StatusCode}", 5000);
+    }
+
+    private record AgentRow(int Id, string Name, DateTime CreatedDate);
+}
