@@ -13,7 +13,7 @@ public class VoteCreateDto
     [JsonPropertyName("lon")]
     public decimal? Longitude { get; set; }
 
-    public int AgentId { get; set; }
+    public int? AgentId { get; set; }
     public int? ImageId { get; set; }
     public AnomalyType Kind { get; set; }
     public decimal? Confidence { get; set; }
