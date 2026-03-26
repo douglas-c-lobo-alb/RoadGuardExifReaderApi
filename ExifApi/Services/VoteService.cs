@@ -20,6 +20,13 @@ public class VoteService(
         {
             hexagonId = dto.HexagonId.Value;
         }
+        else if (!string.IsNullOrWhiteSpace(dto.H3Index))
+        {
+            var hex = await context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == dto.H3Index)
+                      ?? context.Hexagons.Add(new Hexagon { H3Index = dto.H3Index }).Entity;
+            await context.SaveChangesAsync();
+            hexagonId = hex.Id;
+        }
         else if (dto.Latitude.HasValue && dto.Longitude.HasValue)
         {
             var h3Raw = H3Net.LatLngToCell((double)dto.Latitude.Value, (double)dto.Longitude.Value, _anomalyResolution);
