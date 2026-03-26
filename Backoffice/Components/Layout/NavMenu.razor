@@ -39,6 +39,13 @@
             <RadzenPanelMenuItem Text="Edit" Icon="edit" Path="anomalies" Match="NavLinkMatch.All" />
         </ChildContent>
     </RadzenPanelMenuItem>
+    <RadzenPanelMenuItem @key="@("votes-" + IsActive("votes"))" Text="Votes" Icon="how_to_vote" Path="votes"
+                         Expanded="@IsActive("votes")">
+        <ChildContent>
+            <RadzenPanelMenuItem Text="Create" Icon="add" Path="votes/create" />
+            <RadzenPanelMenuItem Text="Edit" Icon="edit" Path="votes" Match="NavLinkMatch.All" />
+        </ChildContent>
+    </RadzenPanelMenuItem>
     <RadzenPanelMenuItem Text="Seeding" Icon="grass" Path="seeding" />
 </RadzenPanelMenu>
 
