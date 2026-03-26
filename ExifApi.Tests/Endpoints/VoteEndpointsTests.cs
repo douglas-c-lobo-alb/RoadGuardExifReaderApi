@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using ExifApi.Data.Entities;
 using ExifApi.Dtos;
+using Microsoft.EntityFrameworkCore;
 
 namespace ExifApi.Tests.Endpoints;
 
@@ -78,6 +79,62 @@ public class VoteEndpointsTests : IDisposable
         {
             Kind = AnomalyType.Pothole,
             BoxX1 = 0, BoxY1 = 0, BoxX2 = 10, BoxY2 = 10
+        };
+
+        var response = await _client.PostAsJsonAsync("api/votes/anomaly", dto);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_WithImageId_ResolvesHexagonFromImage_Returns201()
+    {
+        using var ctx = _factory.CreateDbContext();
+        var hex = ctx.Hexagons.Add(new Hexagon { H3Index = "8f39100e1a500e2" }).Entity;
+        await ctx.SaveChangesAsync();
+        var image = ctx.Images.Add(new Image
+        {
+            FileName = "shot.jpg",
+            HexagonId = hex.Id,
+            CreatedDate = DateTime.UtcNow,
+            LastModifiedDate = DateTime.UtcNow
+        }).Entity;
+        await ctx.SaveChangesAsync();
+
+        var dto = new VoteCreateDto
+        {
+            ImageId = image.Id,
+            Kind = AnomalyType.Pothole,
+            Confidence = 0.8m,
+            BoxX1 = 0, BoxY1 = 0, BoxX2 = 10, BoxY2 = 10
+        };
+
+        var response = await _client.PostAsJsonAsync("api/votes/anomaly", dto);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<VoteDto>(ExifApiFactory.JsonOptions);
+        Assert.NotNull(body);
+        Assert.Equal(hex.Id, body.HexagonId);
+        Assert.Equal(image.Id, body.ImageId);
+    }
+
+    [Fact]
+    public async Task Create_WithImageId_ImageHasNoHexagon_Returns400()
+    {
+        using var ctx = _factory.CreateDbContext();
+        var image = ctx.Images.Add(new Image
+        {
+            FileName = "nohex.jpg",
+            HexagonId = null,
+            CreatedDate = DateTime.UtcNow,
+            LastModifiedDate = DateTime.UtcNow
+        }).Entity;
+        await ctx.SaveChangesAsync();
+
+        var dto = new VoteCreateDto
+        {
+            ImageId = image.Id,
+            Kind = AnomalyType.Pothole
         };
 
         var response = await _client.PostAsJsonAsync("api/votes/anomaly", dto);
@@ -231,5 +288,74 @@ public class VoteEndpointsTests : IDisposable
         using var verify = _factory.CreateDbContext();
         Assert.Empty(verify.Votes);
         Assert.Empty(verify.RoadVisualAnomalies);
+    }
+
+    [Fact]
+    public async Task Compute_ReopensResolvedAnomaly()
+    {
+        using var ctx = _factory.CreateDbContext();
+        var hex = ctx.Hexagons.Add(new Hexagon { H3Index = "8f39100e1a500e2" }).Entity;
+        await ctx.SaveChangesAsync();
+        ctx.RoadVisualAnomalies.Add(new RoadVisualAnomaly
+        {
+            HexagonId = hex.Id,
+            Kind = AnomalyType.Pothole,
+            Confidence = 0.5m,
+            ResolvedAt = DateTime.UtcNow.AddDays(-1),
+            CreatedDate = DateTime.UtcNow,
+            LastModifiedDate = DateTime.UtcNow
+        });
+        ctx.Votes.AddRange(
+            new Vote { HexagonId = hex.Id, Kind = AnomalyType.Pothole, Confidence = 0.9m, BoxX1 = 10, BoxY1 = 10, BoxX2 = 100, BoxY2 = 100, CreatedDate = DateTime.UtcNow, LastModifiedDate = DateTime.UtcNow },
+            new Vote { HexagonId = hex.Id, Kind = AnomalyType.Pothole, Confidence = 0.8m, BoxX1 = 10, BoxY1 = 10, BoxX2 = 100, BoxY2 = 100, CreatedDate = DateTime.UtcNow, LastModifiedDate = DateTime.UtcNow },
+            new Vote { HexagonId = hex.Id, Kind = AnomalyType.Pothole, Confidence = 0.7m, BoxX1 = 10, BoxY1 = 10, BoxX2 = 100, BoxY2 = 100, CreatedDate = DateTime.UtcNow, LastModifiedDate = DateTime.UtcNow });
+        await ctx.SaveChangesAsync();
+
+        var response = await _client.PostAsync("api/votes/compute", null);
+
+        var result = await response.Content.ReadFromJsonAsync<ComputeResultDto>(ExifApiFactory.JsonOptions);
+        Assert.NotNull(result);
+        Assert.Equal(0, result.AnomaliesCreated);
+        Assert.Equal(1, result.AnomaliesReopened);
+
+        using var verify = _factory.CreateDbContext();
+        var anomaly = await verify.RoadVisualAnomalies.SingleAsync();
+        Assert.Null(anomaly.ResolvedAt);
+    }
+
+    [Fact]
+    public async Task Compute_UpdatesActiveAnomaly()
+    {
+        using var ctx = _factory.CreateDbContext();
+        var hex = ctx.Hexagons.Add(new Hexagon { H3Index = "8f39100e1a500e2" }).Entity;
+        await ctx.SaveChangesAsync();
+        ctx.RoadVisualAnomalies.Add(new RoadVisualAnomaly
+        {
+            HexagonId = hex.Id,
+            Kind = AnomalyType.Pothole,
+            Confidence = 0.3m,
+            ResolvedAt = null,
+            CreatedDate = DateTime.UtcNow,
+            LastModifiedDate = DateTime.UtcNow
+        });
+        ctx.Votes.AddRange(
+            new Vote { HexagonId = hex.Id, Kind = AnomalyType.Pothole, Confidence = 0.9m, BoxX1 = 10, BoxY1 = 10, BoxX2 = 100, BoxY2 = 100, CreatedDate = DateTime.UtcNow, LastModifiedDate = DateTime.UtcNow },
+            new Vote { HexagonId = hex.Id, Kind = AnomalyType.Pothole, Confidence = 0.8m, BoxX1 = 10, BoxY1 = 10, BoxX2 = 100, BoxY2 = 100, CreatedDate = DateTime.UtcNow, LastModifiedDate = DateTime.UtcNow },
+            new Vote { HexagonId = hex.Id, Kind = AnomalyType.Pothole, Confidence = 0.7m, BoxX1 = 10, BoxY1 = 10, BoxX2 = 100, BoxY2 = 100, CreatedDate = DateTime.UtcNow, LastModifiedDate = DateTime.UtcNow });
+        await ctx.SaveChangesAsync();
+
+        var response = await _client.PostAsync("api/votes/compute", null);
+
+        var result = await response.Content.ReadFromJsonAsync<ComputeResultDto>(ExifApiFactory.JsonOptions);
+        Assert.NotNull(result);
+        Assert.Equal(0, result.AnomaliesCreated);
+        Assert.Equal(0, result.AnomaliesReopened);
+        Assert.Equal(1, result.AnomaliesUpdated);
+        Assert.Equal(3, result.VotesDeleted);
+
+        using var verify = _factory.CreateDbContext();
+        var anomaly = await verify.RoadVisualAnomalies.SingleAsync();
+        Assert.Null(anomaly.ResolvedAt);
+        Assert.Equal(0.9m, anomaly.Confidence);
     }
 }

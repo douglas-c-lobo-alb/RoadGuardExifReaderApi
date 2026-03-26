@@ -1,15 +1,29 @@
-@page "/anomalies/create"
+@page "/votes/create"
 @using ExifApi.Data.Entities
-@using System.Text.Json
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager NavigationManager
 @inject NotificationService NotificationService
 @rendermode InteractiveServer
 
-<PageTitle>New Anomaly</PageTitle>
-<h1>New Anomaly</h1>
+<PageTitle>New Vote</PageTitle>
+<h1>New Vote</h1>
 
 <div style="max-width:600px">
+
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Agent <span class="text-danger">*</span></label>
+        <RadzenDropDown TValue="int"
+                        @bind-Value="agentId"
+                        Data="@agents"
+                        TextProperty="Name"
+                        ValueProperty="Id"
+                        Placeholder="— select an agent —"
+                        Style="width:100%" />
+        @if (showValidation && agentId == 0)
+        {
+            <div class="text-danger small mt-1">Agent is required.</div>
+        }
+    </div>
 
     <div class="mb-3">
         <label class="form-label fw-semibold">Location</label>
@@ -60,26 +74,39 @@
         else if (locationMode == "image")
         {
             <RadzenDropDown TValue="int"
-                            @bind-Value="imageId"
+                            @bind-Value="locationImageId"
                             Data="@images"
                             TextProperty="FileName"
                             ValueProperty="Id"
                             Placeholder="— select an image —"
                             Style="width:100%" />
-            @if (showValidation && imageId == 0)
+            @if (showValidation && locationImageId == 0)
             {
                 <div class="text-danger small mt-1">Image is required.</div>
             }
         }
     </div>
 
+    @if (locationMode != "image" && locationMode != "h3index")
+    {
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Image (optional)</label>
+            <RadzenDropDown TValue="int?"
+                            @bind-Value="imageId"
+                            Data="@images"
+                            TextProperty="FileName"
+                            ValueProperty="Id"
+                            Placeholder="— none —"
+                            AllowClear="true"
+                            Style="width:100%" />
+        </div>
+    }
+
     <div class="mb-3">
-        <label class="form-label fw-semibold">Anomaly Type</label>
-        <RadzenDropDown @bind-Value="selectedAnomalyTypes"
+        <label class="form-label fw-semibold">Kind <span class="text-danger">*</span></label>
+        <RadzenDropDown TValue="AnomalyType"
+                        @bind-Value="kind"
                         Data="@anomalyTypeOptions"
-                        Multiple="true"
-                        AllowClear="true"
-                        Placeholder="— select types —"
                         Style="width:100%" />
     </div>
 
@@ -88,12 +115,6 @@
         <RadzenNumeric TValue="decimal" @bind-Value="confidence"
                        Format="F2" Min="0" Max="1" Step="0.01m"
                        Style="width:100%" />
-    </div>
-
-    <div class="mb-3">
-        <label class="form-label fw-semibold">Notes (JSON)</label>
-        <RadzenTextArea @bind-Value="notesJson" Rows="3"
-                        Style="width:100%;font-family:monospace" />
     </div>
 
     <div class="mb-3">
@@ -121,7 +142,7 @@
     <RadzenButton Text="@(submitting ? "Saving..." : "Create")" Icon="add" ButtonStyle="ButtonStyle.Primary"
                   Disabled="@submitting" Click="Submit" />
     <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" class="ms-2"
-                  Click="@(() => NavigationManager.NavigateTo("/anomalies"))" />
+                  Click="@(() => NavigationManager.NavigateTo("/votes"))" />
 
 </div>
 
@@ -132,21 +153,26 @@
         AnomalyType.RoadCrack,
         AnomalyType.MissingRoadSign,
         AnomalyType.WaterLeakage,
+        AnomalyType.RoadObstruction,
+        AnomalyType.MissingCrosswalk,
+        AnomalyType.DeterioratedMarkings,
     ];
 
-    private string locationMode = "image";
+    private string locationMode = "hexagon";
+    private int agentId;
     private int hexagonId;
     private string h3Index = "";
     private decimal latitude;
     private decimal longitude;
-    private int imageId;
-    private IEnumerable<AnomalyType> selectedAnomalyTypes = [];
+    private int locationImageId;
+    private int? imageId;
+    private AnomalyType kind = AnomalyType.Pothole;
     private decimal confidence = 0.85m;
-    private string? notesJson;
     private int boxX1, boxY1, boxX2, boxY2;
     private bool submitting;
     private bool showValidation;
 
+    private List<AgentOption> agents = [];
     private List<HexagonOption> hexagons = [];
     private List<ImageOption> images = [];
 
@@ -155,11 +181,13 @@
         try
         {
             var client = HttpClientFactory.CreateClient("ExifApi");
-            var hexTask = client.GetFromJsonAsync<List<HexagonOption>>("api/hexagons/");
-            var imgTask = client.GetFromJsonAsync<List<ImageOption>>("api/images/");
-            await Task.WhenAll(hexTask, imgTask);
-            hexagons = hexTask.Result ?? [];
-            images = imgTask.Result ?? [];
+            var agentsTask = client.GetFromJsonAsync<List<AgentOption>>("api/agents/");
+            var hexagonsTask = client.GetFromJsonAsync<List<HexagonOption>>("api/hexagons/");
+            var imagesTask = client.GetFromJsonAsync<List<ImageOption>>("api/images/");
+            await Task.WhenAll(agentsTask, hexagonsTask, imagesTask);
+            agents = agentsTask.Result ?? [];
+            hexagons = hexagonsTask.Result ?? [];
+            images = imagesTask.Result ?? [];
         }
         catch (Exception ex)
         {
@@ -170,43 +198,62 @@
     private async Task Submit()
     {
         showValidation = true;
+
+        if (agentId == 0) return;
         if (locationMode == "hexagon" && hexagonId == 0) return;
         if (locationMode == "h3index" && string.IsNullOrWhiteSpace(h3Index)) return;
-        if (locationMode == "image" && imageId == 0) return;
-
-        JsonDocument? notesDoc = null;
-        if (!string.IsNullOrWhiteSpace(notesJson))
-        {
-            try { notesDoc = JsonDocument.Parse(notesJson); }
-            catch (JsonException)
-            {
-                NotificationService.Notify(NotificationSeverity.Error, "Invalid JSON", "Notes field contains invalid JSON.", 5000);
-                return;
-            }
-        }
+        if (locationMode == "image" && locationImageId == 0) return;
 
         submitting = true;
         try
         {
-            var anomalyType = selectedAnomalyTypes.Any()
-                ? selectedAnomalyTypes.Aggregate((a, b) => a | b)
-                : AnomalyType.Pothole;
+            var client = HttpClientFactory.CreateClient("ExifApi");
 
             object payload = locationMode switch
             {
-                "hexagon" => new { HexagonId = hexagonId, Kind = anomalyType, Confidence = confidence, Metadata = notesDoc, BoxX1 = boxX1, BoxY1 = boxY1, BoxX2 = boxX2, BoxY2 = boxY2 },
-                "h3index" => new { H3Index = h3Index, Kind = anomalyType, Confidence = confidence, Metadata = notesDoc, BoxX1 = boxX1, BoxY1 = boxY1, BoxX2 = boxX2, BoxY2 = boxY2 },
-                "coords"  => new { Latitude = latitude, Longitude = longitude, Kind = anomalyType, Confidence = confidence, Metadata = notesDoc, BoxX1 = boxX1, BoxY1 = boxY1, BoxX2 = boxX2, BoxY2 = boxY2 },
-                _         => (object)new { ImageId = imageId, Kind = anomalyType, Confidence = confidence, Metadata = notesDoc, BoxX1 = boxX1, BoxY1 = boxY1, BoxX2 = boxX2, BoxY2 = boxY2 },
+                "hexagon" => new
+                {
+                    HexagonId = hexagonId,
+                    AgentId = agentId,
+                    ImageId = imageId,
+                    Kind = kind,
+                    Confidence = confidence,
+                    BoxX1 = boxX1, BoxY1 = boxY1, BoxX2 = boxX2, BoxY2 = boxY2,
+                },
+                "h3index" => new
+                {
+                    H3Index = h3Index,
+                    AgentId = agentId,
+                    Kind = kind,
+                    Confidence = confidence,
+                    BoxX1 = boxX1, BoxY1 = boxY1, BoxX2 = boxX2, BoxY2 = boxY2,
+                },
+                "coords" => new
+                {
+                    Lat = latitude,
+                    Lon = longitude,
+                    AgentId = agentId,
+                    ImageId = imageId,
+                    Kind = kind,
+                    Confidence = confidence,
+                    BoxX1 = boxX1, BoxY1 = boxY1, BoxX2 = boxX2, BoxY2 = boxY2,
+                },
+                _ => new
+                {
+                    ImageId = (int?)locationImageId,
+                    AgentId = agentId,
+                    Kind = kind,
+                    Confidence = confidence,
+                    BoxX1 = boxX1, BoxY1 = boxY1, BoxX2 = boxX2, BoxY2 = boxY2,
+                },
             };
 
-            var client = HttpClientFactory.CreateClient("ExifApi");
-            var response = await client.PostAsJsonAsync("api/anomalies", payload);
+            var response = await client.PostAsJsonAsync("api/votes/anomaly", payload);
 
             if (response.IsSuccessStatusCode)
             {
-                NotificationService.Notify(NotificationSeverity.Success, "Created", "Anomaly record created.", 3000);
-                NavigationManager.NavigateTo("/anomalies");
+                NotificationService.Notify(NotificationSeverity.Success, "Created", "Vote recorded.", 3000);
+                NavigationManager.NavigateTo("/votes");
             }
             else
             {
@@ -224,6 +271,7 @@
         }
     }
 
+    private record AgentOption(int Id, string Name);
     private record HexagonOption(int Id, string H3Index);
     private record ImageOption(int Id, string FileName);
 }

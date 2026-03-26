@@ -6,6 +6,7 @@ namespace ExifApi.Dtos;
 public class RoadVisualAnomalyCreateDto
 {
     public int? HexagonId { get; set; }
+    public string? H3Index { get; set; }
     public int? ImageId { get; set; }
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }

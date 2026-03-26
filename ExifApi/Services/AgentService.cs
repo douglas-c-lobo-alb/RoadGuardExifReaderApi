@@ -45,6 +45,20 @@ public class AgentService
         return ToDto(agent);
     }
 
+    public async Task<AgentDto?> UpdateAsync(int id, AgentCreateDto dto)
+    {
+        var agent = await _context.Agents.FindAsync(id);
+        if (agent is null) return null;
+
+        agent.Name = dto.Name;
+        agent.Metadata = dto.Metadata;
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Updated agent id={Id}, name={Name}", agent.Id, agent.Name);
+        return ToDto(agent);
+    }
+
     public async Task<bool> DeleteAsync(int id)
     {
         var agent = await _context.Agents.FindAsync(id);

@@ -20,6 +20,13 @@ public class VoteService(
         {
             hexagonId = dto.HexagonId.Value;
         }
+        else if (!string.IsNullOrWhiteSpace(dto.H3Index))
+        {
+            var hex = await context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == dto.H3Index)
+                      ?? context.Hexagons.Add(new Hexagon { H3Index = dto.H3Index }).Entity;
+            await context.SaveChangesAsync();
+            hexagonId = hex.Id;
+        }
         else if (dto.Latitude.HasValue && dto.Longitude.HasValue)
         {
             var h3Raw = H3Net.LatLngToCell((double)dto.Latitude.Value, (double)dto.Longitude.Value, _anomalyResolution);
@@ -29,13 +36,26 @@ public class VoteService(
             await context.SaveChangesAsync();
             hexagonId = hex.Id;
         }
+        else if (dto.ImageId.HasValue)
+        {
+            var image = await context.Images.FindAsync(dto.ImageId.Value);
+            if (image?.HexagonId is null) return null;
+            hexagonId = image.HexagonId.Value;
+        }
         else return null;
+
+        var imageId = dto.ImageId
+            ?? (await context.Images
+                .Where(i => i.HexagonId == hexagonId)
+                .OrderByDescending(i => i.CreatedDate)
+                .Select(i => (int?)i.Id)
+                .FirstOrDefaultAsync());
 
         var entity = new Vote
         {
             HexagonId = hexagonId,
             AgentId = dto.AgentId,
-            ImageId = dto.ImageId,
+            ImageId = imageId,
             Kind = dto.Kind,
             Confidence = dto.Confidence,
             BoxX1 = dto.BoxX1,
@@ -75,7 +95,7 @@ public class VoteService(
         var votes = await context.Votes.ToListAsync();
         var grouped = votes.GroupBy(v => (v.HexagonId, v.Kind));
 
-        int created = 0, reopened = 0;
+        int created = 0, reopened = 0, updated = 0;
 
         foreach (var group in grouped)
         {
@@ -85,10 +105,24 @@ public class VoteService(
             var existing = await context.RoadVisualAnomalies
                 .FirstOrDefaultAsync(a => a.HexagonId == group.Key.HexagonId && a.Kind == group.Key.Kind);
 
-            if (existing is not null && existing.ResolvedAt is null) continue;
+            if (existing is not null && existing.ResolvedAt is null)
+            {
+                var best = group.OrderByDescending(v => v.Confidence).First();
+                existing.ImageId ??= best.ImageId;
+                existing.Confidence = (decimal)group.Max(v => (double)(v.Confidence ?? 0));
+                existing.BoxX1 = best.BoxX1;
+                existing.BoxY1 = best.BoxY1;
+                existing.BoxX2 = best.BoxX2;
+                existing.BoxY2 = best.BoxY2;
+                existing.LastModifiedDate = DateTime.UtcNow;
+                updated++;
+                continue;
+            }
 
             if (existing is not null)
             {
+                var best = group.OrderByDescending(v => v.Confidence).First();
+                existing.ImageId ??= best.ImageId;
                 existing.ResolvedAt = null;
                 existing.LastModifiedDate = DateTime.UtcNow;
                 reopened++;
@@ -114,15 +148,52 @@ public class VoteService(
             }
         }
 
+
+
         context.Votes.RemoveRange(votes);
         await context.SaveChangesAsync();
 
-        logger.LogInformation("Compute: {Created} created, {Reopened} reopened, {Deleted} votes deleted",
-            created, reopened, votes.Count);
+        logger.LogInformation("Compute: {Created} created, {Reopened} reopened, {Updated} updated, {Deleted} votes deleted",
+            created, reopened, updated, votes.Count);
 
-        return new ComputeResultDto(created, reopened, votes.Count);
+        return new ComputeResultDto(created, reopened, updated, votes.Count);
     }
+    public async Task<ComputeResultDto> ComputableAsync()
+    {
+        var votes = await context.Votes.ToListAsync();
+        var grouped = votes.GroupBy(v => (v.HexagonId, v.Kind));
 
+        int created = 0, reopened = 0, updated = 0;
+
+        foreach (var group in grouped)
+        {
+            var threshold = GetThreshold(group.Key.Kind, config);
+            if (group.Count() < threshold) continue;
+
+            var existing = await context.RoadVisualAnomalies
+                .FirstOrDefaultAsync(a => a.HexagonId == group.Key.HexagonId && a.Kind == group.Key.Kind);
+
+            if (existing is not null && existing.ResolvedAt is null)
+            {
+                updated++;
+                continue;
+            }
+
+            if (existing is not null)
+            {
+                reopened++;
+            }
+            else
+            {
+                created++;
+            }
+        }
+
+        logger.LogInformation("Computable (dry run): {Created} created, {Reopened} reopened, {Updated} updated, {Deleted} votes deleted",
+            created, reopened, updated, votes.Count);
+
+        return new ComputeResultDto(created, reopened, updated, votes.Count);
+    }
     private static int GetThreshold(AnomalyType kind, IConfiguration config)
     {
         var kindStr = kind.ToString();

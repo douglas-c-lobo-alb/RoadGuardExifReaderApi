@@ -25,6 +25,10 @@ public static class VoteEndpoints
         group.MapPost("/compute", Compute)
             .WithName("ComputeVotes")
             .WithDescription("Promotes qualifying vote groups to anomalies, then deletes all votes");
+
+        group.MapPost("/compute-dry-run", ComputeDryRun)
+            .WithName("ComputeDryRun")
+            .WithDescription("Dry run the compute endpoint to visualize what WILL be done");
     }
 
     private static async Task<IResult> GetAll(VoteService svc)
@@ -40,7 +44,7 @@ public static class VoteEndpoints
     {
         var result = await svc.CreateAsync(dto);
         return result is null
-            ? Results.BadRequest("Must provide HexagonId or Latitude+Longitude")
+            ? Results.BadRequest("Must provide HexagonId, Latitude+Longitude, or a valid ImageId with an assigned hexagon")
             : Results.Created($"/api/votes/anomaly/{result.Id}", result);
     }
 
@@ -52,4 +56,7 @@ public static class VoteEndpoints
 
     private static async Task<IResult> Compute(VoteService svc)
         => Results.Ok(await svc.ComputeAsync());
+
+    private static async Task<IResult> ComputeDryRun(VoteService svc)
+        => Results.Ok(await svc.ComputableAsync());
 }

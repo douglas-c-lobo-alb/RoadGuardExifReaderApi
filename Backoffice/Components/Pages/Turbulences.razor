@@ -26,15 +26,15 @@
     <Columns>
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="Id" Title="Id" Width="80px" />
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="Index" Title="Index" Width="100px" />
-        <RadzenDataGridColumn TItem="TurbulenceRow" Property="RoadTurbulenceType" Title="Type">
+        <RadzenDataGridColumn TItem="TurbulenceRow" Property="Kind" Title="Type">
             <Template Context="t">
-                @t.RoadTurbulenceType.ToString()
+                @t.Kind.ToString()
             </Template>
         </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="HexagonId" Title="Hexagon" Width="120px">
             <Template Context="t">@(t.HexagonId?.ToString() ?? "—")</Template>
         </RadzenDataGridColumn>
-        <RadzenDataGridColumn TItem="TurbulenceRow" Property="DateCreated" Title="Date Created"
+        <RadzenDataGridColumn TItem="TurbulenceRow" Property="CreatedDate" Title="Date Created"
                               Width="160px" FormatString="{0:yyyy-MM-dd HH:mm}" />
         <RadzenDataGridColumn TItem="TurbulenceRow" Title="" Width="110px" Sortable="false" Filterable="false" TextAlign="TextAlign.End">
             <Template Context="t">
@@ -89,5 +89,5 @@
             NotificationService.Notify(NotificationSeverity.Error, "Delete failed", $"Status {(int)response.StatusCode}", 5000);
     }
 
-    private record TurbulenceRow(int Id, int Index, RoadTurbulenceType RoadTurbulenceType, int? HexagonId, DateTime DateCreated);
+    private record TurbulenceRow(int Id, int Index, string Kind, int? HexagonId, int? AgentId, DateTime CreatedDate, DateTime LastModifiedDate);
 }

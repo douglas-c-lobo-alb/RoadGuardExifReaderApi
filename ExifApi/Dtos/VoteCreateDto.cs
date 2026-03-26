@@ -6,6 +6,7 @@ namespace ExifApi.Dtos;
 public class VoteCreateDto
 {
     public int? HexagonId { get; set; }
+    public string? H3Index { get; set; }
 
     [JsonPropertyName("lat")]
     public decimal? Latitude { get; set; }

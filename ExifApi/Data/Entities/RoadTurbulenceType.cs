@@ -5,6 +5,7 @@ namespace ExifApi.Data.Entities;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum RoadTurbulenceType
 {
+    None,
     Pothole,
     Speedbump,
     LongitudinalCrack,

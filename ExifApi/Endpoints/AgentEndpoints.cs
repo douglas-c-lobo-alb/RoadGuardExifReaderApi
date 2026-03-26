@@ -19,6 +19,9 @@ public static class AgentEndpoints
         group.MapPost("/", Create)
             .WithName("CreateAgent");
 
+        group.MapPut("/{id:int}", Update)
+            .WithName("UpdateAgent");
+
         group.MapDelete("/{id:int}", Delete)
             .WithName("DeleteAgent");
     }
@@ -36,6 +39,12 @@ public static class AgentEndpoints
     {
         var result = await agentService.CreateAsync(dto);
         return Results.Created($"/api/agents/{result.Id}", result);
+    }
+
+    private static async Task<IResult> Update(int id, AgentCreateDto dto, AgentService agentService)
+    {
+        var result = await agentService.UpdateAsync(id, dto);
+        return result is null ? Results.NotFound() : Results.Ok(result);
     }
 
     private static async Task<IResult> Delete(int id, AgentService agentService)
