@@ -33,14 +33,22 @@ else
 
         <div class="mb-3">
             <label class="form-label fw-semibold">Hexagon</label>
-            <RadzenDropDown TValue="int?"
-                            @bind-Value="hexagonId"
-                            Data="@hexagons"
-                            TextProperty="H3Index"
-                            ValueProperty="Id"
-                            AllowClear="true"
-                            Placeholder="— none —"
-                            Style="width:100%" />
+            <RadzenRadioButtonList @bind-Value="locationMode" TValue="string" class="mb-2">
+                <Items>
+                    <RadzenRadioButtonListItem Text="Select Hexagon" Value="@("hexagon")" />
+                    <RadzenRadioButtonListItem Text="H3 Index" Value="@("h3index")" />
+                </Items>
+            </RadzenRadioButtonList>
+            @if (locationMode == "hexagon")
+            {
+                <RadzenDropDown TValue="int?" @bind-Value="hexagonId" Data="@hexagons"
+                                TextProperty="H3Index" ValueProperty="Id" AllowClear="true"
+                                Placeholder="— none —" Style="width:100%" />
+            }
+            else
+            {
+                <RadzenTextBox @bind-Value="h3Index" Placeholder="e.g. 8f39100e1a500e2" Style="width:100%" />
+            }
         </div>
 
         <RadzenButton Text="@(submitting ? "Saving..." : "Save")" Icon="save" ButtonStyle="ButtonStyle.Primary"
@@ -67,7 +75,9 @@ else
 
     private int index;
     private IEnumerable<RoadTurbulenceType> selectedTypes = [];
+    private string locationMode = "hexagon";
     private int? hexagonId;
+    private string h3Index = "";
     private List<HexagonOption> hexagons = [];
     private bool loaded;
     private bool submitting;
@@ -108,7 +118,9 @@ else
                 ? selectedTypes.Aggregate((a, b) => a | b)
                 : RoadTurbulenceType.Pothole;
 
-            var payload = new { Index = index, RoadTurbulenceType = turbulenceType, HexagonId = hexagonId };
+            var payload = locationMode == "h3index"
+                ? (object)new { Index = index, Kind = turbulenceType, H3Index = h3Index }
+                : new { Index = index, Kind = turbulenceType, HexagonId = hexagonId };
 
             var client = HttpClientFactory.CreateClient("ExifApi");
             var response = await client.PutAsJsonAsync($"api/turbulences/{Id}", payload);
