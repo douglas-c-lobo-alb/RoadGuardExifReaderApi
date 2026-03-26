@@ -36,11 +36,13 @@ public class ImageServiceTests : IDisposable
         var mockEnv = new Mock<IWebHostEnvironment>();
         mockEnv.Setup(e => e.WebRootPath).Returns(_tempRoot);
 
-        var mockConfig = new Mock<IConfiguration>();
-        mockConfig.Setup(c => c.GetSection("Image:Path").Value).Returns("images");
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Image:Path"] = "images" })
+            .Build();
 
         var exifService = new ExifService(NullLogger<ExifService>.Instance, mockEnv.Object);
-        _service = new ImageService(_context, exifService, NullLogger<ImageService>.Instance, mockEnv.Object, mockConfig.Object);
+        var anomalyService = new RoadVisualAnomalyService(_context, NullLogger<RoadVisualAnomalyService>.Instance, config);
+        _service = new ImageService(_context, exifService, anomalyService, NullLogger<ImageService>.Instance, mockEnv.Object, config);
     }
 
     public void Dispose()

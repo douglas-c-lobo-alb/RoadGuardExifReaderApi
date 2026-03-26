@@ -30,6 +30,10 @@ public static class ImageEndpoints
         group.MapDelete("/{id:int}", Delete)
             .WithName("DeleteImage")
             .WithDescription("[Backoffice usage only intended] Deletes an image");
+
+        group.MapGet("/{id:int}/anomalies", GetAnomalies)
+            .WithName("GetAnomaliesByImageId")
+            .WithDescription("Returns all anomalies associated with the given image");
     }
 
     private static async Task<IResult> GetAll(ImageService imageService)
@@ -68,4 +72,7 @@ public static class ImageEndpoints
         var deleted = await imageService.DeleteAsync(id);
         return deleted ? Results.NoContent() : Results.NotFound();
     }
+
+    private static async Task<IResult> GetAnomalies(int id, RoadVisualAnomalyService anomalyService)
+        => Results.Ok(await anomalyService.GetAllByImageIdAsync(id));
 }

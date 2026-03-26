@@ -44,10 +44,13 @@ public static class RoadTurbulenceEndpoints
     private static async Task<IResult> GetByH3Index(string h3Index, RoadTurbulenceService svc)
         => Results.Ok(await svc.GetByH3IndexAsync(h3Index));
 
-    private static async Task<IResult> Create(RoadTurbulenceCreateDto dto, RoadTurbulenceService svc)
+    private static async Task<IResult> Create(List<RoadTurbulenceCreateDto> dtos, RoadTurbulenceService svc)
     {
-        var created = await svc.CreateAsync(dto);
-        return Results.Created($"/api/turbulences/{created.Id}", created);
+        if (dtos is null || dtos.Count == 0)
+            return Results.BadRequest("At least one turbulence record is required.");
+
+        var created = await svc.CreateManyAsync(dtos);
+        return Results.Created("/api/turbulences/", created);
     }
 
     private static async Task<IResult> Update(int id, RoadTurbulenceCreateDto dto, RoadTurbulenceService svc)
