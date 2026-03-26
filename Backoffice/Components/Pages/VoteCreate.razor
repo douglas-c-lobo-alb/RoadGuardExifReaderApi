@@ -30,6 +30,7 @@
         <RadzenRadioButtonList @bind-Value="locationMode" TValue="string" class="mb-2">
             <Items>
                 <RadzenRadioButtonListItem Text="Hexagon" Value="@("hexagon")" />
+                <RadzenRadioButtonListItem Text="H3 Index" Value="@("h3index")" />
                 <RadzenRadioButtonListItem Text="Coordinates" Value="@("coords")" />
                 <RadzenRadioButtonListItem Text="From Image" Value="@("image")" />
             </Items>
@@ -47,6 +48,14 @@
             @if (showValidation && hexagonId == 0)
             {
                 <div class="text-danger small mt-1">Hexagon is required.</div>
+            }
+        }
+        else if (locationMode == "h3index")
+        {
+            <RadzenTextBox @bind-Value="h3Index" Placeholder="e.g. 8f39100e1a500e2" Style="width:100%" />
+            @if (showValidation && string.IsNullOrWhiteSpace(h3Index))
+            {
+                <div class="text-danger small mt-1">H3 Index is required.</div>
             }
         }
         else if (locationMode == "coords")
@@ -78,7 +87,7 @@
         }
     </div>
 
-    @if (locationMode != "image")
+    @if (locationMode != "image" && locationMode != "h3index")
     {
         <div class="mb-3">
             <label class="form-label fw-semibold">Image (optional)</label>
@@ -152,6 +161,7 @@
     private string locationMode = "hexagon";
     private int agentId;
     private int hexagonId;
+    private string h3Index = "";
     private decimal latitude;
     private decimal longitude;
     private int locationImageId;
@@ -191,6 +201,7 @@
 
         if (agentId == 0) return;
         if (locationMode == "hexagon" && hexagonId == 0) return;
+        if (locationMode == "h3index" && string.IsNullOrWhiteSpace(h3Index)) return;
         if (locationMode == "image" && locationImageId == 0) return;
 
         submitting = true;
@@ -205,6 +216,14 @@
                     HexagonId = hexagonId,
                     AgentId = agentId,
                     ImageId = imageId,
+                    Kind = kind,
+                    Confidence = confidence,
+                    BoxX1 = boxX1, BoxY1 = boxY1, BoxX2 = boxX2, BoxY2 = boxY2,
+                },
+                "h3index" => new
+                {
+                    H3Index = h3Index,
+                    AgentId = agentId,
                     Kind = kind,
                     Confidence = confidence,
                     BoxX1 = boxX1, BoxY1 = boxY1, BoxX2 = boxX2, BoxY2 = boxY2,
