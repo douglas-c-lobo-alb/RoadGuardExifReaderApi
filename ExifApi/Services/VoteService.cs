@@ -148,6 +148,8 @@ public class VoteService(
             }
         }
 
+
+
         context.Votes.RemoveRange(votes);
         await context.SaveChangesAsync();
 
@@ -156,7 +158,42 @@ public class VoteService(
 
         return new ComputeResultDto(created, reopened, updated, votes.Count);
     }
+    public async Task<ComputeResultDto> ComputableAsync()
+    {
+        var votes = await context.Votes.ToListAsync();
+        var grouped = votes.GroupBy(v => (v.HexagonId, v.Kind));
 
+        int created = 0, reopened = 0, updated = 0;
+
+        foreach (var group in grouped)
+        {
+            var threshold = GetThreshold(group.Key.Kind, config);
+            if (group.Count() < threshold) continue;
+
+            var existing = await context.RoadVisualAnomalies
+                .FirstOrDefaultAsync(a => a.HexagonId == group.Key.HexagonId && a.Kind == group.Key.Kind);
+
+            if (existing is not null && existing.ResolvedAt is null)
+            {
+                updated++;
+                continue;
+            }
+
+            if (existing is not null)
+            {
+                reopened++;
+            }
+            else
+            {
+                created++;
+            }
+        }
+
+        logger.LogInformation("Computable (dry run): {Created} created, {Reopened} reopened, {Updated} updated, {Deleted} votes deleted",
+            created, reopened, updated, votes.Count);
+
+        return new ComputeResultDto(created, reopened, updated, votes.Count);
+    }
     private static int GetThreshold(AnomalyType kind, IConfiguration config)
     {
         var kindStr = kind.ToString();
