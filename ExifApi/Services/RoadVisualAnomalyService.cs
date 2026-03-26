@@ -40,6 +40,14 @@ public class RoadVisualAnomalyService
     {
         int? hexagonId = dto.HexagonId;
 
+        if (hexagonId is null && !string.IsNullOrWhiteSpace(dto.H3Index))
+        {
+            var hex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == dto.H3Index)
+                      ?? _context.Hexagons.Add(new Hexagon { H3Index = dto.H3Index }).Entity;
+            await _context.SaveChangesAsync();
+            hexagonId = hex.Id;
+        }
+
         if (hexagonId is null && dto.ImageId.HasValue)
         {
             var image = await _context.Images.FirstOrDefaultAsync(i => i.Id == dto.ImageId.Value);
