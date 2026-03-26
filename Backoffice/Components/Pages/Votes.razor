@@ -73,7 +73,7 @@
                 var result = await response.Content.ReadFromJsonAsync<ComputeResult>();
                 if (result is not null)
                     NotificationService.Notify(NotificationSeverity.Success, "Compute complete",
-                        $"Created {result.AnomaliesCreated}, Reopened {result.AnomaliesReopened}, Votes deleted {result.VotesDeleted}", 6000);
+                        $"Created {result.AnomaliesCreated}, Reopened {result.AnomaliesReopened}, Updated {result.AnomaliesUpdated}, Votes deleted {result.VotesDeleted}", 6000);
                 await Load();
             }
             else
@@ -116,5 +116,5 @@
     }
 
     private record VoteRow(int Id, int? AgentId, int HexagonId, string Kind, decimal? Confidence, DateTime CreatedDate);
-    private record ComputeResult(int AnomaliesCreated, int AnomaliesReopened, int VotesDeleted);
+    private record ComputeResult(int AnomaliesCreated, int AnomaliesReopened, int AnomaliesUpdated, int VotesDeleted);
 }
