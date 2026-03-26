@@ -43,51 +43,42 @@ public class RoadTurbulenceService
         return records.Select(ToDto).ToList();
     }
 
-    /// <summary>
-    /// Inserts one or more turbulence records atomically (single transaction).
-    /// Each DTO must supply either HexagonId or H3Index.
-    /// </summary>
-    public async Task<List<RoadTurbulenceDto>> CreateAsync(IEnumerable<RoadTurbulenceCreateDto> dtos)
+    public async Task<RoadTurbulenceDto> CreateAsync(RoadTurbulenceCreateDto dto)
     {
-        var entities = new List<RoadTurbulence>();
+        int hexagonId;
 
-        foreach (var dto in dtos)
+        if (dto.HexagonId.HasValue)
         {
-            int hexagonId;
-
-            if (dto.HexagonId.HasValue)
-            {
-                hexagonId = dto.HexagonId.Value;
-            }
-            else if (!string.IsNullOrWhiteSpace(dto.H3Index))
-            {
-                var hex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == dto.H3Index)
-                          ?? _context.Hexagons.Add(new Hexagon { H3Index = dto.H3Index }).Entity;
-                await _context.SaveChangesAsync();
-                hexagonId = hex.Id;
-            }
-            else
-            {
-                throw new ArgumentException("Each turbulence record must supply HexagonId or H3Index.");
-            }
-
-            entities.Add(new RoadTurbulence
-            {
-                Index = dto.Index,
-                Kind = dto.Kind,
-                HexagonId = hexagonId,
-                AgentId = dto.AgentId,
-                CreatedDate = DateTime.UtcNow,
-                LastModifiedDate = DateTime.UtcNow
-            });
+            hexagonId = dto.HexagonId.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(dto.H3Index))
+        {
+            var hex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == dto.H3Index)
+                      ?? _context.Hexagons.Add(new Hexagon { H3Index = dto.H3Index }).Entity;
+            await _context.SaveChangesAsync();
+            hexagonId = hex.Id;
+        }
+        else
+        {
+            throw new ArgumentException("Must supply HexagonId or H3Index.");
         }
 
-        _context.RoadTurbulences.AddRange(entities);
+        var entity = new RoadTurbulence
+        {
+            Index = dto.Index,
+            Kind = dto.Kind,
+            HexagonId = hexagonId,
+            AgentId = dto.AgentId,
+            CreatedDate = DateTime.UtcNow,
+            LastModifiedDate = DateTime.UtcNow
+        };
+
+        _context.RoadTurbulences.Add(entity);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Created {Count} road turbulence record(s)", entities.Count);
+        _logger.LogInformation("Created road turbulence id={Id}", entity.Id);
 
-        return entities.Select(ToDto).ToList();
+        return ToDto(entity);
     }
 
     public async Task<RoadTurbulenceDto?> UpdateAsync(int id, RoadTurbulenceCreateDto dto)
