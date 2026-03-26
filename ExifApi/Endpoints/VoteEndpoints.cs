@@ -40,7 +40,7 @@ public static class VoteEndpoints
     {
         var result = await svc.CreateAsync(dto);
         return result is null
-            ? Results.BadRequest("Must provide HexagonId or Latitude+Longitude")
+            ? Results.BadRequest("Must provide HexagonId, Latitude+Longitude, or a valid ImageId with an assigned hexagon")
             : Results.Created($"/api/votes/anomaly/{result.Id}", result);
     }
 

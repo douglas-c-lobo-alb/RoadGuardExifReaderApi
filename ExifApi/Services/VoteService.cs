@@ -29,6 +29,12 @@ public class VoteService(
             await context.SaveChangesAsync();
             hexagonId = hex.Id;
         }
+        else if (dto.ImageId.HasValue)
+        {
+            var image = await context.Images.FindAsync(dto.ImageId.Value);
+            if (image?.HexagonId is null) return null;
+            hexagonId = image.HexagonId.Value;
+        }
         else return null;
 
         var entity = new Vote
