@@ -97,7 +97,7 @@ public class ImageService
         var anomalies = await _context.RoadVisualAnomalies
             .Where(a => a.ImageId == id)
             .ToListAsync();
-        return anomalies.Select(a => _anomalyService.ToDto(a)).ToList();
+        return anomalies.Select(a => RoadVisualAnomalyService.ToDto(a)).ToList();
     }
 
     public async Task<ImageDto?> GetByIdAsync(int id)

@@ -43,6 +43,14 @@ public class RoadTurbulenceService
         return records.Select(ToDto).ToList();
     }
 
+    public async Task<List<RoadTurbulenceDto>> CreateManyAsync(List<RoadTurbulenceCreateDto> dtos)
+    {
+        var results = new List<RoadTurbulenceDto>(dtos.Count);
+        foreach (var dto in dtos)
+            results.Add(await CreateAsync(dto));
+        return results;
+    }
+
     public async Task<RoadTurbulenceDto> CreateAsync(RoadTurbulenceCreateDto dto)
     {
         int hexagonId;
