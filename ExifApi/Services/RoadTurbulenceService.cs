@@ -1,6 +1,7 @@
 using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Dtos;
+using H3Standard;
 using Microsoft.EntityFrameworkCore;
 
 namespace ExifApi.Services;
@@ -9,11 +10,13 @@ public class RoadTurbulenceService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<RoadTurbulenceService> _logger;
+    private readonly H3Service _h3Service;
 
-    public RoadTurbulenceService(ApplicationDbContext context, ILogger<RoadTurbulenceService> logger)
+    public RoadTurbulenceService(ApplicationDbContext context, ILogger<RoadTurbulenceService> logger, H3Service h3Service)
     {
         _context = context;
         _logger = logger;
+        _h3Service = h3Service;
     }
 
     public async Task<List<RoadTurbulenceDto>> GetAllAsync()
@@ -42,18 +45,42 @@ public class RoadTurbulenceService
 
     /// <summary>
     /// Inserts one or more turbulence records atomically (single transaction).
+    /// Each DTO must supply either HexagonId or H3Index.
     /// </summary>
     public async Task<List<RoadTurbulenceDto>> CreateAsync(IEnumerable<RoadTurbulenceCreateDto> dtos)
     {
-        var entities = dtos.Select(dto => new RoadTurbulence
+        var entities = new List<RoadTurbulence>();
+
+        foreach (var dto in dtos)
         {
-            Index = dto.Index,
-            Kind = dto.Kind,
-            HexagonId = dto.HexagonId,
-            AgentId = dto.AgentId,
-            CreatedDate = DateTime.UtcNow,
-            LastModifiedDate = DateTime.UtcNow
-        }).ToList();
+            int hexagonId;
+
+            if (dto.HexagonId.HasValue)
+            {
+                hexagonId = dto.HexagonId.Value;
+            }
+            else if (!string.IsNullOrWhiteSpace(dto.H3Index))
+            {
+                var hex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == dto.H3Index)
+                          ?? _context.Hexagons.Add(new Hexagon { H3Index = dto.H3Index }).Entity;
+                await _context.SaveChangesAsync();
+                hexagonId = hex.Id;
+            }
+            else
+            {
+                throw new ArgumentException("Each turbulence record must supply HexagonId or H3Index.");
+            }
+
+            entities.Add(new RoadTurbulence
+            {
+                Index = dto.Index,
+                Kind = dto.Kind,
+                HexagonId = hexagonId,
+                AgentId = dto.AgentId,
+                CreatedDate = DateTime.UtcNow,
+                LastModifiedDate = DateTime.UtcNow
+            });
+        }
 
         _context.RoadTurbulences.AddRange(entities);
         await _context.SaveChangesAsync();
@@ -71,7 +98,17 @@ public class RoadTurbulenceService
 
         record.Index = dto.Index;
         record.Kind = dto.Kind;
-        if (dto.HexagonId != 0) record.HexagonId = dto.HexagonId;
+        if (dto.HexagonId.HasValue)
+        {
+            record.HexagonId = dto.HexagonId.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(dto.H3Index))
+        {
+            var hex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == dto.H3Index)
+                      ?? _context.Hexagons.Add(new Hexagon { H3Index = dto.H3Index }).Entity;
+            await _context.SaveChangesAsync();
+            record.HexagonId = hex.Id;
+        }
         record.AgentId = dto.AgentId;
         record.LastModifiedDate = DateTime.UtcNow;
 
