@@ -28,6 +28,16 @@ public class RoadVisualAnomalyService
         return records.Select(ToDto).ToList();
     }
 
+    public async Task<List<RoadVisualAnomalyDto>> GetAllByImageIdAsync(int imageId)
+    {
+        var records = await _context.RoadVisualAnomalies
+            .Where(r => r.ImageId == imageId)
+            .Include(r => r.Image)
+            .OrderByDescending(r => r.CreatedDate)
+            .ToListAsync();
+        return records.Select(ToDto).ToList();
+    }
+
     public async Task<RoadVisualAnomalyDto?> GetByIdAsync(int id)
     {
         var record = await _context.RoadVisualAnomalies
@@ -171,7 +181,7 @@ public class RoadVisualAnomalyService
         return parentHex.Id;
     }
 
-    private static RoadVisualAnomalyDto ToDto(RoadVisualAnomaly r) => new()
+    public static RoadVisualAnomalyDto ToDto(RoadVisualAnomaly r) => new()
     {
         Id = r.Id,
         HexagonId = r.HexagonId,

@@ -9,14 +9,16 @@ public class ImageService
 {
     private readonly ApplicationDbContext _context;
     private readonly ExifService _exifService;
+    private readonly RoadVisualAnomalyService _anomalyService;
     private readonly ILogger<ImageService> _logger;
     private readonly IWebHostEnvironment _env;
     private readonly string _imagesFolder;
 
-    public ImageService(ApplicationDbContext context, ExifService exifService, ILogger<ImageService> logger, IWebHostEnvironment env, IConfiguration configuration)
+    public ImageService(ApplicationDbContext context, ExifService exifService, RoadVisualAnomalyService anomalyService, ILogger<ImageService> logger, IWebHostEnvironment env, IConfiguration configuration)
     {
         _context = context;
         _exifService = exifService;
+        _anomalyService = anomalyService;
         _logger = logger;
         _env = env;
         _imagesFolder = configuration.GetSection("Image:Path").Value ?? "images";
@@ -88,6 +90,14 @@ public class ImageService
             .OrderBy(i => i.DateTaken)
             .ToListAsync();
         return images.Select(ToDto).ToList();
+    }
+
+    public async Task<List<RoadVisualAnomalyDto>> GetAllAnomalies(int id)
+    {
+        var anomalies = await _context.RoadVisualAnomalies
+            .Where(a => a.ImageId == id)
+            .ToListAsync();
+        return anomalies.Select(a => _anomalyService.ToDto(a)).ToList();
     }
 
     public async Task<ImageDto?> GetByIdAsync(int id)
