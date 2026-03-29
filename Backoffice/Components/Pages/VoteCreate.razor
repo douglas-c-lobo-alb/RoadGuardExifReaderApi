@@ -11,18 +11,10 @@
 <div style="max-width:600px">
 
     <div class="mb-3">
-        <label class="form-label fw-semibold">Agent <span class="text-danger">*</span></label>
-        <RadzenDropDown TValue="int"
-                        @bind-Value="agentId"
-                        Data="@agents"
-                        TextProperty="Name"
-                        ValueProperty="Id"
-                        Placeholder="— select an agent —"
-                        Style="width:100%" />
-        @if (showValidation && agentId == 0)
-        {
-            <div class="text-danger small mt-1">Agent is required.</div>
-        }
+        <label class="form-label fw-semibold">Session (optional)</label>
+        <RadzenDropDown TValue="int?" @bind-Value="sessionId" Data="@sessions"
+                        TextProperty="Label" ValueProperty="Id" AllowClear="true"
+                        Placeholder="— none —" Style="width:100%" />
     </div>
 
     <div class="mb-3">
@@ -159,7 +151,7 @@
     ];
 
     private string locationMode = "hexagon";
-    private int agentId;
+    private int? sessionId;
     private int hexagonId;
     private string h3Index = "";
     private decimal latitude;
@@ -172,7 +164,7 @@
     private bool submitting;
     private bool showValidation;
 
-    private List<AgentOption> agents = [];
+    private List<SessionOption> sessions = [];
     private List<HexagonOption> hexagons = [];
     private List<ImageOption> images = [];
 
@@ -181,11 +173,11 @@
         try
         {
             var client = HttpClientFactory.CreateClient("ExifApi");
-            var agentsTask = client.GetFromJsonAsync<List<AgentOption>>("api/agents/");
+            var sessionsTask = client.GetFromJsonAsync<List<SessionOption>>("api/sessions/");
             var hexagonsTask = client.GetFromJsonAsync<List<HexagonOption>>("api/hexagons/");
             var imagesTask = client.GetFromJsonAsync<List<ImageOption>>("api/images/");
-            await Task.WhenAll(agentsTask, hexagonsTask, imagesTask);
-            agents = agentsTask.Result ?? [];
+            await Task.WhenAll(sessionsTask, hexagonsTask, imagesTask);
+            sessions = sessionsTask.Result ?? [];
             hexagons = hexagonsTask.Result ?? [];
             images = imagesTask.Result ?? [];
         }
@@ -199,7 +191,6 @@
     {
         showValidation = true;
 
-        if (agentId == 0) return;
         if (locationMode == "hexagon" && hexagonId == 0) return;
         if (locationMode == "h3index" && string.IsNullOrWhiteSpace(h3Index)) return;
         if (locationMode == "image" && locationImageId == 0) return;
@@ -214,7 +205,7 @@
                 "hexagon" => new
                 {
                     HexagonId = hexagonId,
-                    AgentId = agentId,
+                    SessionId = sessionId,
                     ImageId = imageId,
                     Kind = kind,
                     Confidence = confidence,
@@ -223,7 +214,7 @@
                 "h3index" => new
                 {
                     H3Index = h3Index,
-                    AgentId = agentId,
+                    SessionId = sessionId,
                     Kind = kind,
                     Confidence = confidence,
                     BoxX1 = boxX1, BoxY1 = boxY1, BoxX2 = boxX2, BoxY2 = boxY2,
@@ -232,7 +223,7 @@
                 {
                     Lat = latitude,
                     Lon = longitude,
-                    AgentId = agentId,
+                    SessionId = sessionId,
                     ImageId = imageId,
                     Kind = kind,
                     Confidence = confidence,
@@ -241,7 +232,7 @@
                 _ => new
                 {
                     ImageId = (int?)locationImageId,
-                    AgentId = agentId,
+                    SessionId = sessionId,
                     Kind = kind,
                     Confidence = confidence,
                     BoxX1 = boxX1, BoxY1 = boxY1, BoxX2 = boxX2, BoxY2 = boxY2,
@@ -271,7 +262,10 @@
         }
     }
 
-    private record AgentOption(int Id, string Name);
+    private record SessionOption(int Id, int AgentId)
+    {
+        public string Label => $"#{Id} — Agent #{AgentId}";
+    }
     private record HexagonOption(int Id, string H3Index);
     private record ImageOption(int Id, string FileName);
 }
