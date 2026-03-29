@@ -197,27 +197,48 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
             anomalyIndices[i] = H3Net.H3ToString(raw13);
         }
 
-        // Create unique app-resolution hexagons
+        // Pre-load any hexagons that already exist in the DB to avoid UNIQUE violations
+        var allNeeded = appIndices.Concat(anomalyIndices)
+            .Where(x => x is not null).Select(x => x!).Distinct().ToHashSet();
+        var existingHexagons = await db.Hexagons
+            .Where(h => allNeeded.Contains(h.H3Index))
+            .ToDictionaryAsync(h => h.H3Index);
+
+        // Create unique app-resolution hexagons (reuse existing ones)
         for (int i = 0; i < images.Count; i++)
         {
             var idx = appIndices[i];
             if (idx is null || appHexMap.ContainsKey(idx)) continue;
-            var hex = new Hexagon { H3Index = idx, CreatedDate = DateTime.UtcNow };
-            appHexMap[idx] = hex;
-            db.Hexagons.Add(hex);
+            if (existingHexagons.TryGetValue(idx, out var existing))
+            {
+                appHexMap[idx] = existing;
+            }
+            else
+            {
+                var hex = new Hexagon { H3Index = idx, CreatedDate = DateTime.UtcNow };
+                appHexMap[idx] = hex;
+                db.Hexagons.Add(hex);
+            }
         }
 
-        // Create unique anomaly hexagons
+        // Create unique anomaly hexagons (reuse existing ones)
         for (int i = 0; i < images.Count; i++)
         {
             var idx = anomalyIndices[i];
             if (idx is null || anomalyMap.ContainsKey(idx)) continue;
-            var hex = new Hexagon { H3Index = idx, CreatedDate = DateTime.UtcNow };
-            anomalyMap[idx] = hex;
-            db.Hexagons.Add(hex);
+            if (existingHexagons.TryGetValue(idx, out var existing))
+            {
+                anomalyMap[idx] = existing;
+            }
+            else
+            {
+                var hex = new Hexagon { H3Index = idx, CreatedDate = DateTime.UtcNow };
+                anomalyMap[idx] = hex;
+                db.Hexagons.Add(hex);
+            }
         }
 
-        // Save so PKs are assigned
+        // Save so PKs are assigned (only newly added hexagons)
         await db.SaveChangesAsync();
 
         // Link images to their app-resolution hexagon and build anomalyHexIds in one pass
