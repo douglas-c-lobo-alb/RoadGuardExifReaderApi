@@ -8,7 +8,16 @@ using Microsoft.Extensions.Configuration;
 
 namespace ExifApi.Services;
 
+public record SeedOptions(
+    bool WithAgent = true,
+    bool WithSession = true,
+    bool WithImages = true,
+    bool WithAnomalies = true,
+    bool WithTurbulences = true);
+
 public record SeedResult(
+    int AgentsCreated,
+    int SessionsCreated,
     int ImagesCreated,
     int HexagonsCreated,
     int AnomaliesCreated,
@@ -45,34 +54,65 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         RoadTurbulenceType.WaterLeakage,
     ];
 
-    public async Task<SeedResult> RunAsync(bool withAnomalies = true, bool withTurbulences = true)
+    public async Task<SeedResult> RunAsync(SeedOptions options)
     {
-        await ClearDatabaseAsync();
-
         var rng = new Random(42);
-        var images = BuildImages(rng);
-        var (hexagonMap, anomalyHexIds) = await CreateHexagonsAsync(images);
 
-        db.Images.AddRange(images);
-        await db.SaveChangesAsync();
+        Agent? agent = null;
+        if (options.WithAgent)
+        {
+            agent = new Agent { Name = "SeedAgent", CreatedDate = DateTime.UtcNow, LastModifiedDate = DateTime.UtcNow };
+            db.Agents.Add(agent);
+            await db.SaveChangesAsync();
+        }
+
+        Session? session = null;
+        if (options.WithSession && agent is not null)
+        {
+            session = new Session { AgentId = agent.Id, StartedAt = DateTime.UtcNow };
+            db.Sessions.Add(session);
+            await db.SaveChangesAsync();
+        }
+
+        List<Image> images = [];
+        Dictionary<string, Hexagon> hexagonMap = [];
+        int[] anomalyHexIds = [];
+
+        if (options.WithImages)
+        {
+            images = BuildImages(rng);
+            (hexagonMap, anomalyHexIds) = await CreateHexagonsAsync(images);
+            foreach (var img in images)
+                img.SessionId = session?.Id;
+            db.Images.AddRange(images);
+            await db.SaveChangesAsync();
+        }
 
         List<RoadTurbulence> turbulences = [];
-        if (withTurbulences)
+        if (options.WithTurbulences && images.Count > 0)
         {
             turbulences = BuildTurbulences(images, anomalyHexIds, rng);
+            foreach (var t in turbulences)
+                t.SessionId = session?.Id;
             db.RoadTurbulences.AddRange(turbulences);
             await db.SaveChangesAsync();
         }
 
         List<RoadVisualAnomaly> anomalies = [];
-        if (withAnomalies)
+        if (options.WithAnomalies && images.Count > 0)
         {
             anomalies = BuildAnomalies(images, anomalyHexIds, rng);
             db.RoadVisualAnomalies.AddRange(anomalies);
             await db.SaveChangesAsync();
         }
 
-        return new SeedResult(images.Count, hexagonMap.Count, anomalies.Count, turbulences.Count);
+        return new SeedResult(
+            agent is not null ? 1 : 0,
+            session is not null ? 1 : 0,
+            images.Count,
+            hexagonMap.Count,
+            anomalies.Count,
+            turbulences.Count);
     }
 
     public async Task ClearDatabaseAsync()
@@ -83,12 +123,16 @@ public class SeedService(ApplicationDbContext db, ExifService exifService, H3Ser
         await db.RoadTurbulences.ExecuteDeleteAsync();
         await db.Images.ExecuteDeleteAsync();
         await db.Hexagons.ExecuteDeleteAsync();
+        await db.Sessions.ExecuteDeleteAsync();
+        await db.Agents.ExecuteDeleteAsync();
 
         // Reset auto-increment counters so next inserts start from ID 1
         await db.Database.ExecuteSqlRawAsync("""
             DELETE FROM sqlite_sequence
-            WHERE name IN ('Votes', 'RoadVisualAnomalies', 'Images', 'RoadTurbulences', 'Hexagons');
+            WHERE name IN ('Votes', 'RoadVisualAnomalies', 'Images', 'RoadTurbulences', 'Hexagons', 'Sessions', 'Agents');
             """);
+
+        await ClearImagesFolderAsync();
     }
 
     public Task<int> ClearImagesFolderAsync()
