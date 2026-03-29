@@ -1,0 +1,86 @@
+@page "/sessions/create"
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@inject NotificationService NotificationService
+@rendermode InteractiveServer
+
+<PageTitle>New Session</PageTitle>
+<h1>New Session</h1>
+
+<div style="max-width:500px">
+
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Agent <span class="text-danger">*</span></label>
+        <RadzenDropDown TValue="int?"
+                        @bind-Value="agentId"
+                        Data="@agents"
+                        TextProperty="Name"
+                        ValueProperty="Id"
+                        Placeholder="— select an agent —"
+                        Style="width:100%" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Started At</label>
+        <RadzenDatePicker TValue="DateTime" @bind-Value="startedAt" ShowTime="true" Style="width:100%" />
+    </div>
+
+    <RadzenButton Text="@(submitting ? "Saving..." : "Create")" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                  Disabled="@(submitting || agentId is null)" Click="Submit" />
+    <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" class="ms-2"
+                  Click="@(() => NavigationManager.NavigateTo("/sessions"))" />
+</div>
+
+@code {
+    private int? agentId;
+    private DateTime startedAt = DateTime.Now;
+    private bool submitting;
+
+    private List<AgentOption> agents = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            agents = await client.GetFromJsonAsync<List<AgentOption>>("api/agents/") ?? [];
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
+        }
+    }
+
+    private async Task Submit()
+    {
+        submitting = true;
+        try
+        {
+            var payload = new { AgentId = agentId, StartedAt = startedAt };
+
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PostAsJsonAsync("api/sessions/", payload);
+
+            if (response.IsSuccessStatusCode)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Created", "Session created.", 3000);
+                NavigationManager.NavigateTo("/sessions");
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                NotificationService.Notify(NotificationSeverity.Error, "Save failed", $"({(int)response.StatusCode}) {body}", 6000);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", ex.Message, 6000);
+        }
+        finally
+        {
+            submitting = false;
+        }
+    }
+
+    private record AgentOption(int Id, string Name);
+}
