@@ -24,14 +24,14 @@ public class ImageService
         _imagesFolder = configuration.GetSection("Image:Path").Value ?? "images";
     }
 
-    public async Task<ImageDto?> RegisterImageAsync(IFormFile file, int? agentId = null)
+    public async Task<ImageDto?> RegisterImageAsync(IFormFile file, int? sessionId = null)
     {
-        if (agentId.HasValue)
+        if (sessionId.HasValue)
         {
-            var agentExists = await _context.Agents.AnyAsync(a => a.Id == agentId.Value);
-            if (!agentExists)
+            var sessionExists = await _context.Sessions.AnyAsync(s => s.Id == sessionId.Value);
+            if (!sessionExists)
             {
-                _logger.LogWarning("Agent id={AgentId} not found", agentId.Value);
+                _logger.LogWarning("Session id={SessionId} not found", sessionId.Value);
                 return null;
             }
         }
@@ -65,7 +65,7 @@ public class ImageService
         var image = new Image
         {
             FileName = fileName,
-            AgentId = agentId,
+            SessionId = sessionId,
             CameraMake = metadata?.CameraMake,
             CameraModel = metadata?.CameraModel,
             DateTaken = metadata?.DateTaken,
@@ -160,7 +160,7 @@ public class ImageService
         Heading = image.Heading,
         Metadata = image.Metadata,
         AnomalyCount = image.Anomalies.Count,
-        AgentId = image.AgentId,
+        SessionId = image.SessionId,
         Hexagon = image.Hexagon is null ? null : new HexagonDto
         {
             Id = image.Hexagon.Id,
