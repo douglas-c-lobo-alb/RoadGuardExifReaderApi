@@ -155,36 +155,39 @@ public class ImageEndpointsTests : IDisposable
     }
 
     // -------------------------------------------------------------------------
-    // POST /api/images/ — agentId form field
+    // POST /api/images/ — sessionId form field
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Upload_WithValidAgentId_Returns201AndDtoWithAgentId()
+    public async Task Upload_WithValidSessionId_Returns201AndDtoWithSessionId()
     {
         using var ctx = _factory.CreateDbContext();
         var agent = new Agent { Name = "Device-01" };
         ctx.Agents.Add(agent);
         await ctx.SaveChangesAsync();
-        int agentId = agent.Id;
+        var session = new Session { AgentId = agent.Id, StartedAt = DateTime.UtcNow };
+        ctx.Sessions.Add(session);
+        await ctx.SaveChangesAsync();
+        int sessionId = session.Id;
 
         var content = new MultipartFormDataContent();
-        content.Add(new ByteArrayContent(Encoding.UTF8.GetBytes("fake-jpeg")), "file", "agent_photo.jpg");
-        content.Add(new StringContent(agentId.ToString()), "agentId");
+        content.Add(new ByteArrayContent(Encoding.UTF8.GetBytes("fake-jpeg")), "file", "session_photo.jpg");
+        content.Add(new StringContent(sessionId.ToString()), "sessionId");
 
         var response = await _client.PostAsync("api/images/", content);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var dto = await response.Content.ReadFromJsonAsync<ImageDto>();
         Assert.NotNull(dto);
-        Assert.Equal(agentId, dto.AgentId);
+        Assert.Equal(sessionId, dto.SessionId);
     }
 
     [Fact]
-    public async Task Upload_WithInvalidAgentId_Returns400()
+    public async Task Upload_WithInvalidSessionId_Returns400()
     {
         var content = new MultipartFormDataContent();
         content.Add(new ByteArrayContent(Encoding.UTF8.GetBytes("fake-jpeg")), "file", "orphan_photo.jpg");
-        content.Add(new StringContent("99999"), "agentId");
+        content.Add(new StringContent("99999"), "sessionId");
 
         var response = await _client.PostAsync("api/images/", content);
 
@@ -192,16 +195,16 @@ public class ImageEndpointsTests : IDisposable
     }
 
     [Fact]
-    public async Task Upload_WithoutAgentId_Returns201()
+    public async Task Upload_WithoutSessionId_Returns201()
     {
         var content = new MultipartFormDataContent();
-        content.Add(new ByteArrayContent(Encoding.UTF8.GetBytes("fake-jpeg")), "file", "no_agent.jpg");
+        content.Add(new ByteArrayContent(Encoding.UTF8.GetBytes("fake-jpeg")), "file", "no_session.jpg");
 
         var response = await _client.PostAsync("api/images/", content);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var dto = await response.Content.ReadFromJsonAsync<ImageDto>();
         Assert.NotNull(dto);
-        Assert.Null(dto.AgentId);
+        Assert.Null(dto.SessionId);
     }
 }
