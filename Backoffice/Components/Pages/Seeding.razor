@@ -14,13 +14,10 @@
                 <h5 class="card-title mb-0">Clear Database</h5>
             </div>
             <div class="card-body">
-                <p class="card-text text-muted small">Deletes all records and resets IDs back to 1.</p>
+                <p class="card-text text-muted small">Deletes all records, resets IDs back to 1, and clears the images folder.</p>
                 <RadzenButton Text="Clear DB" Icon="delete_forever" ButtonStyle="ButtonStyle.Danger"
                               IsBusy="@clearing" BusyText="Clearing..."
-                              Click="@ClearDatabase" class="me-2" />
-                <RadzenButton Text="Clear Images" Icon="folder_delete" ButtonStyle="ButtonStyle.Danger"
-                              IsBusy="@clearingImages" BusyText="Clearing..."
-                              Click="@ClearImages" />
+                              Click="@ClearDatabase" />
             </div>
         </div>
     </div>
@@ -31,9 +28,19 @@
                 <h5 class="card-title mb-0">Seed Hexagons</h5>
             </div>
             <div class="card-body">
-                <p class="card-text text-muted small mb-3">Seeds images and hexagons from EXIF data. Toggle which related data to include.</p>
+                <p class="card-text text-muted small mb-3">Seeds from EXIF data. Each step runs only if its parent is also enabled.</p>
 
-                <div class="d-flex gap-4 mb-4">
+                <div class="d-flex flex-wrap gap-4 mb-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="withAgent"
+                               @bind="withAgent" />
+                        <label class="form-check-label" for="withAgent">With Agent</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="withSession"
+                               @bind="withSession" />
+                        <label class="form-check-label" for="withSession">With Session</label>
+                    </div>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" role="switch" id="withAnomalies"
                                @bind="withAnomalies" />
@@ -62,25 +69,37 @@
                 </div>
                 <div class="card-body">
                     <div class="row g-3 text-center">
-                        <div class="col-6 col-md-3">
+                        <div class="col-6 col-md-2">
+                            <div class="p-3 bg-light rounded">
+                                <div class="fs-2 fw-bold">@seedResult.AgentsCreated</div>
+                                <div class="text-muted small">Agents</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <div class="p-3 bg-light rounded">
+                                <div class="fs-2 fw-bold">@seedResult.SessionsCreated</div>
+                                <div class="text-muted small">Sessions</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-2">
                             <div class="p-3 bg-light rounded">
                                 <div class="fs-2 fw-bold">@seedResult.ImagesCreated</div>
                                 <div class="text-muted small">Images</div>
                             </div>
                         </div>
-                        <div class="col-6 col-md-3">
+                        <div class="col-6 col-md-2">
                             <div class="p-3 bg-light rounded">
                                 <div class="fs-2 fw-bold">@seedResult.HexagonsCreated</div>
                                 <div class="text-muted small">Hexagons</div>
                             </div>
                         </div>
-                        <div class="col-6 col-md-3">
+                        <div class="col-6 col-md-2">
                             <div class="p-3 bg-light rounded">
                                 <div class="fs-2 fw-bold">@seedResult.AnomaliesCreated</div>
                                 <div class="text-muted small">Anomalies</div>
                             </div>
                         </div>
-                        <div class="col-6 col-md-3">
+                        <div class="col-6 col-md-2">
                             <div class="p-3 bg-light rounded">
                                 <div class="fs-2 fw-bold">@seedResult.TurbulencesCreated</div>
                                 <div class="text-muted small">Turbulences</div>
@@ -95,8 +114,9 @@
 
 @code {
     private bool clearing;
-    private bool clearingImages;
     private bool seeding;
+    private bool withAgent = true;
+    private bool withSession = true;
     private bool withAnomalies = true;
     private bool withTurbulences = true;
     private SeedResultDto? seedResult;
@@ -124,28 +144,6 @@
         }
     }
 
-    private async Task ClearImages()
-    {
-        clearingImages = true;
-        try
-        {
-            var client = HttpClientFactory.CreateClient("ExifApi");
-            var response = await client.PostAsync("api/clearimages", null);
-            if (response.IsSuccessStatusCode)
-                NotificationService.Notify(NotificationSeverity.Success, "Cleared", "Images folder cleared.", 4000);
-            else
-                NotificationService.Notify(NotificationSeverity.Error, "Clear failed", $"Status {(int)response.StatusCode}", 5000);
-        }
-        catch (Exception ex)
-        {
-            NotificationService.Notify(NotificationSeverity.Error, "Clear failed", ex.Message, 5000);
-        }
-        finally
-        {
-            clearingImages = false;
-        }
-    }
-
     private async Task SeedDatabase()
     {
         seeding = true;
@@ -153,7 +151,7 @@
         try
         {
             var client = HttpClientFactory.CreateClient("ExifApi");
-            var url = $"api/seed?withAnomalies={withAnomalies.ToString().ToLower()}&withTurbulences={withTurbulences.ToString().ToLower()}";
+            var url = $"api/seed?withAgent={withAgent.ToString().ToLower()}&withSession={withSession.ToString().ToLower()}&withAnomalies={withAnomalies.ToString().ToLower()}&withTurbulences={withTurbulences.ToString().ToLower()}";
             var response = await client.PostAsync(url, null);
             if (response.IsSuccessStatusCode)
             {
@@ -175,5 +173,5 @@
         }
     }
 
-    private record SeedResultDto(int ImagesCreated, int HexagonsCreated, int AnomaliesCreated, int TurbulencesCreated);
+    private record SeedResultDto(int AgentsCreated, int SessionsCreated, int ImagesCreated, int HexagonsCreated, int AnomaliesCreated, int TurbulencesCreated);
 }
