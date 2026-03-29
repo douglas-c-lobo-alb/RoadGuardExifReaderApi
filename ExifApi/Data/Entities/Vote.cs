@@ -10,8 +10,8 @@ public class Vote
     public int Id { get; set; }
     public int HexagonId { get; set; }
     public Hexagon? Hexagon { get; set; }
-    public int? AgentId { get; set; }
-    public Agent? Agent { get; set; }
+    public int? SessionId { get; set; }
+    public Session? Session { get; set; }
     public int? ImageId { get; set; }
     public Image? Image { get; set; }
     public AnomalyType Kind { get; set; }
