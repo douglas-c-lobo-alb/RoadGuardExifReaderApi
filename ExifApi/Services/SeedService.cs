@@ -10,16 +10,18 @@ public record SeedOptions(
     bool WithAgent = true,
     bool WithSession = true,
     bool WithImages = true,
+    bool WithTurbulences = true,
     bool WithAnomalies = true,
-    bool WithTurbulences = true);
+    bool WithVotes = true);
 
 public record SeedResult(
     int AgentsCreated,
     int SessionsCreated,
     int ImagesCreated,
     int HexagonsCreated,
+    int TurbulencesCreated,
     int AnomaliesCreated,
-    int TurbulencesCreated);
+    int VotesCreated);
 
 public class SeedService(
     ApplicationDbContext db,
@@ -29,6 +31,7 @@ public class SeedService(
     ImageService imageService,
     RoadTurbulenceService turbulenceService,
     RoadVisualAnomalyService anomalyService,
+    VoteService voteService,
     IWebHostEnvironment env,
     IConfiguration configuration)
 {
@@ -126,19 +129,18 @@ public class SeedService(
             .Distinct()
             .Count();
 
-        // Step 4 — Turbulences
-        int turbulencesCreated = 0;
-        if (options.WithTurbulences && registeredImages.Count > 0)
-        {
-            var withHexagon = registeredImages
-                .Where(x => x.Image.Hexagon is not null)
-                .ToList();
+        var withHexagon = registeredImages
+            .Where(x => x.Image.Hexagon is not null)
+            .ToList();
 
+        // Step 4 — Turbulences: every image with a hexagon gets 1–2
+        int turbulencesCreated = 0;
+        if (options.WithTurbulences && withHexagon.Count > 0)
+        {
             for (int i = 0; i < withHexagon.Count; i++)
             {
-                if (rng.Next(30) != 0) continue;
                 var (img, sid) = withHexagon[i];
-                int count = rng.Next(1, 3);
+                int count = 1 + rng.Next(2);
                 var batch = new List<RoadTurbulenceCreateDto>(count);
                 for (int k = 0; k < count; k++)
                 {
@@ -155,19 +157,14 @@ public class SeedService(
             }
         }
 
-        // Step 5 — Anomalies
+        // Step 5 — Anomalies: every image with a hexagon gets 1–2
         int anomaliesCreated = 0;
-        if (options.WithAnomalies && registeredImages.Count > 0)
+        if (options.WithAnomalies && withHexagon.Count > 0)
         {
-            var withHexagon = registeredImages
-                .Where(x => x.Image.Hexagon is not null)
-                .ToList();
-
             for (int i = 0; i < withHexagon.Count; i++)
             {
-                if (rng.Next(30) != 0) continue;
                 var (img, _) = withHexagon[i];
-                int count = rng.Next(1, 4);
+                int count = 1 + rng.Next(2);
                 for (int j = 0; j < count; j++)
                 {
                     int x1 = 50 + (i % 8) * 100;
@@ -184,13 +181,39 @@ public class SeedService(
             }
         }
 
+        // Step 6 — Votes: every image with a hexagon gets 1–3 votes
+        int votesCreated = 0;
+        if (options.WithVotes && withHexagon.Count > 0)
+        {
+            for (int i = 0; i < withHexagon.Count; i++)
+            {
+                var (img, sid) = withHexagon[i];
+                int count = 1 + rng.Next(3);
+                for (int j = 0; j < count; j++)
+                {
+                    int x1 = 60 + (i % 6) * 110;
+                    int y1 = 60 + (j % 4) * 100;
+                    var result = await voteService.CreateAsync(new VoteCreateDto
+                    {
+                        ImageId = img.Id,
+                        SessionId = sid,
+                        Kind = AnomalyTypes[(i + j) % AnomalyTypes.Length],
+                        Confidence = Math.Round((decimal)(0.55 + rng.NextDouble() * 0.44), 2),
+                        BoxX1 = x1, BoxY1 = y1, BoxX2 = x1 + 180, BoxY2 = y1 + 140
+                    });
+                    if (result is not null) votesCreated++;
+                }
+            }
+        }
+
         return new SeedResult(
             agents.Count,
             sessions.Count,
             registeredImages.Count,
             hexagonsCreated,
+            turbulencesCreated,
             anomaliesCreated,
-            turbulencesCreated);
+            votesCreated);
     }
 
     public async Task ClearDatabaseAsync()

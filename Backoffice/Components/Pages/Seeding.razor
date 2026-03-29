@@ -42,14 +42,19 @@
                         <label class="form-check-label" for="withSession">With Session</label>
                     </div>
                     <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="withTurbulences"
+                               @bind="withTurbulences" />
+                        <label class="form-check-label" for="withTurbulences">With Turbulences</label>
+                    </div>
+                    <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" role="switch" id="withAnomalies"
                                @bind="withAnomalies" />
                         <label class="form-check-label" for="withAnomalies">With Anomalies</label>
                     </div>
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="withTurbulences"
-                               @bind="withTurbulences" />
-                        <label class="form-check-label" for="withTurbulences">With Turbulences</label>
+                        <input class="form-check-input" type="checkbox" role="switch" id="withVotes"
+                               @bind="withVotes" />
+                        <label class="form-check-label" for="withVotes">With Votes</label>
                     </div>
                 </div>
 
@@ -95,14 +100,20 @@
                         </div>
                         <div class="col-6 col-md-2">
                             <div class="p-3 bg-light rounded">
+                                <div class="fs-2 fw-bold">@seedResult.TurbulencesCreated</div>
+                                <div class="text-muted small">Turbulences</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <div class="p-3 bg-light rounded">
                                 <div class="fs-2 fw-bold">@seedResult.AnomaliesCreated</div>
                                 <div class="text-muted small">Anomalies</div>
                             </div>
                         </div>
                         <div class="col-6 col-md-2">
                             <div class="p-3 bg-light rounded">
-                                <div class="fs-2 fw-bold">@seedResult.TurbulencesCreated</div>
-                                <div class="text-muted small">Turbulences</div>
+                                <div class="fs-2 fw-bold">@seedResult.VotesCreated</div>
+                                <div class="text-muted small">Votes</div>
                             </div>
                         </div>
                     </div>
@@ -117,8 +128,9 @@
     private bool seeding;
     private bool withAgent = true;
     private bool withSession = true;
-    private bool withAnomalies = true;
     private bool withTurbulences = true;
+    private bool withAnomalies = true;
+    private bool withVotes = true;
     private SeedResultDto? seedResult;
 
     private async Task ClearDatabase()
@@ -151,7 +163,7 @@
         try
         {
             var client = HttpClientFactory.CreateClient("ExifApi");
-            var url = $"api/seed?withAgent={withAgent.ToString().ToLower()}&withSession={withSession.ToString().ToLower()}&withAnomalies={withAnomalies.ToString().ToLower()}&withTurbulences={withTurbulences.ToString().ToLower()}";
+            var url = $"api/seed?withAgent={withAgent.ToString().ToLower()}&withSession={withSession.ToString().ToLower()}&withTurbulences={withTurbulences.ToString().ToLower()}&withAnomalies={withAnomalies.ToString().ToLower()}&withVotes={withVotes.ToString().ToLower()}";
             var response = await client.PostAsync(url, null);
             if (response.IsSuccessStatusCode)
             {
@@ -173,5 +185,5 @@
         }
     }
 
-    private record SeedResultDto(int AgentsCreated, int SessionsCreated, int ImagesCreated, int HexagonsCreated, int AnomaliesCreated, int TurbulencesCreated);
+    private record SeedResultDto(int AgentsCreated, int SessionsCreated, int ImagesCreated, int HexagonsCreated, int TurbulencesCreated, int AnomaliesCreated, int VotesCreated);
 }

@@ -19,12 +19,13 @@ public static class SeedEndpoints
         bool withAgent = true,
         bool withSession = true,
         bool withImages = true,
+        bool withTurbulences = true,
         bool withAnomalies = true,
-        bool withTurbulences = true)
+        bool withVotes = true)
     {
         try
         {
-            var options = new SeedOptions(withAgent, withSession, withImages, withAnomalies, withTurbulences);
+            var options = new SeedOptions(withAgent, withSession, withImages, withTurbulences, withAnomalies, withVotes);
             var result = await seedService.RunAsync(options);
             return Results.Ok(result);
         }
