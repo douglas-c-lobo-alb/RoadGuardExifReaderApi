@@ -83,6 +83,13 @@
                 else { <span class="text-muted">—</span> }
             </Template>
         </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ImageRow" Title="Session" Width="110px" Sortable="false" Filterable="false">
+            <Template Context="img">
+                @if (img.SessionId.HasValue)
+                { <a href="/sessions">@img.SessionId</a> }
+                else { <span class="text-muted">—</span> }
+            </Template>
+        </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="ImageRow" Title="Hexagon" Width="160px" Sortable="false" Filterable="false">
             <Template Context="img">
                 @if (img.Hexagon is not null)
@@ -200,5 +207,5 @@
     private record ImageRow(int Id, string FileName, string FilePath,
         string? CameraMake, string? CameraModel, DateTime? DateTaken,
         decimal? Latitude, decimal? Longitude, double? Altitude, decimal? Heading,
-        int AnomalyCount, HexagonRow? Hexagon);
+        int AnomalyCount, int? SessionId, HexagonRow? Hexagon);
 }
