@@ -54,7 +54,7 @@ public class VoteService(
         var entity = new Vote
         {
             HexagonId = hexagonId,
-            AgentId = dto.AgentId,
+            SessionId = dto.SessionId,
             ImageId = imageId,
             Kind = dto.Kind,
             Confidence = dto.Confidence,
@@ -205,7 +205,7 @@ public class VoteService(
     {
         Id = v.Id,
         HexagonId = v.HexagonId,
-        AgentId = v.AgentId,
+        SessionId = v.SessionId,
         ImageId = v.ImageId,
         Kind = v.Kind,
         Confidence = v.Confidence,

@@ -11,5 +11,6 @@ public class Agent
     public string Name { get; set; } = string.Empty;
     public JsonDocument? Metadata { get; set; }
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
-    public ICollection<Image> Images { get; set; } = [];
+    public DateTime LastModifiedDate { get; set; } = DateTime.UtcNow;
+    public ICollection<Session> Sessions { get; set; } = [];
 }

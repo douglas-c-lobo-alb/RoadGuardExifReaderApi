@@ -7,7 +7,7 @@ public class VoteDto
 {
     public int Id { get; set; }
     public int HexagonId { get; set; }
-    public int? AgentId { get; set; }
+    public int? SessionId { get; set; }
     public int? ImageId { get; set; }
     public AnomalyType Kind { get; set; }
     public decimal? Confidence { get; set; }

@@ -76,7 +76,7 @@ public class RoadTurbulenceService
             Index = dto.Index,
             Kind = dto.Kind,
             HexagonId = hexagonId,
-            AgentId = dto.AgentId,
+            SessionId = dto.SessionId,
             CreatedDate = DateTime.UtcNow,
             LastModifiedDate = DateTime.UtcNow
         };
@@ -108,7 +108,7 @@ public class RoadTurbulenceService
             await _context.SaveChangesAsync();
             record.HexagonId = hex.Id;
         }
-        record.AgentId = dto.AgentId;
+        record.SessionId = dto.SessionId;
         record.LastModifiedDate = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -134,7 +134,7 @@ public class RoadTurbulenceService
         Index = r.Index,
         Kind = r.Kind,
         HexagonId = r.HexagonId,
-        AgentId = r.AgentId,
+        SessionId = r.SessionId,
         CreatedDate = r.CreatedDate,
         LastModifiedDate = r.LastModifiedDate,
     };
