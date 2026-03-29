@@ -49,6 +49,11 @@ public class ImageService
             .FirstOrDefaultAsync(i => i.FileName == fileName);
         if (existing is not null)
         {
+            if (sessionId.HasValue && existing.SessionId is null)
+            {
+                existing.SessionId = sessionId.Value;
+                await _context.SaveChangesAsync();
+            }
             _logger.LogInformation("Image {FileName} already registered, skipping", fileName);
             return ToDto(existing);
         }
