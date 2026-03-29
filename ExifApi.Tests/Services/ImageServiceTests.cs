@@ -42,7 +42,8 @@ public class ImageServiceTests : IDisposable
 
         var exifService = new ExifService(NullLogger<ExifService>.Instance, mockEnv.Object);
         var anomalyService = new RoadVisualAnomalyService(_context, NullLogger<RoadVisualAnomalyService>.Instance, config);
-        _service = new ImageService(_context, exifService, anomalyService, NullLogger<ImageService>.Instance, mockEnv.Object, config);
+        var h3Service = new H3Service(_context, NullLogger<H3Service>.Instance, config);
+        _service = new ImageService(_context, exifService, anomalyService, h3Service, NullLogger<ImageService>.Instance, mockEnv.Object, config);
     }
 
     public void Dispose()

@@ -62,6 +62,23 @@ public class H3Service
             .ToList();
     }
 
+    public async Task<Hexagon> GetOrCreateHexagonAsync(decimal lat, decimal lon)
+    {
+        var h3Raw = H3Net.LatLngToCell((double)lat, (double)lon, _appResolution);
+        var h3Index = H3Net.H3ToString(h3Raw);
+
+        var hexagon = _context.Hexagons.Local.FirstOrDefault(h => h.H3Index == h3Index)
+                   ?? await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == h3Index);
+        if (hexagon is null)
+        {
+            hexagon = new Hexagon { H3Index = h3Index, CreatedDate = DateTime.UtcNow };
+            _context.Hexagons.Add(hexagon);
+            await _context.SaveChangesAsync();
+        }
+
+        return hexagon;
+    }
+
     public async Task GenerateHexagonsAsync()
     {
         var images = await _context.Images

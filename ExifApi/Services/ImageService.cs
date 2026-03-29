@@ -10,15 +10,17 @@ public class ImageService
     private readonly ApplicationDbContext _context;
     private readonly ExifService _exifService;
     private readonly RoadVisualAnomalyService _anomalyService;
+    private readonly H3Service _h3Service;
     private readonly ILogger<ImageService> _logger;
     private readonly IWebHostEnvironment _env;
     private readonly string _imagesFolder;
 
-    public ImageService(ApplicationDbContext context, ExifService exifService, RoadVisualAnomalyService anomalyService, ILogger<ImageService> logger, IWebHostEnvironment env, IConfiguration configuration)
+    public ImageService(ApplicationDbContext context, ExifService exifService, RoadVisualAnomalyService anomalyService, H3Service h3Service, ILogger<ImageService> logger, IWebHostEnvironment env, IConfiguration configuration)
     {
         _context = context;
         _exifService = exifService;
         _anomalyService = anomalyService;
+        _h3Service = h3Service;
         _logger = logger;
         _env = env;
         _imagesFolder = configuration.GetSection("Image:Path").Value ?? "images";
@@ -75,6 +77,12 @@ public class ImageService
             Heading = metadata?.Heading
         };
 
+        if (image.Latitude.HasValue && image.Longitude.HasValue)
+        {
+            var hexagon = await _h3Service.GetOrCreateHexagonAsync(image.Latitude.Value, image.Longitude.Value);
+            image.HexagonId = hexagon.Id;
+        }
+
         _context.Images.Add(image);
         await _context.SaveChangesAsync();
 
@@ -126,6 +134,12 @@ public class ImageService
         image.Heading = dto.Heading;
         image.Metadata = dto.Metadata;
         image.LastModifiedDate = DateTime.UtcNow;
+
+        if (image.Latitude.HasValue && image.Longitude.HasValue)
+        {
+            var hexagon = await _h3Service.GetOrCreateHexagonAsync(image.Latitude.Value, image.Longitude.Value);
+            image.HexagonId = hexagon.Id;
+        }
 
         await _context.SaveChangesAsync();
         return ToDto(image);
