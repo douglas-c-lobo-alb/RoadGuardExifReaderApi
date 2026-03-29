@@ -11,6 +11,13 @@
             <RadzenPanelMenuItem Text="Edit" Icon="edit" Path="agents" Match="NavLinkMatch.All" />
         </ChildContent>
     </RadzenPanelMenuItem>
+    <RadzenPanelMenuItem @key="@("sessions-" + IsActive("sessions"))" Text="Sessions" Icon="play_circle" Path="sessions"
+                         Expanded="@IsActive("sessions")">
+        <ChildContent>
+            <RadzenPanelMenuItem Text="Create" Icon="add" Path="sessions/create" />
+            <RadzenPanelMenuItem Text="List" Icon="list" Path="sessions" Match="NavLinkMatch.All" />
+        </ChildContent>
+    </RadzenPanelMenuItem>
     <RadzenPanelMenuItem @key="@("images-" + IsActive("images"))" Text="Images" Icon="image" Path="images"
                          Expanded="@IsActive("images")">
         <ChildContent>
