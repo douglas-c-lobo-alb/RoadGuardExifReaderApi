@@ -34,6 +34,13 @@
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="HexagonId" Title="Hexagon" Width="120px">
             <Template Context="t">@(t.HexagonId?.ToString() ?? "—")</Template>
         </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="TurbulenceRow" Title="Session" Width="110px" Sortable="false" Filterable="false">
+            <Template Context="t">
+                @if (t.SessionId.HasValue)
+                { <a href="/sessions">@t.SessionId</a> }
+                else { <span class="text-muted">—</span> }
+            </Template>
+        </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="CreatedDate" Title="Date Created"
                               Width="160px" FormatString="{0:yyyy-MM-dd HH:mm}" />
         <RadzenDataGridColumn TItem="TurbulenceRow" Title="" Width="110px" Sortable="false" Filterable="false" TextAlign="TextAlign.End">
