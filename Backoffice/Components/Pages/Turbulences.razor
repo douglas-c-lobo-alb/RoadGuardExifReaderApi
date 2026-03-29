@@ -89,5 +89,5 @@
             NotificationService.Notify(NotificationSeverity.Error, "Delete failed", $"Status {(int)response.StatusCode}", 5000);
     }
 
-    private record TurbulenceRow(int Id, int Index, string Kind, int? HexagonId, int? AgentId, DateTime CreatedDate, DateTime LastModifiedDate);
+    private record TurbulenceRow(int Id, int Index, string Kind, int? HexagonId, int? SessionId, DateTime CreatedDate, DateTime LastModifiedDate);
 }

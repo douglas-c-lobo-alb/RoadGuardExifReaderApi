@@ -44,6 +44,13 @@
         }
     </div>
 
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Session (optional)</label>
+        <RadzenDropDown TValue="int?" @bind-Value="sessionId" Data="@sessions"
+                        TextProperty="Label" ValueProperty="Id" AllowClear="true"
+                        Placeholder="— none —" Style="width:100%" />
+    </div>
+
     <RadzenButton Text="@(submitting ? "Saving..." : "Create")" Icon="add" ButtonStyle="ButtonStyle.Primary"
                   Disabled="@submitting" Click="Submit" />
     <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" class="ms-2"
@@ -67,7 +74,9 @@
     private string locationMode = "hexagon";
     private int? hexagonId;
     private string h3Index = "";
+    private int? sessionId;
     private List<HexagonOption> hexagons = [];
+    private List<SessionOption> sessions = [];
     private bool submitting;
 
     protected override async Task OnInitializedAsync()
@@ -75,7 +84,11 @@
         try
         {
             var client = HttpClientFactory.CreateClient("ExifApi");
-            hexagons = await client.GetFromJsonAsync<List<HexagonOption>>("api/hexagons/") ?? [];
+            var hexagonsTask = client.GetFromJsonAsync<List<HexagonOption>>("api/hexagons/");
+            var sessionsTask = client.GetFromJsonAsync<List<SessionOption>>("api/sessions/");
+            await Task.WhenAll(hexagonsTask, sessionsTask);
+            hexagons = hexagonsTask.Result ?? [];
+            sessions = sessionsTask.Result ?? [];
         }
         catch (Exception ex)
         {
@@ -93,8 +106,8 @@
                 : RoadTurbulenceType.Pothole;
 
             var payload = locationMode == "h3index"
-                ? (object)new { Index = index, Kind = turbulenceType, H3Index = h3Index }
-                : new { Index = index, Kind = turbulenceType, HexagonId = hexagonId };
+                ? (object)new { Index = index, Kind = turbulenceType, H3Index = h3Index, SessionId = sessionId }
+                : new { Index = index, Kind = turbulenceType, HexagonId = hexagonId, SessionId = sessionId };
 
             var client = HttpClientFactory.CreateClient("ExifApi");
             var response = await client.PostAsJsonAsync("api/turbulences", payload);
@@ -121,4 +134,8 @@
     }
 
     private record HexagonOption(int Id, string H3Index, int Resolution);
+    private record SessionOption(int Id, int AgentId)
+    {
+        public string Label => $"#{Id} — Agent #{AgentId}";
+    }
 }
