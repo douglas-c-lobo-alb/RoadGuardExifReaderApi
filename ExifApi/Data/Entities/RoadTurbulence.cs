@@ -10,8 +10,8 @@ public class RoadTurbulence
     public int Id { get; set; }
     public int HexagonId { get; set; }
     public Hexagon? Hexagon { get; set; }
-    public int? AgentId { get; set; }
-    public Agent? Agent { get; set; }
+    public int? SessionId { get; set; }
+    public Session? Session { get; set; }
     [Required]
     [Range(0, 10)]
     public int Index { get; set; } = 0;

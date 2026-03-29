@@ -26,7 +26,13 @@
                     Style="min-width:700px">
         <Columns>
             <RadzenDataGridColumn TItem="VoteRow" Property="Id" Title="Id" Width="70px" />
-            <RadzenDataGridColumn TItem="VoteRow" Property="AgentId" Title="Agent" Width="90px" />
+            <RadzenDataGridColumn TItem="VoteRow" Title="Session" Width="110px" Sortable="false" Filterable="false">
+                <Template Context="v">
+                    @if (v.SessionId.HasValue)
+                    { <a href="/sessions">@v.SessionId</a> }
+                    else { <span class="text-muted">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
             <RadzenDataGridColumn TItem="VoteRow" Property="HexagonId" Title="Hexagon" Width="90px" />
             <RadzenDataGridColumn TItem="VoteRow" Property="Kind" Title="Kind" Width="160px" />
             <RadzenDataGridColumn TItem="VoteRow" Property="Confidence" Title="Confidence" Width="110px"
@@ -148,6 +154,6 @@
             NotificationService.Notify(NotificationSeverity.Error, "Delete failed", $"Status {(int)response.StatusCode}", 5000);
     }
 
-    private record VoteRow(int Id, int? AgentId, int HexagonId, string Kind, decimal? Confidence, DateTime CreatedDate);
+    private record VoteRow(int Id, int? SessionId, int HexagonId, string Kind, decimal? Confidence, DateTime CreatedDate);
     private record ComputeResult(int AnomaliesCreated, int AnomaliesReopened, int AnomaliesUpdated, int VotesDeleted);
 }

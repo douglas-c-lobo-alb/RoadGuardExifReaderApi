@@ -16,6 +16,6 @@ public class ImageDto
     public decimal? Heading { get; set; }
     public JsonDocument? Metadata { get; set; }
     public int AnomalyCount { get; set; }
-    public int? AgentId { get; set; }
+    public int? SessionId { get; set; }
     public HexagonDto? Hexagon { get; set; }
 }

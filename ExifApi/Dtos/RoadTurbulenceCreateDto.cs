@@ -12,5 +12,5 @@ public class RoadTurbulenceCreateDto
     public RoadTurbulenceType Kind { get; set; }
     public string? H3Index { get; set; }
     public int? HexagonId { get; set; }
-    public int? AgentId { get; set; }
+    public int? SessionId { get; set; }
 }

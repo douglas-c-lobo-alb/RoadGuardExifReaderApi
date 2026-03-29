@@ -42,7 +42,8 @@ public class ImageServiceTests : IDisposable
 
         var exifService = new ExifService(NullLogger<ExifService>.Instance, mockEnv.Object);
         var anomalyService = new RoadVisualAnomalyService(_context, NullLogger<RoadVisualAnomalyService>.Instance, config);
-        _service = new ImageService(_context, exifService, anomalyService, NullLogger<ImageService>.Instance, mockEnv.Object, config);
+        var h3Service = new H3Service(_context, NullLogger<H3Service>.Instance, config);
+        _service = new ImageService(_context, exifService, anomalyService, h3Service, NullLogger<ImageService>.Instance, mockEnv.Object, config);
     }
 
     public void Dispose()
@@ -147,34 +148,36 @@ public class ImageServiceTests : IDisposable
     }
 
     // -------------------------------------------------------------------------
-    // RegisterImageAsync — agentId
+    // RegisterImageAsync — sessionId
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task RegisterImageAsync_WithValidAgentId_SetsAgentId()
+    public async Task RegisterImageAsync_WithValidSessionId_SetsSessionId()
     {
         _context.Agents.Add(new ExifApi.Data.Entities.Agent { Id = 10, Name = "Device-A" });
+        await _context.SaveChangesAsync();
+        _context.Sessions.Add(new ExifApi.Data.Entities.Session { Id = 1, AgentId = 10, StartedAt = DateTime.UtcNow });
         await _context.SaveChangesAsync();
 
         var fileBytes = System.Text.Encoding.UTF8.GetBytes("fake");
         var mockFile = new Mock<IFormFile>();
-        mockFile.Setup(f => f.FileName).Returns("img_agent.jpg");
+        mockFile.Setup(f => f.FileName).Returns("img_session.jpg");
         mockFile.Setup(f => f.CopyToAsync(It.IsAny<Stream>(), default))
             .Returns(Task.CompletedTask);
 
-        var result = await _service.RegisterImageAsync(mockFile.Object, agentId: 10);
+        var result = await _service.RegisterImageAsync(mockFile.Object, sessionId: 1);
 
         Assert.NotNull(result);
-        Assert.Equal(10, result.AgentId);
+        Assert.Equal(1, result.SessionId);
     }
 
     [Fact]
-    public async Task RegisterImageAsync_WithInvalidAgentId_ReturnsNull()
+    public async Task RegisterImageAsync_WithInvalidSessionId_ReturnsNull()
     {
         var mockFile = new Mock<IFormFile>();
         mockFile.Setup(f => f.FileName).Returns("img_bad.jpg");
 
-        var result = await _service.RegisterImageAsync(mockFile.Object, agentId: 9999);
+        var result = await _service.RegisterImageAsync(mockFile.Object, sessionId: 9999);
 
         Assert.Null(result);
     }

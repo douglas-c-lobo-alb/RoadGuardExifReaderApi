@@ -9,6 +9,7 @@ public class ApplicationDbContext : DbContext
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
     public DbSet<Agent> Agents { get; set; }
+    public DbSet<Session> Sessions { get; set; }
     public DbSet<Image> Images { get; set; }
     public DbSet<Hexagon> Hexagons { get; set; }
     public DbSet<RoadVisualAnomaly> RoadVisualAnomalies { get; set; }
@@ -17,10 +18,16 @@ public class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Session>()
+            .HasOne(s => s.Agent)
+            .WithMany(a => a.Sessions)
+            .HasForeignKey(s => s.AgentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         modelBuilder.Entity<Image>()
-            .HasOne(i => i.Agent)
-            .WithMany(a => a.Images)
-            .HasForeignKey(i => i.AgentId)
+            .HasOne(i => i.Session)
+            .WithMany(s => s.Images)
+            .HasForeignKey(i => i.SessionId)
             .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<Image>()
@@ -48,21 +55,21 @@ public class ApplicationDbContext : DbContext
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<RoadTurbulence>()
-            .HasOne(t => t.Agent)
-            .WithMany()
-            .HasForeignKey(t => t.AgentId)
+            .HasOne(t => t.Session)
+            .WithMany(s => s.RoadTurbulences)
+            .HasForeignKey(t => t.SessionId)
             .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<Vote>()
             .HasOne(v => v.Hexagon)
-            .WithMany()
+            .WithMany(h => h.Votes)
             .HasForeignKey(v => v.HexagonId)
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Vote>()
-            .HasOne(v => v.Agent)
-            .WithMany()
-            .HasForeignKey(v => v.AgentId)
+            .HasOne(v => v.Session)
+            .WithMany(s => s.Votes)
+            .HasForeignKey(v => v.SessionId)
             .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<Vote>()

@@ -35,8 +35,8 @@ public class Image
     [MaxLength(255)]
     public string? CameraModel { get; set; }
     public DateTime? DateTaken { get; set; }
-    public int? AgentId { get; set; }
-    public Agent? Agent { get; set; }
+    public int? SessionId { get; set; }
+    public Session? Session { get; set; }
     public JsonDocument? Metadata { get; set; }
     public int? HexagonId { get; set; }
     public Hexagon? Hexagon { get; set; }

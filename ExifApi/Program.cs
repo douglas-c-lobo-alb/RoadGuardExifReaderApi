@@ -24,6 +24,7 @@ builder.Services.AddScoped<RoadVisualAnomalyService>();
 builder.Services.AddScoped<H3Service>();
 builder.Services.AddScoped<ImageService>();
 builder.Services.AddScoped<AgentService>();
+builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<RoadTurbulenceService>();
 builder.Services.AddScoped<SeedService>();
 builder.Services.AddScoped<VoteService>();
@@ -82,6 +83,7 @@ var api = app.MapGroup("/api");
 Image.SetConfiguration(app.Configuration);
 
 api.MapAgentEndpoints();
+api.MapSessionEndpoints();
 api.MapStatusEndpoints(app.Configuration);
 api.MapMetadataEndpoints();
 api.MapH3Endpoints();

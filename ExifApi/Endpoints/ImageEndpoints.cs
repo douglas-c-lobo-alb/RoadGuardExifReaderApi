@@ -45,12 +45,12 @@ public static class ImageEndpoints
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 
-    private static async Task<IResult> Upload(IFormFile file, [FromForm] int? agentId, ImageService imageService)
+    private static async Task<IResult> Upload(IFormFile file, [FromForm] int? sessionId, ImageService imageService)
     {
-        var result = await imageService.RegisterImageAsync(file, agentId);
+        var result = await imageService.RegisterImageAsync(file, sessionId);
         if (result is null)
-            return agentId.HasValue
-                ? Results.BadRequest($"Agent with id={agentId} not found")
+            return sessionId.HasValue
+                ? Results.BadRequest($"Session with id={sessionId} not found")
                 : Results.BadRequest("Failed to register image");
 
         return Results.Created($"/api/images/{result.Id}", result);

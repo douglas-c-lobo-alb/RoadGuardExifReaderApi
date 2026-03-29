@@ -34,6 +34,13 @@
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="HexagonId" Title="Hexagon" Width="120px">
             <Template Context="t">@(t.HexagonId?.ToString() ?? "—")</Template>
         </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="TurbulenceRow" Title="Session" Width="110px" Sortable="false" Filterable="false">
+            <Template Context="t">
+                @if (t.SessionId.HasValue)
+                { <a href="/sessions">@t.SessionId</a> }
+                else { <span class="text-muted">—</span> }
+            </Template>
+        </RadzenDataGridColumn>
         <RadzenDataGridColumn TItem="TurbulenceRow" Property="CreatedDate" Title="Date Created"
                               Width="160px" FormatString="{0:yyyy-MM-dd HH:mm}" />
         <RadzenDataGridColumn TItem="TurbulenceRow" Title="" Width="110px" Sortable="false" Filterable="false" TextAlign="TextAlign.End">
@@ -89,5 +96,5 @@
             NotificationService.Notify(NotificationSeverity.Error, "Delete failed", $"Status {(int)response.StatusCode}", 5000);
     }
 
-    private record TurbulenceRow(int Id, int Index, string Kind, int? HexagonId, int? AgentId, DateTime CreatedDate, DateTime LastModifiedDate);
+    private record TurbulenceRow(int Id, int Index, string Kind, int? HexagonId, int? SessionId, DateTime CreatedDate, DateTime LastModifiedDate);
 }

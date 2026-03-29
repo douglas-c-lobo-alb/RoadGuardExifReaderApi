@@ -17,6 +17,6 @@ public class Hexagon
         : H3Net.GetResolution(H3Net.StringToH3(H3Index));
     public ICollection<RoadTurbulence> Turbulences { get; set; } = [];
     public ICollection<RoadVisualAnomaly> Anomalies { get; set; } = [];
+    public ICollection<Vote> Votes { get; set; } = [];
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
-    public DateTime LastModifiedDate { get; set; } = DateTime.UtcNow;
 }

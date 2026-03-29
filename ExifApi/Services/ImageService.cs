@@ -10,28 +10,30 @@ public class ImageService
     private readonly ApplicationDbContext _context;
     private readonly ExifService _exifService;
     private readonly RoadVisualAnomalyService _anomalyService;
+    private readonly H3Service _h3Service;
     private readonly ILogger<ImageService> _logger;
     private readonly IWebHostEnvironment _env;
     private readonly string _imagesFolder;
 
-    public ImageService(ApplicationDbContext context, ExifService exifService, RoadVisualAnomalyService anomalyService, ILogger<ImageService> logger, IWebHostEnvironment env, IConfiguration configuration)
+    public ImageService(ApplicationDbContext context, ExifService exifService, RoadVisualAnomalyService anomalyService, H3Service h3Service, ILogger<ImageService> logger, IWebHostEnvironment env, IConfiguration configuration)
     {
         _context = context;
         _exifService = exifService;
         _anomalyService = anomalyService;
+        _h3Service = h3Service;
         _logger = logger;
         _env = env;
         _imagesFolder = configuration.GetSection("Image:Path").Value ?? "images";
     }
 
-    public async Task<ImageDto?> RegisterImageAsync(IFormFile file, int? agentId = null)
+    public async Task<ImageDto?> RegisterImageAsync(IFormFile file, int? sessionId = null)
     {
-        if (agentId.HasValue)
+        if (sessionId.HasValue)
         {
-            var agentExists = await _context.Agents.AnyAsync(a => a.Id == agentId.Value);
-            if (!agentExists)
+            var sessionExists = await _context.Sessions.AnyAsync(s => s.Id == sessionId.Value);
+            if (!sessionExists)
             {
-                _logger.LogWarning("Agent id={AgentId} not found", agentId.Value);
+                _logger.LogWarning("Session id={SessionId} not found", sessionId.Value);
                 return null;
             }
         }
@@ -47,6 +49,11 @@ public class ImageService
             .FirstOrDefaultAsync(i => i.FileName == fileName);
         if (existing is not null)
         {
+            if (sessionId.HasValue && existing.SessionId is null)
+            {
+                existing.SessionId = sessionId.Value;
+                await _context.SaveChangesAsync();
+            }
             _logger.LogInformation("Image {FileName} already registered, skipping", fileName);
             return ToDto(existing);
         }
@@ -65,7 +72,7 @@ public class ImageService
         var image = new Image
         {
             FileName = fileName,
-            AgentId = agentId,
+            SessionId = sessionId,
             CameraMake = metadata?.CameraMake,
             CameraModel = metadata?.CameraModel,
             DateTaken = metadata?.DateTaken,
@@ -74,6 +81,12 @@ public class ImageService
             Altitude = metadata?.Altitude,
             Heading = metadata?.Heading
         };
+
+        if (image.Latitude.HasValue && image.Longitude.HasValue)
+        {
+            var hexagon = await _h3Service.GetOrCreateHexagonAsync(image.Latitude.Value, image.Longitude.Value);
+            image.HexagonId = hexagon.Id;
+        }
 
         _context.Images.Add(image);
         await _context.SaveChangesAsync();
@@ -127,6 +140,12 @@ public class ImageService
         image.Metadata = dto.Metadata;
         image.LastModifiedDate = DateTime.UtcNow;
 
+        if (image.Latitude.HasValue && image.Longitude.HasValue)
+        {
+            var hexagon = await _h3Service.GetOrCreateHexagonAsync(image.Latitude.Value, image.Longitude.Value);
+            image.HexagonId = hexagon.Id;
+        }
+
         await _context.SaveChangesAsync();
         return ToDto(image);
     }
@@ -160,7 +179,7 @@ public class ImageService
         Heading = image.Heading,
         Metadata = image.Metadata,
         AnomalyCount = image.Anomalies.Count,
-        AgentId = image.AgentId,
+        SessionId = image.SessionId,
         Hexagon = image.Hexagon is null ? null : new HexagonDto
         {
             Id = image.Hexagon.Id,
