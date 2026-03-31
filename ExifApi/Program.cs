@@ -6,9 +6,14 @@ using ExifApi.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using StackExchange.Redis;
+using Microsoft.Extensions.Options;
+using ExifApi.Infrastructure.Caching;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -36,6 +41,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection")
     );
     options.EnableDetailedErrors();
+});
+
+var redisConfig = builder.Configuration.GetSection("Redis").Get<RedisConfig>();
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConfig.Configuration;
+    options.InstanceName = redisConfig.InstanceName;
 });
 
 var app = builder.Build();
@@ -97,13 +109,46 @@ api.MapSeedEndpoints();
 api.MapIntrospectiveEndpoints();
 api.MapVoteEndpoints();
 
+var redisApiGroup = app.MapGroup("/redis");
 
-using ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("server.futurelabsinnovations.lan:6379");
-IDatabase redisDb = redis.GetDatabase();
+var cacheKey = "redis_hello";
 
-redisDb.StringSet("key", "hello");
-var value = redisDb.StringGet("key");
-System.Console.WriteLine($"redis: {value}");
+redisApiGroup.MapGet("/get", async (string key, IDistributedCache cache) =>
+{
+    cacheKey = key ?? cacheKey;
+    var cachedRedisHello = await cache.GetStringAsync(cacheKey);
+
+    if (cachedRedisHello is null)
+        return Results.NoContent();
+
+    var result = JsonSerializer.Deserialize<string>(cachedRedisHello);
+
+    return Results.Ok(result);
+});
+
+redisApiGroup.MapPost("/set", async (string value, IDistributedCache cache) =>
+{
+    var redisHello = JsonSerializer.Serialize(value);
+    await cache.SetStringAsync(cacheKey, redisHello);
+    return Results.Ok();
+});
+
+// using ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("server.futurelabsinnovations.lan:6379");
+// IDatabase redisDb = redis.GetDatabase();
+
+// redisDb.Ping();
+
+// redisDb.StringSet("key", "hello");
+// var value = redisDb.StringGet("key");
+// System.Console.WriteLine($"redis: {value}");
+
+// redisDb.ListLeftPush("simple-list", 1);
+// redisDb.ListLeftPush("simple-list", 2);
+// redisDb.ListLeftPush("simple-list", 3);
+
+// var result = redisDb.ListRightPop("simple-list");
+// Console.WriteLine("redis: " + result);
+
 
 app.Run();
 
