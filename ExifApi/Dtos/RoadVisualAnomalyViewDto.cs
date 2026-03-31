@@ -5,6 +5,7 @@ namespace ExifApi.Dtos;
 public class RoadVisualAnomalyViewDto
 {
     public int Id { get; set; }
+    public int? ImageId { get; set; }
     public AnomalyType Kind { get; set; }
     public decimal Confidence { get; set; }
     public int BoxX1 { get; set; }
