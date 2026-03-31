@@ -5,6 +5,8 @@ using ExifApi.Infrastructure;
 using ExifApi.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using StackExchange.Redis;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -94,6 +96,14 @@ api.MapAnomalyEndpoints();
 api.MapSeedEndpoints();
 api.MapIntrospectiveEndpoints();
 api.MapVoteEndpoints();
+
+
+using ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("server.futurelabsinnovations.lan:6379");
+IDatabase redisDb = redis.GetDatabase();
+
+redisDb.StringSet("key", "hello");
+var value = redisDb.StringGet("key");
+System.Console.WriteLine($"redis: {value}");
 
 app.Run();
 
