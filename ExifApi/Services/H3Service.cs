@@ -258,7 +258,7 @@ public class H3Service
                     Resolution = effectiveAnomalyRes,
                     Anomalies = groupAnomalies.Select(a => new RoadVisualAnomalyViewDto
                     {
-                        Id = a.Id, Kind = a.Kind, Confidence = a.Confidence,
+                        Id = a.Id, Kind = a.Kind, Confidence = a.Confidence, ImageId = a.ImageId,
                         BoxX1 = a.BoxX1, BoxY1 = a.BoxY1, BoxX2 = a.BoxX2, BoxY2 = a.BoxY2,
                         ResolvedAt = a.ResolvedAt
                     }).ToList(),
