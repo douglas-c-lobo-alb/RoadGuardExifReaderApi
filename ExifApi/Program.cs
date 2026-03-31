@@ -5,11 +5,8 @@ using ExifApi.Infrastructure;
 using ExifApi.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
-using StackExchange.Redis;
-using Microsoft.Extensions.Options;
 using ExifApi.Infrastructure.Caching;
-using Microsoft.Extensions.Caching.Distributed;
-using System.Text.Json;
+using Redis.OM;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,11 +41,17 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 
 var redisConfig = builder.Configuration.GetSection("Redis").Get<RedisConfig>();
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = redisConfig.Configuration;
-    options.InstanceName = redisConfig.InstanceName;
-});
+builder.Services.AddSingleton(new RedisConnectionProvider(redisConfig!.Configuration));
+
+
+
+// TODO: clean before committing to dev
+// var redisConfig = builder.Configuration.GetSection("Redis").Get<RedisConfig>();
+// builder.Services.AddStackExchangeRedisCache(options =>
+// {
+//     options.Configuration = redisConfig.Configuration;
+//     options.InstanceName = redisConfig.InstanceName;
+// });
 
 var app = builder.Build();
 
@@ -109,29 +112,30 @@ api.MapSeedEndpoints();
 api.MapIntrospectiveEndpoints();
 api.MapVoteEndpoints();
 
-var redisApiGroup = app.MapGroup("/redis");
+// TODO: clean before committing to dev
+// var redisApiGroup = app.MapGroup("/redis");
 
-var cacheKey = "redis_hello";
+// var cacheKey = "redis_hello";
 
-redisApiGroup.MapGet("/get", async (string key, IDistributedCache cache) =>
-{
-    cacheKey = key ?? cacheKey;
-    var cachedRedisHello = await cache.GetStringAsync(cacheKey);
+// redisApiGroup.MapGet("/get", async (string? key, IDistributedCache cache) =>
+// {
+//     cacheKey = key ?? cacheKey;
+//     var cachedRedisHello = await cache.GetStringAsync(cacheKey);
 
-    if (cachedRedisHello is null)
-        return Results.NoContent();
+//     if (cachedRedisHello is null)
+//         return Results.NoContent();
 
-    var result = JsonSerializer.Deserialize<string>(cachedRedisHello);
+//     var result = JsonSerializer.Deserialize<string>(cachedRedisHello);
 
-    return Results.Ok(result);
-});
+//     return Results.Ok(result);
+// });
 
-redisApiGroup.MapPost("/set", async (string value, IDistributedCache cache) =>
-{
-    var redisHello = JsonSerializer.Serialize(value);
-    await cache.SetStringAsync(cacheKey, redisHello);
-    return Results.Ok();
-});
+// redisApiGroup.MapPost("/set", async (string value, IDistributedCache cache) =>
+// {
+//     var redisHello = JsonSerializer.Serialize(value);
+//     await cache.SetStringAsync(cacheKey, redisHello);
+//     return Results.Ok();
+// });
 
 // using ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("server.futurelabsinnovations.lan:6379");
 // IDatabase redisDb = redis.GetDatabase();
