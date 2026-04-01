@@ -9,31 +9,44 @@ public static class ImageEndpoints
     public static void MapImageEndpoints(this RouteGroupBuilder api)
     {
         var group = api.MapGroup("/images")
-            .WithName("Images");
+            .WithName("Images")
+            .WithTags("Images");
 
         group.MapGet("/", GetAll)
             .WithName("GetAllImages")
-            .WithDescription("[Backoffice usage only intended] Returns all registered images with their hexagon");
+            .WithSummary("[Backoffice usage only intended] Returns all registered images with their hexagon")
+            .Produces<List<ImageDto>>(StatusCodes.Status200OK);
 
         group.MapGet("/{id:int}", GetById)
-            .WithName("GetImageById");
+            .WithName("GetImageById")
+            .WithSummary("Get an image by ID")
+            .Produces<ImageDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapPost("/", Upload)
             .WithName("UploadImage")
-            .WithDescription("[Backoffice usage only intended] Uploads an image, extracts EXIF metadata and registers it in the database")
+            .WithSummary("[Backoffice usage only intended] Uploads an image, extracts EXIF metadata and registers it in the database")
+            .Produces<ImageDto>(StatusCodes.Status201Created)
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
             .DisableAntiforgery();
 
         group.MapPut("/{id:int}", Update)
             .WithName("UpdateImage")
-            .WithDescription("[Backoffice usage only intended] Updates image metadata");
+            .WithSummary("[Backoffice usage only intended] Updates image metadata")
+            .Produces<ImageDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapDelete("/{id:int}", Delete)
             .WithName("DeleteImage")
-            .WithDescription("[Backoffice usage only intended] Deletes an image");
+            .WithSummary("[Backoffice usage only intended] Deletes an image")
+            .Produces<ProblemDetails>(StatusCodes.Status204NoContent)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapGet("/{id:int}/anomalies", GetAnomalies)
             .WithName("GetAnomaliesByImageId")
-            .WithDescription("Returns all anomalies associated with the given image");
+            .WithSummary("Returns all anomalies associated with the given image")
+            .Produces<List<RoadVisualAnomalyDto>>(StatusCodes.Status200OK);
     }
 
     private static async Task<IResult> GetAll(ImageService imageService)

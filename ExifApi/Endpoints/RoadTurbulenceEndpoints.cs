@@ -1,5 +1,6 @@
 using ExifApi.Dtos;
 using ExifApi.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ExifApi.Endpoints;
 
@@ -8,28 +9,42 @@ public static class RoadTurbulenceEndpoints
     public static void MapRoadTurbulenceEndpoints(this RouteGroupBuilder api)
     {
         RouteGroupBuilder group = api.MapGroup("/turbulences")
-            .WithName("Turbulence");
+            .WithName("Turbulence")
+            .WithTags("Turbulence");
 
         group.MapGet("/", GetAll)
             .WithName("GetAllTurbulence")
-            .WithDescription("[API usage only intent] Retrieves all road turbulence records");
+            .WithSummary("[API usage only intent] Retrieves all road turbulence records")
+            .Produces<List<RoadTurbulenceDto>>(StatusCodes.Status200OK);
 
         group.MapGet("/{id:int}", GetById)
-            .WithName("GetTurbulenceById");
+            .WithName("GetTurbulenceById")
+            .WithSummary("Get a road turbulence record by ID")
+            .Produces<RoadTurbulenceDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapGet("/h3/{h3Index}", GetByH3Index)
             .WithName("GetTurbulenceByH3Index")
-            .WithDescription("[API usage only intent] Retrieves road turbulence records for a given H3 index");
+            .WithSummary("[API usage only intent] Retrieves road turbulence records for a given H3 index")
+            .Produces<List<RoadTurbulenceDto>>(StatusCodes.Status200OK);
 
         group.MapPost("/", Create)
             .WithName("CreateTurbulence")
-            .WithDescription("[API usage only intent] Creates one or more road turbulence records atomically");
+            .WithSummary("[API usage only intent] Creates one or more road turbulence records atomically")
+            .Produces<List<RoadTurbulenceDto>>(StatusCodes.Status201Created)
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
 
         group.MapPut("/{id:int}", Update)
-            .WithName("UpdateTurbulence");
+            .WithName("UpdateTurbulence")
+            .WithSummary("Update a road turbulence record by ID")
+            .Produces<RoadTurbulenceDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapDelete("/{id:int}", Delete)
-            .WithName("DeleteTurbulence");
+            .WithName("DeleteTurbulence")
+            .WithSummary("Delete a road turbulence record by ID")
+            .Produces<ProblemDetails>(StatusCodes.Status204NoContent)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
     }
 
     private static async Task<IResult> GetAll(RoadTurbulenceService svc)

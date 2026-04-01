@@ -1,4 +1,5 @@
 using ExifApi.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ExifApi.Endpoints;
 
@@ -8,10 +9,16 @@ public static class SeedEndpoints
     {
         api.MapPost("/seed", SeedDatabase)
             .WithName("SeedDatabase")
-            .WithDescription("Seeds the database from wwwroot/images EXIF data. Toggle each layer independently.");
+            .WithTags("Seed")
+            .WithSummary("Seeds the database from wwwroot/images EXIF data. Toggle each layer independently.")
+            .Produces<SeedResult>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);
         api.MapPost("/cleardatabase", ClearDatabase)
             .WithName("ClearDatabase")
-            .WithDescription("Clears the database and images folder, resets IDs to 1");
+            .WithTags("Seed")
+            .WithSummary("Clears the database and images folder, resets IDs to 1")
+            .Produces(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status500InternalServerError);
     }
 
     private static async Task<IResult> SeedDatabase(

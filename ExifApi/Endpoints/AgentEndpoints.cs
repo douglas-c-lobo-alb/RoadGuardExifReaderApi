@@ -1,5 +1,6 @@
 using ExifApi.Dtos;
 using ExifApi.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ExifApi.Endpoints;
 
@@ -8,22 +9,36 @@ public static class AgentEndpoints
     public static void MapAgentEndpoints(this RouteGroupBuilder api)
     {
         var group = api.MapGroup("/agents")
-            .WithName("Agents");
+            .WithName("Agents")
+            .WithTags("Agents");
 
         group.MapGet("/", GetAll)
-            .WithName("GetAllAgents");
+            .WithName("GetAllAgents")
+            .WithSummary("List all agents")
+            .Produces<IEnumerable<AgentDto>>(StatusCodes.Status200OK);
 
         group.MapGet("/{id:int}", GetById)
-            .WithName("GetAgentById");
+            .WithName("GetAgentById")
+            .WithSummary("Get an agent by ID")
+            .Produces<AgentDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapPost("/", Create)
-            .WithName("CreateAgent");
+            .WithName("CreateAgent")
+            .WithSummary("Create an agent")
+            .Produces<AgentDto>(StatusCodes.Status200OK);
 
         group.MapPut("/{id:int}", Update)
-            .WithName("UpdateAgent");
+            .WithName("UpdateAgent")
+            .WithSummary("Update an agent by ID")
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
+            .Produces<AgentDto>(StatusCodes.Status200OK);
 
         group.MapDelete("/{id:int}", Delete)
-            .WithName("DeleteAgent");
+            .WithName("DeleteAgent")
+            .WithSummary("Delete an agent by ID")
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
+            .Produces<ProblemDetails>(StatusCodes.Status204NoContent);
     }
 
     private static async Task<IResult> GetAll(AgentService agentService)
