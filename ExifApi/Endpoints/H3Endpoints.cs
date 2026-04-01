@@ -12,31 +12,41 @@ public static class H3Endpoints
     public static void MapH3Endpoints(this RouteGroupBuilder api)
     {
         RouteGroupBuilder group = api.MapGroup("/h3")
-            .WithName("H3");
+            .WithName("H3")
+            .WithTags("H3");
 
         group.MapGet("/cell", GetCell)
             .WithName("GetH3Cell")
-            .WithDescription("Converts lat/lon to H3 cell index");
+            .WithSummary("Converts lat/lon to H3 cell index")
+            .Produces<HexagonDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
 
         group.MapGet("/parent", GetParent)
             .WithName("GetH3Parent")
-            .WithDescription("Returns the parent cell at a coarser resolution");
+            .WithSummary("Returns the parent cell at a coarser resolution")
+            .Produces<HexagonDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
 
         group.MapGet("/children", GetChildren)
             .WithName("GetH3Children")
-            .WithDescription("Returns all children cells at a finer resolution");
+            .WithSummary("Returns all children cells at a finer resolution")
+            .Produces<List<HexagonDto>>(StatusCodes.Status200OK);
 
         group.MapGet("/disk", GetDisk)
             .WithName("GetH3Disk")
-            .WithDescription("Returns all cells within k rings of the given cell");
+            .WithSummary("Returns all cells within k rings of the given cell")
+            .Produces<List<HexagonDto>>(StatusCodes.Status200OK);
 
         group.MapPost("/generate", GenerateHexagons)
             .WithName("GenerateHexagons")
-            .WithDescription("Generates H3 cells at res 13 for all images missing one");
+            .WithSummary("Generates H3 cells at res 13 for all images missing one")
+            .Produces<string>(StatusCodes.Status200OK);
 
         group.MapGet("/view", GetViewport)
             .WithName("GetH3Viewport")
-            .WithDescription("Returns hexagons linked to images within a lat/lon viewport, aggregated at the requested resolution");
+            .WithSummary("Returns hexagons linked to images within a lat/lon viewport, aggregated at the requested resolution")
+            .Produces<ViewportResponseDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
 
         // ------------------------------------------------------------
         // weird, alien endpoint
@@ -44,15 +54,21 @@ public static class H3Endpoints
 
         group.MapGet("/next-image", GetNextImage)
             .WithName("GetNextImage")
-            .WithDescription("Returns next image from a given image id, n: n -> n+1");
+            .WithSummary("Returns next image from a given image id, n: n -> n+1")
+            .Produces<ImageDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapGet("/prev-image", GetPrevImage)
             .WithName("GetPrevImage")
-            .WithDescription("Returns previous image from a given image id, n: n -> n-1");
+            .WithSummary("Returns previous image from a given image id, n: n -> n-1")
+            .Produces<ImageDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapGet("/metadata", GetHexagonImagesMetadata)
             .WithName("GetHexagonImagesMetadata")
-            .WithDescription("Returns, if any, all metadata associated to all images within given hexagon");
+            .WithSummary("Returns, if any, all metadata associated to all images within given hexagon")
+            .Produces<List<ImageInfoDto>>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
     }
 
     private static IResult GetCell(double lat, double lon, int resolution, H3Service h3Service)
