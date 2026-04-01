@@ -1,5 +1,6 @@
 using ExifApi.Dtos;
 using ExifApi.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ExifApi.Endpoints;
 
@@ -8,23 +9,37 @@ public static class SessionEndpoints
     public static void MapSessionEndpoints(this RouteGroupBuilder api)
     {
         var group = api.MapGroup("/sessions")
-            .WithName("Sessions");
+            .WithName("Sessions")
+            .WithTags("Sessions");
 
         group.MapGet("/", GetAll)
-            .WithName("GetAllSessions");
+            .WithName("GetAllSessions")
+            .WithSummary("List all sessions")
+            .Produces<List<SessionDto>>(StatusCodes.Status200OK);
 
         group.MapGet("/{id:int}", GetById)
-            .WithName("GetSessionById");
+            .WithName("GetSessionById")
+            .WithSummary("Get a session by ID")
+            .Produces<SessionDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapPost("/", Create)
-            .WithName("CreateSession");
+            .WithName("CreateSession")
+            .WithSummary("Create a session")
+            .Produces<SessionDto>(StatusCodes.Status201Created)
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/{id:int}/finish", Finish)
             .WithName("FinishSession")
-            .WithDescription("Marks a session as finished by setting FinishedAt to now");
+            .WithSummary("Marks a session as finished by setting FinishedAt to now")
+            .Produces<SessionDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapDelete("/{id:int}", Delete)
-            .WithName("DeleteSession");
+            .WithName("DeleteSession")
+            .WithSummary("Delete a session by ID")
+            .Produces<ProblemDetails>(StatusCodes.Status204NoContent)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
     }
 
     private static async Task<IResult> GetAll(SessionService sessionService)
