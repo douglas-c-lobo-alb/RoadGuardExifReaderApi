@@ -9,13 +9,16 @@ public static class IntrospectiveEndpoints
     {
         RouteGroupBuilder group = api.MapGroup("/introspection")
             .WithName("Introspection")
+            .WithTags("Introspection")
             .WithDescription("Used to get code-first data");
         group.MapGet("/anomalies", GetAnomalyTypes)
-        .WithName("GetAnomalies")
-        .WithDescription("Retrieves the list of available anomaly types");
+            .WithName("GetAnomalies")
+            .WithSummary("Retrieves the list of available anomaly types")
+            .Produces<List<string>>(StatusCodes.Status200OK);
         group.MapGet("/turbulences", GetTurbulenceTypes)
-        .WithName("GetTurbulences")
-        .WithDescription("Retrieves the list of available turbulence types");
+            .WithName("GetTurbulences")
+            .WithSummary("Retrieves the list of available turbulence types")
+            .Produces<List<string>>(StatusCodes.Status200OK);
     }
     private static IResult GetAnomalyTypes()
     {

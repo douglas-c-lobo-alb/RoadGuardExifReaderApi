@@ -1,5 +1,6 @@
 using ExifApi.Dtos;
 using ExifApi.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ExifApi.Endpoints;
 
@@ -8,24 +9,38 @@ public static class AnomalyEndpoints
     public static void MapAnomalyEndpoints(this RouteGroupBuilder api)
     {
         RouteGroupBuilder group = api.MapGroup("/anomalies")
-            .WithName("Anomalies");
+            .WithName("Anomalies")
+            .WithTags("Anomalies");
 
         group.MapGet("/", GetAll)
             .WithName("GetAllAnomalies")
-            .WithDescription("Retrieves all road visual anomaly records");
+            .WithSummary("Get all anomalies")
+            .Produces<RoadVisualAnomalyDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
 
         group.MapGet("/{id:int}", GetById)
-            .WithName("GetAnomalyById");
+            .WithName("GetAnomalyById")
+            .WithSummary("Get an anomay by ID")
+            .Produces<RoadVisualAnomalyDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapPost("/", Create)
             .WithName("CreateAnomaly")
-            .WithDescription("Creates a new road visual anomaly associated with an image");
+            .WithSummary("Creates an anomaly")
+            .Produces<RoadVisualAnomalyDto>(StatusCodes.Status201Created)
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
 
         group.MapPut("/{id:int}", Update)
-            .WithName("UpdateAnomaly");
+            .WithName("UpdateAnomaly")
+            .WithSummary("Update an anomly by ID")
+            .Produces<RoadVisualAnomalyDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapDelete("/{id:int}", Delete)
-            .WithName("DeleteAnomaly");
+            .WithName("DeleteAnomaly")
+            .WithSummary("Delete an anomaly by ID")
+            .Produces<ProblemDetails>(StatusCodes.Status204NoContent)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
     }
 
     private static async Task<IResult> Create(RoadVisualAnomalyCreateDto dto, RoadVisualAnomalyService svc)

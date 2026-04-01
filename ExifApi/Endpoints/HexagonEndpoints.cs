@@ -1,5 +1,6 @@
 using ExifApi.Dtos;
 using ExifApi.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ExifApi.Endpoints;
 
@@ -8,26 +9,38 @@ public static class HexagonEndpoints
     public static void MapHexagonEndpoints(this RouteGroupBuilder api)
     {
         var group = api.MapGroup("/hexagons")
-            .WithName("Hexagons");
+            .WithName("Hexagons")
+            .WithTags("Hexagons");
 
         group.MapGet("/", GetAll)
             .WithName("GetAllHexagons")
-            .WithDescription("[Backoffice usage only intended] Returns all stored hexagons");
+            .WithSummary("[Backoffice usage only intended] Returns all stored hexagons")
+            .Produces<List<HexagonDto>>(StatusCodes.Status200OK);
 
         group.MapGet("/{id:int}", GetById)
-            .WithName("GetHexagonById");
+            .WithName("GetHexagonById")
+            .WithSummary("Get a hexagon by ID")
+            .Produces<HexagonDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapPost("/", Create)
             .WithName("CreateHexagon")
-            .WithDescription("[Backoffice usage only intended] Creates a hexagon linked to an image, derived from coordinates or a direct H3 index");
+            .WithSummary("[Backoffice usage only intended] Creates a hexagon linked to an image, derived from coordinates or a direct H3 index")
+            .Produces<HexagonDto>(StatusCodes.Status201Created)
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest);
 
         group.MapPut("/{id:int}", Update)
             .WithName("UpdateHexagon")
-            .WithDescription("[Backoffice usage only intended] Updates a hexagon");
+            .WithSummary("[Backoffice usage only intended] Updates a hexagon")
+            .Produces<HexagonDto>(StatusCodes.Status200OK)
+            .Produces<ProblemDetails>(StatusCodes.Status400BadRequest)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
 
         group.MapDelete("/{id:int}", Delete)
             .WithName("DeleteHexagon")
-            .WithDescription("[Backoffice usage only intended] Delets a hexagon");
+            .WithSummary("[Backoffice usage only intended] Deletes a hexagon")
+            .Produces<ProblemDetails>(StatusCodes.Status204NoContent)
+            .Produces<ProblemDetails>(StatusCodes.Status404NotFound);
     }
 
     private static async Task<IResult> GetAll(H3Service h3Service)
