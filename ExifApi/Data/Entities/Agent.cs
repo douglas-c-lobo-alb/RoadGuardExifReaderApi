@@ -1,12 +1,13 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 
 namespace ExifApi.Data.Entities;
 
 public class Agent
 {
-    [Key]
-    public int Id { get; set; }
+    [Key] [MaxLength(12)] [DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public required string Id { get; set; }
     [Required, MaxLength(255)]
     public string Name { get; set; } = string.Empty;
     public JsonDocument? Metadata { get; set; }
