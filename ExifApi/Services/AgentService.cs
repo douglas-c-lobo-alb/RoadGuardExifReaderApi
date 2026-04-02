@@ -24,7 +24,7 @@ public class AgentService
         return agents.Select(ToDto).ToList();
     }
 
-    public async Task<AgentDto?> GetByIdAsync(int id)
+    public async Task<AgentDto?> GetByIdAsync(string id)
     {
         var agent = await _context.Agents.FindAsync(id);
         return agent is null ? null : ToDto(agent);
@@ -34,6 +34,7 @@ public class AgentService
     {
         var agent = new Agent
         {
+            Id = dto.Id,
             Name = dto.Name,
             Metadata = dto.Metadata
         };
@@ -45,7 +46,7 @@ public class AgentService
         return ToDto(agent);
     }
 
-    public async Task<AgentDto?> UpdateAsync(int id, AgentCreateDto dto)
+    public async Task<AgentDto?> UpdateAsync(string id, AgentCreateDto dto)
     {
         var agent = await _context.Agents.FindAsync(id);
         if (agent is null) return null;
@@ -59,7 +60,7 @@ public class AgentService
         return ToDto(agent);
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(string id)
     {
         var agent = await _context.Agents.FindAsync(id);
         if (agent is null) return false;

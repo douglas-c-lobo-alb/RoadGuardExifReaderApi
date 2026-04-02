@@ -5,6 +5,8 @@ namespace ExifApi.Dtos;
 
 public class AgentCreateDto
 {
+    [Required] [MaxLength(12)]
+    public required string Id { get; set; }
     [Required]
     public string Name { get; set; } = string.Empty;
     public JsonDocument? Metadata { get; set; }

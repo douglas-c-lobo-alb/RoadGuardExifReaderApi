@@ -54,20 +54,20 @@ public class AgentServiceTests : IDisposable
     [Fact]
     public async Task GetByIdAsync_ExistingId_ReturnsCorrectDto()
     {
-        _context.Agents.Add(new Agent { Id = 1, Name = "Alpha" });
+        _context.Agents.Add(new Agent { Id = "TEST000001A1", Name = "Alpha" });
         await _context.SaveChangesAsync();
 
-        var result = await _service.GetByIdAsync(1);
+        var result = await _service.GetByIdAsync("TEST000001A1");
 
         Assert.NotNull(result);
-        Assert.Equal(1, result.Id);
+        Assert.Equal("TEST000001A1", result.Id);
         Assert.Equal("Alpha", result.Name);
     }
 
     [Fact]
     public async Task GetByIdAsync_MissingId_ReturnsNull()
     {
-        var result = await _service.GetByIdAsync(999);
+        var result = await _service.GetByIdAsync("DOESNOTEXIST");
 
         Assert.Null(result);
     }
@@ -79,12 +79,12 @@ public class AgentServiceTests : IDisposable
     [Fact]
     public async Task CreateAsync_ValidDto_ReturnsDto()
     {
-        var dto = new AgentCreateDto { Name = "BetaAgent" };
+        var dto = new AgentCreateDto { Id = "TEST000002B2", Name = "BetaAgent" };
 
         var result = await _service.CreateAsync(dto);
 
         Assert.NotNull(result);
-        Assert.True(result.Id > 0);
+        Assert.NotEmpty(result.Id);
         Assert.Equal("BetaAgent", result.Name);
         Assert.Equal(1, await _context.Agents.CountAsync());
     }
@@ -96,19 +96,19 @@ public class AgentServiceTests : IDisposable
     [Fact]
     public async Task DeleteAsync_ExistingId_ReturnsTrueAndRemoves()
     {
-        _context.Agents.Add(new Agent { Id = 1, Name = "ToDelete" });
+        _context.Agents.Add(new Agent { Id = "TEST000003C3", Name = "ToDelete" });
         await _context.SaveChangesAsync();
 
-        var result = await _service.DeleteAsync(1);
+        var result = await _service.DeleteAsync("TEST000003C3");
 
         Assert.True(result);
-        Assert.Null(await _context.Agents.FindAsync(1));
+        Assert.Null(await _context.Agents.FindAsync("TEST000003C3"));
     }
 
     [Fact]
     public async Task DeleteAsync_MissingId_ReturnsFalse()
     {
-        var result = await _service.DeleteAsync(999);
+        var result = await _service.DeleteAsync("DOESNOTEXIST");
 
         Assert.False(result);
     }

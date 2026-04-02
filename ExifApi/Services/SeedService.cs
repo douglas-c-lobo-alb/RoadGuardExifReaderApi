@@ -66,7 +66,7 @@ public class SeedService(
         {
             foreach (var name in AgentNames)
             {
-                var agent = await agentService.CreateAsync(new AgentCreateDto { Name = name });
+                var agent = await agentService.CreateAsync(new AgentCreateDto { Id = Guid.NewGuid().ToString("N")[..12].ToUpper(), Name = name });
                 if (agent is not null) agents.Add(agent);
             }
         }
