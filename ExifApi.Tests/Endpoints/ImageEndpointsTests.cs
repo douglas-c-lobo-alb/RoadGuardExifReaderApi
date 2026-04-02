@@ -162,7 +162,7 @@ public class ImageEndpointsTests : IDisposable
     public async Task Upload_WithValidSessionId_Returns201AndDtoWithSessionId()
     {
         using var ctx = _factory.CreateDbContext();
-        var agent = new Agent { Name = "Device-01" };
+        var agent = new Agent { Id = "TEST000011BB", Name = "Device-01" };
         ctx.Agents.Add(agent);
         await ctx.SaveChangesAsync();
         var session = new Session { AgentId = agent.Id, StartedAt = DateTime.UtcNow };

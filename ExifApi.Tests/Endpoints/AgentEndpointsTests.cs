@@ -42,8 +42,8 @@ public class AgentEndpointsTests : IDisposable
     {
         using var ctx = _factory.CreateDbContext();
         ctx.Agents.AddRange(
-            new Agent { Name = "Agent Alpha" },
-            new Agent { Name = "Agent Beta" });
+            new Agent { Id = "TEST000001A1", Name = "Agent Alpha" },
+            new Agent { Id = "TEST000002B2", Name = "Agent Beta" });
         await ctx.SaveChangesAsync();
 
         var response = await _client.GetAsync("api/agents/");
@@ -62,10 +62,10 @@ public class AgentEndpointsTests : IDisposable
     public async Task GetById_ExistingAgent_Returns200WithDto()
     {
         using var ctx = _factory.CreateDbContext();
-        var agent = new Agent { Name = "RoadGuard-01" };
+        var agent = new Agent { Id = "TEST000003C3", Name = "RoadGuard-01" };
         ctx.Agents.Add(agent);
         await ctx.SaveChangesAsync();
-        int id = agent.Id;
+        string id = agent.Id;
 
         var response = await _client.GetAsync($"api/agents/{id}");
 
@@ -91,14 +91,14 @@ public class AgentEndpointsTests : IDisposable
     [Fact]
     public async Task Create_ValidDto_Returns201AndDto()
     {
-        var dto = new AgentCreateDto { Name = "NewAgent" };
+        var dto = new AgentCreateDto { Id = "TEST000004D4", Name = "NewAgent" };
 
         var response = await _client.PostAsJsonAsync("api/agents/", dto);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<AgentDto>();
         Assert.NotNull(body);
-        Assert.True(body.Id > 0);
+        Assert.NotEmpty(body.Id);
         Assert.Equal("NewAgent", body.Name);
     }
 
@@ -110,10 +110,10 @@ public class AgentEndpointsTests : IDisposable
     public async Task Delete_ExistingAgent_Returns204()
     {
         using var ctx = _factory.CreateDbContext();
-        var agent = new Agent { Name = "ToDelete" };
+        var agent = new Agent { Id = "TEST000005E5", Name = "ToDelete" };
         ctx.Agents.Add(agent);
         await ctx.SaveChangesAsync();
-        int id = agent.Id;
+        string id = agent.Id;
 
         var response = await _client.DeleteAsync($"api/agents/{id}");
 

@@ -154,9 +154,9 @@ public class ImageServiceTests : IDisposable
     [Fact]
     public async Task RegisterImageAsync_WithValidSessionId_SetsSessionId()
     {
-        _context.Agents.Add(new ExifApi.Data.Entities.Agent { Id = 10, Name = "Device-A" });
+        _context.Agents.Add(new ExifApi.Data.Entities.Agent { Id = "TEST000010AA", Name = "Device-A" });
         await _context.SaveChangesAsync();
-        _context.Sessions.Add(new ExifApi.Data.Entities.Session { Id = 1, AgentId = 10, StartedAt = DateTime.UtcNow });
+        _context.Sessions.Add(new ExifApi.Data.Entities.Session { Id = 1, AgentId = "TEST000010AA", StartedAt = DateTime.UtcNow });
         await _context.SaveChangesAsync();
 
         var fileBytes = System.Text.Encoding.UTF8.GetBytes("fake");
