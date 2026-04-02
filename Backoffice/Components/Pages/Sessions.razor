@@ -107,5 +107,5 @@
             NotificationService.Notify(NotificationSeverity.Error, "Delete failed", $"Status {(int)response.StatusCode}", 5000);
     }
 
-    private record SessionRow(int Id, int AgentId, DateTime StartedAt, DateTime? FinishedAt);
+    private record SessionRow(int Id, string AgentId, DateTime StartedAt, DateTime? FinishedAt);
 }

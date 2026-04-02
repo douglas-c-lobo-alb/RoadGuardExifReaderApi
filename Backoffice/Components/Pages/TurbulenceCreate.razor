@@ -134,7 +134,7 @@
     }
 
     private record HexagonOption(int Id, string H3Index, int Resolution);
-    private record SessionOption(int Id, int AgentId)
+    private record SessionOption(int Id, string AgentId)
     {
         public string Label => $"#{Id} — Agent #{AgentId}";
     }

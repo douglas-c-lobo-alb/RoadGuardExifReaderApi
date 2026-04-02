@@ -1,4 +1,4 @@
-@page "/agents/{Id:int}/edit"
+@page "/agents/{Id}/edit"
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager NavigationManager
 @inject NotificationService NotificationService
@@ -29,7 +29,7 @@ else
 }
 
 @code {
-    [Parameter] public int Id { get; set; }
+    [Parameter] public string Id { get; set; } = string.Empty;
 
     private string name = string.Empty;
     private bool loaded;
@@ -88,5 +88,5 @@ else
         }
     }
 
-    private record AgentRow(int Id, string Name, DateTime CreatedDate);
+    private record AgentRow(string Id, string Name, DateTime CreatedDate);
 }
