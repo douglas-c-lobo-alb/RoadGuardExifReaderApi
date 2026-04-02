@@ -66,7 +66,7 @@
             await Delete(a.Id);
     }
 
-    private async Task Delete(int id)
+    private async Task Delete(string id)
     {
         var client = HttpClientFactory.CreateClient("ExifApi");
         var response = await client.DeleteAsync($"api/agents/{id}");
@@ -79,5 +79,5 @@
             NotificationService.Notify(NotificationSeverity.Error, "Delete failed", $"Status {(int)response.StatusCode}", 5000);
     }
 
-    private record AgentRow(int Id, string Name, DateTime CreatedDate);
+    private record AgentRow(string Id, string Name, DateTime CreatedDate);
 }

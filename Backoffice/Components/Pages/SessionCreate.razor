@@ -11,7 +11,7 @@
 
     <div class="mb-3">
         <label class="form-label fw-semibold">Agent <span class="text-danger">*</span></label>
-        <RadzenDropDown TValue="int?"
+        <RadzenDropDown TValue="string?"
                         @bind-Value="agentId"
                         Data="@agents"
                         TextProperty="Name"
@@ -32,7 +32,7 @@
 </div>
 
 @code {
-    private int? agentId;
+    private string? agentId;
     private DateTime startedAt = DateTime.Now;
     private bool submitting;
 
@@ -82,5 +82,5 @@
         }
     }
 
-    private record AgentOption(int Id, string Name);
+    private record AgentOption(string Id, string Name);
 }
