@@ -17,7 +17,7 @@ public static class AgentEndpoints
             .WithSummary("List all agents")
             .Produces<IEnumerable<AgentDto>>(StatusCodes.Status200OK);
 
-        group.MapGet("/{id:int}", GetById)
+        group.MapGet("/{id}", GetById)
             .WithName("GetAgentById")
             .WithSummary("Get an agent by ID")
             .Produces<AgentDto>(StatusCodes.Status200OK)
@@ -28,13 +28,13 @@ public static class AgentEndpoints
             .WithSummary("Create an agent")
             .Produces<AgentDto>(StatusCodes.Status200OK);
 
-        group.MapPut("/{id:int}", Update)
+        group.MapPut("/{id}", Update)
             .WithName("UpdateAgent")
             .WithSummary("Update an agent by ID")
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
             .Produces<AgentDto>(StatusCodes.Status200OK);
 
-        group.MapDelete("/{id:int}", Delete)
+        group.MapDelete("/{id}", Delete)
             .WithName("DeleteAgent")
             .WithSummary("Delete an agent by ID")
             .Produces<ProblemDetails>(StatusCodes.Status404NotFound)
@@ -44,7 +44,7 @@ public static class AgentEndpoints
     private static async Task<IResult> GetAll(AgentService agentService)
         => Results.Ok(await agentService.GetAllAsync());
 
-    private static async Task<IResult> GetById(int id, AgentService agentService)
+    private static async Task<IResult> GetById(string id, AgentService agentService)
     {
         var result = await agentService.GetByIdAsync(id);
         return result is null ? Results.NotFound() : Results.Ok(result);
@@ -56,13 +56,13 @@ public static class AgentEndpoints
         return Results.Created($"/api/agents/{result.Id}", result);
     }
 
-    private static async Task<IResult> Update(int id, AgentCreateDto dto, AgentService agentService)
+    private static async Task<IResult> Update(string id, AgentCreateDto dto, AgentService agentService)
     {
         var result = await agentService.UpdateAsync(id, dto);
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 
-    private static async Task<IResult> Delete(int id, AgentService agentService)
+    private static async Task<IResult> Delete(string id, AgentService agentService)
     {
         var deleted = await agentService.DeleteAsync(id);
         return deleted ? Results.NoContent() : Results.NotFound();

@@ -5,7 +5,7 @@ namespace ExifApi.Dtos;
 public class SessionCreateDto
 {
     [Required]
-    public int AgentId { get; set; }
+    public required string AgentId { get; set; }
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime? FinishedAt { get; set; }
 }
