@@ -1,6 +1,7 @@
 using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Dtos;
+using ExifApi.Infrastructure.Caching;
 using H3Standard;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,12 +12,14 @@ public class RoadVisualAnomalyService
     private readonly ApplicationDbContext _context;
     private readonly ILogger<RoadVisualAnomalyService> _logger;
     private readonly int _anomalyResolution;
+    private readonly IViewportCacheInvalidator _cacheInvalidator;
 
-    public RoadVisualAnomalyService(ApplicationDbContext context, ILogger<RoadVisualAnomalyService> logger, IConfiguration configuration)
+    public RoadVisualAnomalyService(ApplicationDbContext context, ILogger<RoadVisualAnomalyService> logger, IConfiguration configuration, IViewportCacheInvalidator cacheInvalidator)
     {
         _context = context;
         _logger = logger;
         _anomalyResolution = configuration.GetValue<int>("H3:AnomalyResolution", 13);
+        _cacheInvalidator = cacheInvalidator;
     }
 
     public async Task<List<RoadVisualAnomalyDto>> GetAllAsync()
@@ -120,6 +123,7 @@ public class RoadVisualAnomalyService
 
         _context.RoadVisualAnomalies.Add(entity);
         await _context.SaveChangesAsync();
+        _ = _cacheInvalidator.InvalidateAllAsync();
         _logger.LogInformation("Created road visual anomaly id={Id} for image id={ImageId}", entity.Id, dto.ImageId);
 
         await _context.Entry(entity).Reference(r => r.Image).LoadAsync(); // needed for ImageFileName in response
@@ -144,6 +148,7 @@ public class RoadVisualAnomalyService
         record.LastModifiedDate = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+        _ = _cacheInvalidator.InvalidateAllAsync();
         _logger.LogInformation("Updated road visual anomaly id={Id}", id);
         return ToDto(record);
     }
@@ -155,6 +160,7 @@ public class RoadVisualAnomalyService
 
         _context.RoadVisualAnomalies.Remove(record);
         await _context.SaveChangesAsync();
+        _ = _cacheInvalidator.InvalidateAllAsync();
         _logger.LogInformation("Deleted road visual anomaly id={Id}", id);
         return true;
     }

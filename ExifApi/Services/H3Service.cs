@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using ExifApi.Data;
 using ExifApi.Data.Entities;
@@ -5,6 +8,7 @@ using ExifApi.Dtos;
 using H3Standard;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Net.Http.Headers;
 
 namespace ExifApi.Services;
@@ -15,13 +19,17 @@ public class H3Service
     private readonly int _anomalyResolution;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<H3Service> _logger;
+    private readonly IDistributedCache _cache;
+    private readonly int _cacheTtlMinutes;
 
-    public H3Service(ApplicationDbContext context, ILogger<H3Service> logger, IConfiguration configuration)
+    public H3Service(ApplicationDbContext context, ILogger<H3Service> logger, IConfiguration configuration, IDistributedCache cache)
     {
         _context = context;
         _logger = logger;
         _appResolution = configuration.GetValue<int>("H3:DefaultResolution", 13);
         _anomalyResolution = configuration.GetValue<int>("H3:AnomalyResolution", 13);
+        _cacheTtlMinutes = configuration.GetValue<int>("Redis:TtlMinutes", 5);
+        _cache = cache;
     }
 
     public HexagonDto? LatLngToCell(double lat, double lon, int resolution)
@@ -113,6 +121,49 @@ public class H3Service
     }
 
     public async Task<ViewportResponseDto> GetHexagonsByViewportAsync(
+        double latMin,
+        double latMax,
+        double lonMin,
+        double lonMax,
+        ViewFilterType viewFilterType = ViewFilterType.Or,
+        List<AnomalyType>? anomalies = null,
+        DateOnly? startDate = null,
+        DateOnly? endDate = null,
+        int? resolution = null)
+    {
+        var cacheKey = BuildViewportCacheKey(latMin, latMax, lonMin, lonMax, viewFilterType, anomalies, startDate, endDate, resolution);
+
+        var cached = await _cache.GetStringAsync(cacheKey);
+        if (cached is not null)
+        {
+            _logger.LogDebug("Viewport cache hit: {Key}", cacheKey);
+            try
+            {
+                var deserialized = JsonSerializer.Deserialize<ViewportResponseDto>(cached);
+                if (deserialized is not null)
+                    return deserialized;
+
+                _logger.LogWarning("Viewport cache entry deserialized to null for key {Key} — treating as miss", cacheKey);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "Viewport cache entry could not be deserialized for key {Key} — treating as miss", cacheKey);
+            }
+        }
+
+        _logger.LogDebug("Viewport cache miss: {Key}", cacheKey);
+        var result = await ComputeHexagonsByViewportAsync(latMin, latMax, lonMin, lonMax, viewFilterType, anomalies, startDate, endDate, resolution);
+
+        await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(result),
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_cacheTtlMinutes)
+            });
+
+        return result;
+    }
+
+    private async Task<ViewportResponseDto> ComputeHexagonsByViewportAsync(
         double latMin,
         double latMax,
         double lonMin,
@@ -274,6 +325,23 @@ public class H3Service
             ImageHexagons = imageHexList,
             AnomalyHexagons = anomalyHexList
         };
+    }
+
+    private static string BuildViewportCacheKey(
+        double latMin, double latMax,
+        double lonMin, double lonMax,
+        ViewFilterType filterType,
+        List<AnomalyType>? anomalies,
+        DateOnly? startDate,
+        DateOnly? endDate,
+        int? resolution)
+    {
+        var anomalyPart = anomalies is { Count: > 0 }
+            ? string.Join("-", anomalies.Select(a => a.ToString()).Distinct().OrderBy(x => x))
+            : "none";
+        var raw = $"{latMin:F6}:{latMax:F6}:{lonMin:F6}:{lonMax:F6}:{resolution ?? -1}:{filterType}:{anomalyPart}:{startDate?.ToString("yyyy-MM-dd") ?? "null"}:{endDate?.ToString("yyyy-MM-dd") ?? "null"}";
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw))).ToLowerInvariant();
+        return $"viewport:v1:{hash}";
     }
 
     public async Task<List<ImageInfoDto>> GetHexagonImagesMetadata(string h3Index)
