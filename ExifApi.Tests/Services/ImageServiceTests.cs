@@ -1,10 +1,12 @@
 using ExifApi.Data;
 using ExifApi.Data.Entities;
+using ExifApi.Infrastructure.Caching;
 using ExifApi.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -40,10 +42,11 @@ public class ImageServiceTests : IDisposable
             .AddInMemoryCollection(new Dictionary<string, string?> { ["Image:Path"] = "images" })
             .Build();
 
+        var mockCacheInvalidator = new Mock<IViewportCacheInvalidator>();
         var exifService = new ExifService(NullLogger<ExifService>.Instance, mockEnv.Object);
-        var anomalyService = new RoadVisualAnomalyService(_context, NullLogger<RoadVisualAnomalyService>.Instance, config);
-        var h3Service = new H3Service(_context, NullLogger<H3Service>.Instance, config);
-        _service = new ImageService(_context, exifService, anomalyService, h3Service, NullLogger<ImageService>.Instance, mockEnv.Object, config);
+        var anomalyService = new RoadVisualAnomalyService(_context, NullLogger<RoadVisualAnomalyService>.Instance, config, mockCacheInvalidator.Object);
+        var h3Service = new H3Service(_context, NullLogger<H3Service>.Instance, config, new Mock<IDistributedCache>().Object);
+        _service = new ImageService(_context, exifService, anomalyService, h3Service, NullLogger<ImageService>.Instance, mockEnv.Object, config, mockCacheInvalidator.Object);
     }
 
     public void Dispose()
