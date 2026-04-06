@@ -12,6 +12,7 @@ public class Vote
     public int Id { get; set; }
     [Indexed]
     public int HexagonId { get; set; }
+    public Hexagon? Hexagon { get; set; }
     [Indexed]
     public int? SessionId { get; set; }
     public Session? Session { get; set; }
