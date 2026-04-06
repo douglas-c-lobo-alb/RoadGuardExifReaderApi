@@ -1,6 +1,7 @@
 using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Dtos;
+using ExifApi.Infrastructure.Caching;
 using Microsoft.EntityFrameworkCore;
 
 namespace ExifApi.Services;
@@ -14,8 +15,9 @@ public class ImageService
     private readonly ILogger<ImageService> _logger;
     private readonly IWebHostEnvironment _env;
     private readonly string _imagesFolder;
+    private readonly IViewportCacheInvalidator _cacheInvalidator;
 
-    public ImageService(ApplicationDbContext context, ExifService exifService, RoadVisualAnomalyService anomalyService, H3Service h3Service, ILogger<ImageService> logger, IWebHostEnvironment env, IConfiguration configuration)
+    public ImageService(ApplicationDbContext context, ExifService exifService, RoadVisualAnomalyService anomalyService, H3Service h3Service, ILogger<ImageService> logger, IWebHostEnvironment env, IConfiguration configuration, IViewportCacheInvalidator cacheInvalidator)
     {
         _context = context;
         _exifService = exifService;
@@ -24,6 +26,7 @@ public class ImageService
         _logger = logger;
         _env = env;
         _imagesFolder = configuration.GetSection("Image:Path").Value ?? "images";
+        _cacheInvalidator = cacheInvalidator;
     }
 
     public async Task<ImageDto?> RegisterImageAsync(IFormFile file, int? sessionId = null)
@@ -90,6 +93,7 @@ public class ImageService
 
         _context.Images.Add(image);
         await _context.SaveChangesAsync();
+        _ = _cacheInvalidator.InvalidateAllAsync();
 
         _logger.LogInformation("Registered image {FileName} with id={Id}", fileName, image.Id);
         return ToDto(image);
@@ -147,6 +151,7 @@ public class ImageService
         }
 
         await _context.SaveChangesAsync();
+        _ = _cacheInvalidator.InvalidateAllAsync();
         return ToDto(image);
     }
 
@@ -160,6 +165,7 @@ public class ImageService
 
         _context.Images.Remove(image);
         await _context.SaveChangesAsync();
+        _ = _cacheInvalidator.InvalidateAllAsync();
 
         _logger.LogInformation("Deleted image id={Id}, file={FileName}", id, image.FileName);
         return true;

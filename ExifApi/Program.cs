@@ -2,11 +2,16 @@ using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Endpoints;
 using ExifApi.Infrastructure;
+using ExifApi.Infrastructure.Caching;
 using ExifApi.Services;
 using Microsoft.EntityFrameworkCore;
+using Redis.OM;
+using StackExchange.Redis;
 using System.Text.Json.Serialization;
 
+
 var builder = WebApplication.CreateBuilder(args);
+
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -35,6 +40,17 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     );
     options.EnableDetailedErrors();
 });
+
+var redisConfig = builder.Configuration.GetSection("Redis").Get<RedisConfig>();
+builder.Services.AddSingleton(new RedisConnectionProvider(redisConfig!.Configuration));
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConfig!.MultiplexerConfiguration;
+});
+builder.Services.AddSingleton<IConnectionMultiplexer>(
+    ConnectionMultiplexer.Connect(redisConfig!.MultiplexerConfiguration));
+builder.Services.AddSingleton<IViewportCacheInvalidator, ViewportCacheInvalidator>();
+builder.Services.AddHostedService<RedisIndexCreationService>();
 
 var app = builder.Build();
 
