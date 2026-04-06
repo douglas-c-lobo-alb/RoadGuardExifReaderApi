@@ -5,16 +5,13 @@ using ExifApi.Infrastructure;
 using ExifApi.Infrastructure.Caching;
 using ExifApi.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Net.Http.Headers;
 using Redis.OM;
 using StackExchange.Redis;
 using System.Text.Json.Serialization;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
-
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -35,33 +32,23 @@ builder.Services.AddScoped<SeedService>();
 builder.Services.AddScoped<VoteService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    options.UseSqlite(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    );
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
     options.EnableDetailedErrors();
 });
 
 var redisConfig = builder.Configuration.GetSection("Redis").Get<RedisConfig>();
+var multiplexer = ConnectionMultiplexer.Connect(redisConfig!.MultiplexerConfiguration);
 builder.Services.AddSingleton(new RedisConnectionProvider(redisConfig!.Configuration));
+builder.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    options.Configuration = redisConfig!.MultiplexerConfiguration;
+    options.ConnectionMultiplexerFactory = () => Task.FromResult<IConnectionMultiplexer>(multiplexer);
 });
-builder.Services.AddSingleton<IConnectionMultiplexer>(
-    ConnectionMultiplexer.Connect(redisConfig!.MultiplexerConfiguration));
 builder.Services.AddSingleton<IViewportCacheInvalidator, ViewportCacheInvalidator>();
 builder.Services.AddHostedService<RedisIndexCreationService>();
 
 var app = builder.Build();
 
-var startupLogger = app.Logger;
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrEmpty(connectionString))
-    startupLogger.LogError("DefaultConnection string is missing from configuration");
-else
-    startupLogger.LogInformation("Database connection string resolved: {ConnectionString}", connectionString);
-
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -69,22 +56,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
-
 app.MapGet("/", () => Results.Redirect("/index.html", permanent: false));
 
 app.Use((context, next) =>
 {
-    context.Response.GetTypedHeaders().CacheControl = new Microsoft.Net.Http.Headers.CacheControlHeaderValue()
-    {
-        NoCache = true,
-        NoStore = true
-    };
+    context.Response.GetTypedHeaders().CacheControl = CacheControlMiddleware.NoCacheHeader;
     return next.Invoke();
 });
 
-// Apply any pending EF Core migrations at startup (https://stackoverflow.com/a/70057243)
+// Run migrations at startup; EnsureCreated for the test environment (no migrations)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -114,3 +95,8 @@ api.MapVoteEndpoints();
 app.Run();
 
 public partial class Program { }
+
+internal static class CacheControlMiddleware
+{
+    public static readonly CacheControlHeaderValue NoCacheHeader = new() { NoCache = true, NoStore = true };
+}
