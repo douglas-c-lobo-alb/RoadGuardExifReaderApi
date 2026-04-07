@@ -35,7 +35,7 @@ public class ViewportCacheInvalidator : IViewportCacheInvalidator
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Viewport cache invalidation failed — Redis may be unavailable");
+            _logger.LogWarning(ex, "Viewport cache invalidation failed. Redis may be unavailable");
         }
     }
 }
