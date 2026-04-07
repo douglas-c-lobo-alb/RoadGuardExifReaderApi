@@ -1,6 +1,7 @@
 using ExifApi.Data;
 using ExifApi.Data.Entities;
 using ExifApi.Dtos;
+using ExifApi.Infrastructure.Caching;
 using H3Standard;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,12 +12,14 @@ public class RoadTurbulenceService
     private readonly ApplicationDbContext _context;
     private readonly ILogger<RoadTurbulenceService> _logger;
     private readonly H3Service _h3Service;
+    private readonly IViewportCacheInvalidator _cacheInvalidator;
 
-    public RoadTurbulenceService(ApplicationDbContext context, ILogger<RoadTurbulenceService> logger, H3Service h3Service)
+    public RoadTurbulenceService(ApplicationDbContext context, ILogger<RoadTurbulenceService> logger, H3Service h3Service, IViewportCacheInvalidator cacheInvalidator)
     {
         _context = context;
         _logger = logger;
         _h3Service = h3Service;
+        _cacheInvalidator = cacheInvalidator;
     }
 
     public async Task<List<RoadTurbulenceDto>> GetAllAsync()
@@ -83,6 +86,7 @@ public class RoadTurbulenceService
 
         _context.RoadTurbulences.Add(entity);
         await _context.SaveChangesAsync();
+        _ = _cacheInvalidator.InvalidateAllAsync();
 
         _logger.LogInformation("Created road turbulence id={Id}", entity.Id);
 
@@ -112,6 +116,7 @@ public class RoadTurbulenceService
         record.LastModifiedDate = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+        _ = _cacheInvalidator.InvalidateAllAsync();
         _logger.LogInformation("Updated road turbulence id={Id}", id);
 
         return ToDto(record);
@@ -124,6 +129,7 @@ public class RoadTurbulenceService
 
         _context.RoadTurbulences.Remove(record);
         await _context.SaveChangesAsync();
+        _ = _cacheInvalidator.InvalidateAllAsync();
         _logger.LogInformation("Deleted road turbulence id={Id}", id);
         return true;
     }

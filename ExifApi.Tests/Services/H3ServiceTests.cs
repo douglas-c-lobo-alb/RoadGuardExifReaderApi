@@ -6,8 +6,10 @@ using ExifApi.Services;
 using H3Standard;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace ExifApi.Tests.Services;
 
@@ -41,7 +43,7 @@ public class H3ServiceTests : IDisposable
         _context.Database.EnsureCreated();
 
         var config = new ConfigurationBuilder().Build(); // uses default H3 resolution (13)
-        _service = new H3Service(_context, NullLogger<H3Service>.Instance, config);
+        _service = new H3Service(_context, NullLogger<H3Service>.Instance, config, new Mock<IDistributedCache>().Object);
     }
 
     public void Dispose()
