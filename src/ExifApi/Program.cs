@@ -38,6 +38,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 var redisConfig = builder.Configuration.GetSection("Redis").Get<RedisConfig>();
 var multiplexer = ConnectionMultiplexer.Connect(redisConfig!.MultiplexerConfiguration);
+builder.Services.AddSingleton(redisConfig!);
 builder.Services.AddSingleton(new RedisConnectionProvider(redisConfig!.Configuration));
 builder.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -61,7 +62,8 @@ app.MapGet("/", () => Results.Redirect("/index.html", permanent: false));
 
 app.Use((context, next) =>
 {
-    context.Response.GetTypedHeaders().CacheControl = CacheControlMiddleware.NoCacheHeader;
+    if (context.Request.Method != HttpMethods.Get)
+        context.Response.GetTypedHeaders().CacheControl = CacheControlMiddleware.NoCacheHeader;
     return next.Invoke();
 });
 

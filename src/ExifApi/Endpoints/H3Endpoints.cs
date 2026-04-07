@@ -1,5 +1,6 @@
 using ExifApi.Data.Entities;
 using ExifApi.Dtos;
+using ExifApi.Infrastructure.Caching;
 using ExifApi.Services;
 using H3Standard;
 using Microsoft.AspNetCore.Mvc;
@@ -105,6 +106,8 @@ public static class H3Endpoints
         string lonMin,
         string lonMax,
         H3Service h3Service,
+        HttpContext httpContext,
+        RedisConfig redisConfig,
         string? viewFilterType = null,
         [FromQuery] AnomalyType[]? anomalies = null,
         DateOnly? startDate = null,
@@ -140,6 +143,7 @@ public static class H3Endpoints
         var result = await h3Service.GetHexagonsByViewportAsync(
             latMinD, latMaxD, lonMinD, lonMaxD,
             filterType, anomalies?.ToList(), startDate, endDate, resolution);
+        httpContext.Response.Headers.CacheControl = $"public, max-age={redisConfig.TtlMinutes * 60}";
         return Results.Ok(result);
     }
 
