@@ -1,0 +1,99 @@
+@page "/hexagons"
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+@rendermode InteractiveServer
+
+<PageTitle>Hexagons</PageTitle>
+
+<h1>Hexagons</h1>
+
+<div class="mb-3">
+    <RadzenButton Text="New Hexagon" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                  Click="@(() => NavigationManager.NavigateTo("/hexagons/create"))" />
+</div>
+
+<div style="overflow-x:auto">
+<RadzenDataGrid TItem="HexagonRow" Data="@hexagons" IsLoading="@(hexagons is null)"
+                AllowPaging="true" PageSize="20"
+                AllowSorting="true" AllowFiltering="true"
+                FilterMode="FilterMode.SimpleWithMenu"
+                PagerHorizontalAlign="HorizontalAlign.Left"
+                ShowPagingSummary="true" Density="Density.Compact"
+                Style="min-width:700px">
+    <Columns>
+        <RadzenDataGridColumn TItem="HexagonRow" Property="Id" Title="Id" Width="80px" />
+        <RadzenDataGridColumn TItem="HexagonRow" Property="H3Index" Title="H3 Index">
+            <Template Context="h"><code>@h.H3Index</code></Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="HexagonRow" Property="Resolution" Title="Resolution" Width="120px" />
+        <RadzenDataGridColumn TItem="HexagonRow" Property="Lat" Title="Latitude" Width="140px" FormatString="{0:F6}" />
+        <RadzenDataGridColumn TItem="HexagonRow" Property="Lon" Title="Longitude" Width="140px" FormatString="{0:F6}" />
+        <RadzenDataGridColumn TItem="HexagonRow" Property="ImageCount" Title="Images" Width="110px" Filterable="false">
+            <Template Context="h">
+                @if (h.ImageCount > 0) { <RadzenBadge Text="@h.ImageCount.ToString()" BadgeStyle="BadgeStyle.Secondary" /> }
+                else { <span class="text-muted small">0</span> }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="HexagonRow" Property="AnomalyCount" Title="Anomalies" Width="120px" Filterable="false">
+            <Template Context="h">
+                @if (h.AnomalyCount > 0) { <RadzenBadge Text="@h.AnomalyCount.ToString()" BadgeStyle="BadgeStyle.Warning" /> }
+                else { <span class="text-muted small">0</span> }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="HexagonRow" Title="" Width="110px" Sortable="false" Filterable="false" TextAlign="TextAlign.End">
+            <Template Context="h">
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="me-1"
+                              Click="@(() => NavigationManager.NavigateTo($"/hexagons/{h.Id}/edit"))" />
+                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                              Click="@(() => ConfirmDelete(h))" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+</div>
+
+@code {
+    private List<HexagonRow>? hexagons;
+
+    protected override async Task OnInitializedAsync() => await LoadHexagons();
+
+    private async Task LoadHexagons()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            hexagons = await client.GetFromJsonAsync<List<HexagonRow>>("api/hexagons/") ?? [];
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
+        }
+    }
+
+    private async Task ConfirmDelete(HexagonRow h)
+    {
+        var confirmed = await DialogService.Confirm(
+            $"Delete hexagon {h.H3Index}? This cannot be undone.",
+            "Confirm Delete",
+            new ConfirmOptions { OkButtonText = "Delete", CancelButtonText = "Cancel" });
+        if (confirmed == true)
+            await DeleteHexagon(h.Id);
+    }
+
+    private async Task DeleteHexagon(int id)
+    {
+        var client = HttpClientFactory.CreateClient("ExifApi");
+        var response = await client.DeleteAsync($"api/hexagons/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Deleted", "Hexagon removed.", 3000);
+            await LoadHexagons();
+        }
+        else
+            NotificationService.Notify(NotificationSeverity.Error, "Delete failed", $"Status {(int)response.StatusCode}", 5000);
+    }
+
+    private record HexagonRow(int Id, string H3Index, int Resolution, double Lat, double Lon, int ImageCount, int AnomalyCount);
+}

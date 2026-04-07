@@ -1,0 +1,92 @@
+@page "/agents/{Id}/edit"
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@inject NotificationService NotificationService
+@rendermode InteractiveServer
+
+<PageTitle>Edit Agent</PageTitle>
+<h1>Edit Agent #@Id</h1>
+
+@if (!loaded)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div style="max-width:500px">
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Name</label>
+            <RadzenTextBox @bind-Value="name" Style="width:100%" />
+        </div>
+
+        <RadzenButton Text="@(submitting ? "Saving..." : "Save")" Icon="save" ButtonStyle="ButtonStyle.Primary"
+                      Disabled="@(submitting || string.IsNullOrWhiteSpace(name))" Click="Submit" />
+        <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" class="ms-2"
+                      Click="@(() => NavigationManager.NavigateTo("/agents"))" />
+
+    </div>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+
+    private string name = string.Empty;
+    private bool loaded;
+    private bool submitting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var dto = await client.GetFromJsonAsync<AgentRow>($"api/agents/{Id}");
+            if (dto is null)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Not found", $"Agent #{Id} does not exist.", 5000);
+                NavigationManager.NavigateTo("/agents");
+                return;
+            }
+
+            name = dto.Name;
+            loaded = true;
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
+        }
+    }
+
+    private async Task Submit()
+    {
+        submitting = true;
+        try
+        {
+            var payload = new { Name = name };
+
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PutAsJsonAsync($"api/agents/{Id}", payload);
+
+            if (response.IsSuccessStatusCode)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Saved", "Agent updated.", 3000);
+                NavigationManager.NavigateTo("/agents");
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                NotificationService.Notify(NotificationSeverity.Error, "Save failed", $"({(int)response.StatusCode}) {body}", 6000);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", ex.Message, 6000);
+        }
+        finally
+        {
+            submitting = false;
+        }
+    }
+
+    private record AgentRow(string Id, string Name, DateTime CreatedDate);
+}

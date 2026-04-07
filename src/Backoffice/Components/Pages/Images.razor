@@ -1,0 +1,211 @@
+@page "/images"
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+@inject IJSRuntime JS
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@inject IConfiguration Configuration
+@rendermode InteractiveServer
+
+<PageTitle>Images</PageTitle>
+
+<h1>Images</h1>
+
+<div class="mb-3">
+    <RadzenButton Text="Upload Image" Icon="upload" ButtonStyle="ButtonStyle.Primary"
+                  Click="@(() => NavigationManager.NavigateTo("/images/upload"))" />
+    <RadzenButton Text="@(generating ? "Generating..." : "Generate Hexagons")"
+                  ButtonStyle="ButtonStyle.Secondary" class="ms-2"
+                  Disabled="@generating" Click="GenerateHexagons" />
+</div>
+
+<div style="overflow-x:auto">
+<RadzenDataGrid TItem="ImageRow" Data="@images" IsLoading="@(images is null)"
+                AllowPaging="true" PageSize="20"
+                AllowSorting="true" AllowFiltering="true"
+                FilterMode="FilterMode.SimpleWithMenu"
+                PagerHorizontalAlign="HorizontalAlign.Left"
+                ShowPagingSummary="true" Density="Density.Compact"
+                Style="min-width:900px">
+    <Columns>
+        <RadzenDataGridColumn TItem="ImageRow" Title="" Width="68px" Sortable="false" Filterable="false">
+            <Template Context="img">
+                @if (!string.IsNullOrEmpty(img.FilePath))
+                {
+                    <img src="@(apiBase + img.FilePath)" alt="@img.FileName"
+                         style="width:56px;height:40px;object-fit:cover;border-radius:3px;cursor:pointer"
+                         @onclick="() => ShowImage(img)" />
+                }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ImageRow" Property="Id" Title="Id" Width="80px" />
+        <RadzenDataGridColumn TItem="ImageRow" Property="FileName" Title="File" />
+        <RadzenDataGridColumn TItem="ImageRow" Property="DateTaken" Title="Date Taken"
+                              Width="160px" FormatString="{0:yyyy-MM-dd HH:mm}" />
+        <RadzenDataGridColumn TItem="ImageRow" Title="Camera" Width="180px" Sortable="false" Filterable="false">
+            <Template Context="img">@img.CameraMake @img.CameraModel</Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ImageRow" Title="Coords" Width="180px" Sortable="false" Filterable="false">
+            <Template Context="img">
+                @if (img.Latitude is not null || img.Longitude is not null || img.Altitude is not null)
+                {
+                    var lat = img.Latitude?.ToString("F6");
+                    var lon = img.Longitude?.ToString("F6");
+                    var alt = img.Altitude?.ToString("F2");
+                    var head = img.Heading?.ToString("F2");
+                    <div class="small text-monospace">
+                        @if (lat is not null)
+                        {
+                            <div style="cursor:pointer" title="Click to copy" @onclick="() => CopyToClipboard(lat)">
+                                lat: <strong>@lat</strong>
+                            </div>
+                        }
+                        @if (lon is not null)
+                        {
+                            <div style="cursor:pointer" title="Click to copy" @onclick="() => CopyToClipboard(lon)">
+                                lon: <strong>@lon</strong>
+                            </div>
+                        }
+                        @if (alt is not null)
+                        {
+                            <div style="cursor:pointer" title="Click to copy" @onclick="() => CopyToClipboard(alt)">
+                                alt: <strong>@alt</strong>
+                            </div>
+                        }
+                        @if (head is not null)
+                        {
+                            <div style="cursor:pointer" title="Click to copy" @onclick="() => CopyToClipboard(head)">
+                                head: <strong>@head</strong>
+                            </div>
+                        }
+                    </div>
+                }
+                else { <span class="text-muted">—</span> }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ImageRow" Title="Session" Width="110px" Sortable="false" Filterable="false">
+            <Template Context="img">
+                @if (img.SessionId.HasValue)
+                { <a href="/sessions">@img.SessionId</a> }
+                else { <span class="text-muted">—</span> }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ImageRow" Title="Hexagon" Width="160px" Sortable="false" Filterable="false">
+            <Template Context="img">
+                @if (img.Hexagon is not null)
+                {
+                    <a href="/hexagons/@img.Hexagon.Id/edit"><code>@img.Hexagon.H3Index</code></a>
+                }
+                else { <span class="text-muted">—</span> }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ImageRow" Property="AnomalyCount" Title="Anomalies" Width="120px" Filterable="false">
+            <Template Context="img">
+                @if (img.AnomalyCount > 0) { <RadzenBadge Text="@img.AnomalyCount.ToString()" BadgeStyle="BadgeStyle.Warning" /> }
+                else { <span class="text-muted small">0</span> }
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="ImageRow" Title="" Width="110px" Sortable="false" Filterable="false" TextAlign="TextAlign.End">
+            <Template Context="img">
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="me-1"
+                              Click="@(() => NavigationManager.NavigateTo($"/images/{img.Id}/edit"))" />
+                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                              Click="@(() => ConfirmDelete(img))" />
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+</div>
+
+@code {
+    private List<ImageRow>? images;
+    private bool generating;
+    private string apiBase = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        apiBase = (Configuration["ApiBaseUrl"] ?? string.Empty).TrimEnd('/');
+        await LoadImages();
+    }
+
+    private async Task LoadImages()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            images = await client.GetFromJsonAsync<List<ImageRow>>("api/images/") ?? [];
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
+        }
+    }
+
+    private async Task CopyToClipboard(string value)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", value);
+        NotificationService.Notify(NotificationSeverity.Info, "Copied", value, 2000);
+    }
+
+    private async Task ShowImage(ImageRow img)
+    {
+        await DialogService.OpenAsync(img.FileName, _ =>
+            @<img src="@(apiBase + img.FilePath)" alt="@img.FileName"
+                  style="max-width:100%;max-height:80vh;display:block;margin:auto" />,
+            new DialogOptions { Width = "auto", CloseDialogOnOverlayClick = true, ShowClose = true });
+    }
+
+    private async Task ConfirmDelete(ImageRow img)
+    {
+        var confirmed = await DialogService.Confirm(
+            $"Delete \"{img.FileName}\"? This cannot be undone.",
+            "Confirm Delete",
+            new ConfirmOptions { OkButtonText = "Delete", CancelButtonText = "Cancel" });
+        if (confirmed == true)
+            await DeleteImage(img.Id);
+    }
+
+    private async Task DeleteImage(int id)
+    {
+        var client = HttpClientFactory.CreateClient("ExifApi");
+        var response = await client.DeleteAsync($"api/images/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Deleted", "Image removed.", 3000);
+            await LoadImages();
+        }
+        else
+            NotificationService.Notify(NotificationSeverity.Error, "Delete failed", $"Status {(int)response.StatusCode}", 5000);
+    }
+
+    private async Task GenerateHexagons()
+    {
+        generating = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PostAsync("api/h3/generate", null);
+            if (response.IsSuccessStatusCode)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Done", "Hexagons generated.", 3000);
+                await LoadImages();
+            }
+            else
+                NotificationService.Notify(NotificationSeverity.Error, "Failed", $"Status {(int)response.StatusCode}", 5000);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", ex.Message, 5000);
+        }
+        finally
+        {
+            generating = false;
+        }
+    }
+
+    private record HexagonRow(int Id, string H3Index, int Resolution);
+    private record ImageRow(int Id, string FileName, string FilePath,
+        string? CameraMake, string? CameraModel, DateTime? DateTaken,
+        decimal? Latitude, decimal? Longitude, double? Altitude, decimal? Heading,
+        int AnomalyCount, int? SessionId, HexagonRow? Hexagon);
+}

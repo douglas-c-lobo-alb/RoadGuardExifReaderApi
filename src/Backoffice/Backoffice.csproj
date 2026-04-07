@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ExifApi\ExifApi.csproj">
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <BuildProjectReferences>false</BuildProjectReferences>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Radzen.Blazor" Version="10.0.3" />
+  </ItemGroup>
+
+  <Target Name="RemoveConflictingAppsettingsFromPublish" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="('%(ResolvedFileToPublish.RelativePath)' == 'appsettings.json' Or '%(ResolvedFileToPublish.RelativePath)' == 'appsettings.Development.json')&#xA;                   And '%(ResolvedFileToPublish.OriginalItemSpec)' != 'appsettings.json'&#xA;                   And '%(ResolvedFileToPublish.OriginalItemSpec)' != 'appsettings.Development.json'" />
+    </ItemGroup>
+  </Target>
+
+</Project>

@@ -1,0 +1,159 @@
+@page "/votes"
+@using ExifApi.Data.Entities
+@inject IHttpClientFactory HttpClientFactory
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Votes</PageTitle>
+
+<h1>Votes</h1>
+
+<div class="mb-3 d-flex gap-2">
+    <RadzenButton  Text="New Vote" Icon="add" ButtonStyle="ButtonStyle.Primary" Disabled="@computing"
+                  Click="@(() => NavigationManager.NavigateTo("/votes/create"))" />
+    <RadzenButton Text="@(computing ? "Computing..." : "Compute")" Icon="calculate" ButtonStyle="ButtonStyle.Warning"
+                  Disabled="@(computing || @votes is null || @votes.Count == 0)" Click="Compute" />
+    <RadzenButton Text="@(computing ? "Computing..." : "Compute (dry run)")" Icon="calculate" Disabled="@(computing || @votes is null || @votes.Count == 0)"
+                  ButtonStyle="ButtonStyle.Info"  Click="ComputeDryRun" />
+</div>
+
+<div style="overflow-x:auto">
+    <RadzenDataGrid TItem="VoteRow" Data="@votes" IsLoading="@(votes is null)" AllowPaging="true" PageSize="20"
+                    AllowSorting="true" AllowFiltering="true" FilterMode="FilterMode.SimpleWithMenu"
+                    PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true" Density="Density.Compact"
+                    Style="min-width:700px">
+        <Columns>
+            <RadzenDataGridColumn TItem="VoteRow" Property="Id" Title="Id" Width="70px" />
+            <RadzenDataGridColumn TItem="VoteRow" Title="Session" Width="110px" Sortable="false" Filterable="false">
+                <Template Context="v">
+                    @if (v.SessionId.HasValue)
+                    { <a href="/sessions">@v.SessionId</a> }
+                    else { <span class="text-muted">—</span> }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="VoteRow" Property="HexagonId" Title="Hexagon" Width="90px" />
+            <RadzenDataGridColumn TItem="VoteRow" Property="Kind" Title="Kind" Width="160px" />
+            <RadzenDataGridColumn TItem="VoteRow" Property="Confidence" Title="Confidence" Width="110px"
+                                  FormatString="{0:F2}" />
+            <RadzenDataGridColumn TItem="VoteRow" Property="CreatedDate" Title="Created" Width="160px"
+                                  FormatString="{0:yyyy-MM-dd HH:mm}" />
+            <RadzenDataGridColumn TItem="VoteRow" Title="" Width="70px" Sortable="false" Filterable="false"
+                                  TextAlign="TextAlign.End">
+                <Template Context="v">
+                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                  Click="@(() => ConfirmDelete(v))" />
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+@code {
+    private List<VoteRow>? votes;
+    private bool computing;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            votes = await client.GetFromJsonAsync<List<VoteRow>>("api/votes/anomaly") ?? [];
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
+        }
+    }
+
+    private async Task Compute()
+    {
+        computing = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PostAsync("api/votes/compute", null);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ComputeResult>();
+                if (result is not null)
+                    NotificationService.Notify(NotificationSeverity.Success, "Compute complete",
+                        $"Created {result.AnomaliesCreated}, Reopened {result.AnomaliesReopened}, Updated {result.AnomaliesUpdated}, Votes deleted {result.VotesDeleted}", 6000);
+                await Load();
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                NotificationService.Notify(NotificationSeverity.Error, "Compute failed", $"({(int)response.StatusCode}) {body}", 6000);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", ex.Message, 6000);
+        }
+        finally
+        {
+            computing = false;
+        }
+    }
+    
+    private async Task ComputeDryRun()
+    {
+        computing = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PostAsync("api/votes/compute-dry-run", null);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ComputeResult>();
+                if (result is not null)
+                    NotificationService.Notify(NotificationSeverity.Success, "Compute complete",
+                        $"Created {result.AnomaliesCreated}, Reopened {result.AnomaliesReopened}, Updated {result.AnomaliesUpdated}, Votes deleted {result.VotesDeleted}", 6000);
+                await Load();
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                NotificationService.Notify(NotificationSeverity.Error, "Compute failed", $"({(int)response.StatusCode}) {body}", 6000);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", ex.Message, 6000);
+        }
+        finally
+        {
+            computing = false;
+        }
+    }
+
+    private async Task ConfirmDelete(VoteRow v)
+    {
+        var confirmed = await DialogService.Confirm(
+            $"Delete vote #{v.Id}? This cannot be undone.",
+            "Confirm Delete",
+            new ConfirmOptions { OkButtonText = "Delete", CancelButtonText = "Cancel" });
+        if (confirmed == true)
+            await Delete(v.Id);
+    }
+
+    private async Task Delete(int id)
+    {
+        var client = HttpClientFactory.CreateClient("ExifApi");
+        var response = await client.DeleteAsync($"api/votes/anomaly/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Deleted", "Vote removed.", 3000);
+            await Load();
+        }
+        else
+            NotificationService.Notify(NotificationSeverity.Error, "Delete failed", $"Status {(int)response.StatusCode}", 5000);
+    }
+
+    private record VoteRow(int Id, int? SessionId, int HexagonId, string Kind, decimal? Confidence, DateTime CreatedDate);
+    private record ComputeResult(int AnomaliesCreated, int AnomaliesReopened, int AnomaliesUpdated, int VotesDeleted);
+}

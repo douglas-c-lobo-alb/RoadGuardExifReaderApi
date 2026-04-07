@@ -1,0 +1,147 @@
+using ExifApi.Data;
+using ExifApi.Data.Entities;
+using ExifApi.Dtos;
+using ExifApi.Infrastructure.Caching;
+using H3Standard;
+using Microsoft.EntityFrameworkCore;
+
+namespace ExifApi.Services;
+
+public class RoadTurbulenceService
+{
+    private readonly ApplicationDbContext _context;
+    private readonly ILogger<RoadTurbulenceService> _logger;
+    private readonly H3Service _h3Service;
+    private readonly IViewportCacheInvalidator _cacheInvalidator;
+
+    public RoadTurbulenceService(ApplicationDbContext context, ILogger<RoadTurbulenceService> logger, H3Service h3Service, IViewportCacheInvalidator cacheInvalidator)
+    {
+        _context = context;
+        _logger = logger;
+        _h3Service = h3Service;
+        _cacheInvalidator = cacheInvalidator;
+    }
+
+    public async Task<List<RoadTurbulenceDto>> GetAllAsync()
+    {
+        var records = await _context.RoadTurbulences
+            .OrderByDescending(r => r.CreatedDate)
+            .ToListAsync();
+        return records.Select(ToDto).ToList();
+    }
+
+    public async Task<RoadTurbulenceDto?> GetByIdAsync(int id)
+    {
+        RoadTurbulence? record = await _context.RoadTurbulences
+            .FirstOrDefaultAsync(r => r.Id == id);
+        return record is null ? null : ToDto(record);
+    }
+
+    public async Task<List<RoadTurbulenceDto>> GetByH3IndexAsync(string h3Index)
+    {
+        List<RoadTurbulence>? records = await _context.RoadTurbulences
+            .Where(t => t.Hexagon != null && t.Hexagon.H3Index == h3Index)
+            .OrderByDescending(r => r.CreatedDate)
+            .ToListAsync();
+        return records.Select(ToDto).ToList();
+    }
+
+    public async Task<List<RoadTurbulenceDto>> CreateManyAsync(List<RoadTurbulenceCreateDto> dtos)
+    {
+        var results = new List<RoadTurbulenceDto>(dtos.Count);
+        foreach (var dto in dtos)
+            results.Add(await CreateAsync(dto));
+        return results;
+    }
+
+    public async Task<RoadTurbulenceDto> CreateAsync(RoadTurbulenceCreateDto dto)
+    {
+        int hexagonId;
+
+        if (dto.HexagonId.HasValue)
+        {
+            hexagonId = dto.HexagonId.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(dto.H3Index))
+        {
+            var hex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == dto.H3Index)
+                      ?? _context.Hexagons.Add(new Hexagon { H3Index = dto.H3Index }).Entity;
+            await _context.SaveChangesAsync();
+            hexagonId = hex.Id;
+        }
+        else
+        {
+            throw new ArgumentException("Must supply HexagonId or H3Index.");
+        }
+
+        var entity = new RoadTurbulence
+        {
+            Index = dto.Index,
+            Kind = dto.Kind,
+            HexagonId = hexagonId,
+            SessionId = dto.SessionId,
+            CreatedDate = DateTime.UtcNow,
+            LastModifiedDate = DateTime.UtcNow
+        };
+
+        _context.RoadTurbulences.Add(entity);
+        await _context.SaveChangesAsync();
+        _ = _cacheInvalidator.InvalidateAllAsync();
+
+        _logger.LogInformation("Created road turbulence id={Id}", entity.Id);
+
+        return ToDto(entity);
+    }
+
+    public async Task<RoadTurbulenceDto?> UpdateAsync(int id, RoadTurbulenceCreateDto dto)
+    {
+        var record = await _context.RoadTurbulences
+            .FirstOrDefaultAsync(r => r.Id == id);
+        if (record is null) return null;
+
+        record.Index = dto.Index;
+        record.Kind = dto.Kind;
+        if (dto.HexagonId.HasValue)
+        {
+            record.HexagonId = dto.HexagonId.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(dto.H3Index))
+        {
+            var hex = await _context.Hexagons.FirstOrDefaultAsync(h => h.H3Index == dto.H3Index)
+                      ?? _context.Hexagons.Add(new Hexagon { H3Index = dto.H3Index }).Entity;
+            await _context.SaveChangesAsync();
+            record.HexagonId = hex.Id;
+        }
+        record.SessionId = dto.SessionId;
+        record.LastModifiedDate = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        _ = _cacheInvalidator.InvalidateAllAsync();
+        _logger.LogInformation("Updated road turbulence id={Id}", id);
+
+        return ToDto(record);
+    }
+
+    public async Task<bool> DeleteAsync(int id)
+    {
+        var record = await _context.RoadTurbulences.FindAsync(id);
+        if (record is null) return false;
+
+        _context.RoadTurbulences.Remove(record);
+        await _context.SaveChangesAsync();
+        _ = _cacheInvalidator.InvalidateAllAsync();
+        _logger.LogInformation("Deleted road turbulence id={Id}", id);
+        return true;
+    }
+
+    private static RoadTurbulenceDto ToDto(RoadTurbulence r) => new()
+    {
+        Id = r.Id,
+        Index = r.Index,
+        Kind = r.Kind,
+        HexagonId = r.HexagonId,
+        SessionId = r.SessionId,
+        CreatedDate = r.CreatedDate,
+        LastModifiedDate = r.LastModifiedDate,
+    };
+}

@@ -1,0 +1,44 @@
+@page "/metadata"
+@inject IHttpClientFactory HttpClientFactory
+@inject NotificationService NotificationService
+
+<PageTitle>Metadata</PageTitle>
+
+<h1>Metadata</h1>
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+else if (fetchFailed)
+{
+    <div class="alert alert-warning">Unable to fetch data now.</div>
+}
+else
+{
+    <pre>@json</pre>
+}
+
+@code {
+    private string? json;
+    private bool loading = true;
+    private bool fetchFailed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            json = await client.GetStringAsync("api/metadata/");
+        }
+        catch (Exception ex)
+        {
+            fetchFailed = true;
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+}

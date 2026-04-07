@@ -1,0 +1,24 @@
+@inherits LayoutComponentBase
+
+<RadzenHost />
+
+<RadzenLayout>
+    <RadzenHeader>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0">
+            <RadzenSidebarToggle Click="@(() => sidebarExpanded = !sidebarExpanded)" />
+            <RadzenLabel Text="Backoffice" />
+        </RadzenStack>
+    </RadzenHeader>
+    <RadzenSidebar @bind-Expanded="@sidebarExpanded">
+        <NavMenu />
+    </RadzenSidebar>
+    <RadzenBody>
+        <div class="p-4">
+            @Body
+        </div>
+    </RadzenBody>
+</RadzenLayout>
+
+@code {
+    bool sidebarExpanded = true;
+}

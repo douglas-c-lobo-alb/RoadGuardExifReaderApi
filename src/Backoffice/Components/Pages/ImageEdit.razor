@@ -1,0 +1,196 @@
+@page "/images/{Id:int}/edit"
+@using System.Text.Json
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@inject IConfiguration Configuration
+@inject NotificationService NotificationService
+@rendermode InteractiveServer
+
+<PageTitle>Edit Image</PageTitle>
+
+<h1>Edit Image</h1>
+
+@if (!loaded)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="row mb-4 align-items-center">
+        <div class="col-auto">
+            @if (!string.IsNullOrEmpty(filePath))
+            {
+                <img src="@(apiBase + filePath)" alt="@fileName"
+                     style="width:120px;height:90px;object-fit:cover;border-radius:4px;display:block" />
+            }
+        </div>
+        <div class="col">
+            <div class="fw-semibold">@fileName</div>
+            <div class="text-muted small">
+                Image #@Id
+                @if (hexagonId.HasValue)
+                {
+                    <span> &mdash; Hexagon <a href="/hexagons/@hexagonId/edit">#@hexagonId</a>
+                        @if (!string.IsNullOrEmpty(hexagonH3Index))
+                        {
+                            <text> (<code>@hexagonH3Index</code>)</text>
+                        }
+                    </span>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div style="max-width:500px">
+        <div class="mb-3">
+            <label class="form-label">Camera Make</label>
+            <RadzenTextBox @bind-Value="cameraMake" Style="width:100%" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Camera Model</label>
+            <RadzenTextBox @bind-Value="cameraModel" Style="width:100%" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Date Taken</label>
+            <RadzenDatePicker @bind-Value="dateTaken" ShowTime="true" DateFormat="yyyy-MM-dd HH:mm" Style="width:100%" />
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col">
+                <label class="form-label">Latitude</label>
+                <RadzenNumeric TValue="decimal?" @bind-Value="latitude" Format="F6" Style="width:100%" />
+            </div>
+            <div class="col">
+                <label class="form-label">Longitude</label>
+                <RadzenNumeric TValue="decimal?" @bind-Value="longitude" Format="F6" Style="width:100%" />
+            </div>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col">
+                <label class="form-label">Altitude</label>
+                <RadzenNumeric TValue="double?" @bind-Value="altitude" Format="F2" Style="width:100%" />
+            </div>
+            <div class="col">
+                <label class="form-label">Heading</label>
+                <RadzenNumeric TValue="decimal?" @bind-Value="heading" Format="F2" Style="width:100%" />
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Anomaly Notes (JSON)</label>
+            <RadzenTextArea @bind-Value="anomalyNotes" Rows="3" Style="width:100%;font-family:monospace" />
+        </div>
+
+        <RadzenButton Text="@(submitting ? "Saving…" : "Save")" Icon="save"
+                      ButtonStyle="ButtonStyle.Primary" Disabled="@submitting"
+                      Click="Submit" />
+        <RadzenButton Text="Cancel" ButtonStyle="ButtonStyle.Light" class="ms-2"
+                      Click="@(() => NavigationManager.NavigateTo("/images"))" />
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private string apiBase = string.Empty;
+    private string? fileName;
+    private string? filePath;
+    private int? hexagonId;
+    private string? hexagonH3Index;
+
+    private string? cameraMake;
+    private string? cameraModel;
+    private DateTime? dateTaken;
+    private decimal? latitude;
+    private decimal? longitude;
+    private double? altitude;
+    private decimal? heading;
+    private string? anomalyNotes;
+
+    private bool loaded;
+    private bool submitting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        apiBase = (Configuration["ApiBaseUrl"] ?? string.Empty).TrimEnd('/');
+        var client = HttpClientFactory.CreateClient("ExifApi");
+        try
+        {
+            var img = await client.GetFromJsonAsync<ImageRow>($"api/images/{Id}");
+            if (img is null) { NotificationService.Notify(NotificationSeverity.Error, "Not found", "Image not found.", 5000); return; }
+
+            fileName   = img.FileName;
+            filePath   = img.FilePath;
+            hexagonId  = img.Hexagon?.Id;
+            hexagonH3Index = img.Hexagon?.H3Index;
+            cameraMake = img.CameraMake;
+            cameraModel = img.CameraModel;
+            dateTaken  = img.DateTaken;
+            latitude   = img.Latitude;
+            longitude  = img.Longitude;
+            altitude   = img.Altitude;
+            heading    = img.Heading;
+            anomalyNotes = img.Metadata?.RootElement.GetRawText();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Load failed", ex.Message, 5000);
+            return;
+        }
+        loaded = true;
+    }
+
+    private async Task Submit()
+    {
+        JsonDocument? notesDoc = null;
+        if (!string.IsNullOrWhiteSpace(anomalyNotes))
+        {
+            try { notesDoc = JsonDocument.Parse(anomalyNotes); }
+            catch (JsonException)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Invalid JSON", "Anomaly Notes contains invalid JSON.", 5000);
+                return;
+            }
+        }
+
+        submitting = true;
+        try
+        {
+            var payload = new
+            {
+                CameraMake  = cameraMake,
+                CameraModel = cameraModel,
+                DateTaken   = dateTaken,
+                Latitude    = latitude,
+                Longitude   = longitude,
+                Altitude    = altitude,
+                Heading     = heading,
+                Metadata = notesDoc
+            };
+            var client = HttpClientFactory.CreateClient("ExifApi");
+            var response = await client.PutAsJsonAsync($"api/images/{Id}", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Saved", "Image updated.", 3000);
+                NavigationManager.NavigateTo("/images");
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                NotificationService.Notify(NotificationSeverity.Error, "Save failed", $"({(int)response.StatusCode}) {body}", 6000);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", ex.Message, 6000);
+        }
+        finally
+        {
+            submitting = false;
+        }
+    }
+
+    private record HexagonRow(int Id, string H3Index, int Resolution);
+    private record ImageRow(int Id, string FileName, string FilePath,
+        string? CameraMake, string? CameraModel, DateTime? DateTaken,
+        decimal? Latitude, decimal? Longitude, double? Altitude, decimal? Heading,
+        JsonDocument? Metadata, HexagonRow? Hexagon);
+}
